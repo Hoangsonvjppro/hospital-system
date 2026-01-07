@@ -1,0 +1,238 @@
+erDiagram
+
+    %% 1. QUAN TRI HE THONG
+    VaiTro {
+        int MaVaiTro PK
+        varchar_50 TenVaiTro
+        varchar_255 MoTa
+    }
+
+    NguoiDung {
+        bigint MaNguoiDung PK
+        varchar_50 TenDangNhap
+        varchar_255 MatKhauHash
+        varchar_100 Email
+        enum TrangThai "HOAT_DONG|KHOA|VO_HIEU"
+        timestamp NgayTao
+        timestamp LanDangNhapCuoi
+    }
+
+    NguoiDung_VaiTro {
+        bigint MaNguoiDung PK, FK
+        int MaVaiTro PK, FK
+    }
+
+    %% 2. NHAN SU & DANH MUC
+    KhoaPhong {
+        int MaKhoa PK
+        varchar_100 TenKhoa
+        enum LoaiKhoa "LAM_SANG|CAN_LAM_SANG|DUOC|HANH_CHINH"
+    }
+
+    NhanVien {
+        bigint MaNhanVien PK
+        bigint MaNguoiDung FK
+        varchar_100 HoTen
+        varchar_20 SoDienThoai
+        varchar_50 ChucDanh
+        int MaKhoa FK
+    }
+
+    DichVu {
+        int MaDichVu PK
+        varchar_200 TenDichVu
+        varchar_20 DonViTinh
+        decimal GiaCoBan
+        decimal GiaBHYT
+        int MaKhoa FK
+        boolean KichHoat
+    }
+
+    ICD10 {
+        varchar_10 MaBenh PK
+        varchar_255 TenBenh
+        varchar_50 Chuong
+    }
+
+    %% 3. BENH NHAN & TIEP DON
+    BenhNhan {
+        bigint MaBenhNhan PK
+        varchar_100 HoTen
+        date NgaySinh
+        enum GioiTinh "NAM|NU|KHAC"
+        varchar_20 SoDienThoai
+        varchar_20 CCCD
+        text DiaChi
+        varchar_255 NguoiLienHeKhanCap
+        boolean DaGopHoSo
+        bigint MaBenhNhanGoc
+        timestamp NgayTao
+    }
+
+    TheBHYT {
+        bigint MaThe PK
+        bigint MaBenhNhan FK
+        varchar_20 SoTheBHYT
+        date GiaTriTu
+        date GiaTriDen
+        varchar_10 MaNoiKCB
+    }
+
+    %% 4. KHAM CHUA BENH
+    LuotKham {
+        bigint MaLuotKham PK
+        bigint MaBenhNhan FK
+        bigint MaLeTan
+        bigint MaBacSi FK
+        timestamp NgayKham
+        enum TrangThai "CHO_KHAM|DANG_KHAM|CHO_CLS|HOAN_THANH|HUY"
+        enum LoaiKham "BHYT|DICH_VU|CAP_CUU"
+        varchar_20 SoTheBHYT_SuDung
+        decimal MucHuong
+        boolean DungTuyen
+        text TrieuChungSoBo
+    }
+
+    BenhAn {
+        bigint MaBenhAn PK
+        bigint MaLuotKham FK
+        int Mach
+        decimal NhietDo
+        varchar_20 HuyetAp
+        int NhipTho
+        decimal CanNang
+        decimal ChieuCao
+        decimal BMI
+        text TienSuBenh
+        text KhamThucThe
+        varchar_10 MaICD_Chinh FK
+        text MaICD_Phu
+        text KetLuan
+        text HuongDieuTri
+    }
+
+    %% 5. CAN LAM SANG
+    PhieuChiDinh {
+        bigint MaPhieu PK
+        bigint MaLuotKham FK
+        bigint MaBacSi
+        timestamp NgayChiDinh
+        enum TrangThai "DA_CHI_DINH|DA_THANH_TOAN|DANG_THUC_HIEN|HOAN_THANH"
+    }
+
+    ChiTietChiDinh {
+        bigint MaChiTiet PK
+        bigint MaPhieu FK
+        int MaDichVu FK
+        int SoLuong
+        decimal GiaTaiThoiDiem
+        text GhiChu
+        text KetQuaText
+        text KetQuaHinhAnhURL
+        bigint MaKyThuatVien
+        timestamp ThoiGianHoanThanh
+    }
+
+    %% 6. DUOC & KHO
+    Thuoc {
+        int MaThuoc PK
+        varchar_200 TenThuoc
+        varchar_200 HoatChat
+        varchar_20 DonViTinh
+        int TonToiThieu
+        decimal GiaBan
+    }
+
+    LoThuoc {
+        bigint MaLo PK
+        int MaThuoc FK
+        varchar_50 SoLo
+        date HanSuDung
+        int SoLuongNhap
+        int SoLuongHienTai
+        timestamp NgayNhap
+        varchar_100 NhaCungCap
+    }
+
+    DonThuoc {
+        bigint MaDon PK
+        bigint MaLuotKham FK
+        enum TrangThai "NHAP|DA_CHOT|DA_PHAT"
+    }
+
+    ChiTietDonThuoc {
+        bigint MaChiTiet PK
+        bigint MaDon FK
+        int MaThuoc FK
+        int SoLuong
+        text LieuDung
+        text CachDung
+    }
+
+    TheKho {
+        bigint MaGiaoDich PK
+        bigint MaLo FK
+        enum LoaiGiaoDich "NHAP_KHO|XUAT_KHO|CAN_BANG|TRA_HANG"
+        int SoLuongThayDoi
+        bigint MaThamChieu
+        timestamp NgayGiaoDich
+    }
+
+    %% 7. TAI CHINH
+    HoaDon {
+        bigint MaHoaDon PK
+        bigint MaLuotKham FK
+        bigint MaThuNgan
+        decimal TongTien
+        decimal BHYTChiTra
+        decimal BenhNhanTra
+        enum PhuongThucTT "TIEN_MAT|CHUYEN_KHOAN|THE"
+        enum TrangThai "CHUA_TT|DA_TT|HOAN_TIEN"
+        timestamp NgayTao
+    }
+
+    ChiTietHoaDon {
+        bigint MaChiTiet PK
+        bigint MaHoaDon FK
+        enum LoaiMuc "DICH_VU|THUOC"
+        bigint MaMuc
+        decimal DonGia
+        int SoLuong
+        decimal ThanhTien
+    }
+
+    %% RELATIONSHIPS
+    NguoiDung_VaiTro }o--|| NguoiDung : "MaNguoiDung"
+    NguoiDung_VaiTro }o--|| VaiTro : "MaVaiTro"
+    
+    NhanVien ||--o| NguoiDung : "MaNguoiDung"
+    NhanVien }o--|| KhoaPhong : "MaKhoa"
+    
+    DichVu }o--|| KhoaPhong : "MaKhoa"
+    
+    TheBHYT }o--|| BenhNhan : "MaBenhNhan"
+    
+    LuotKham }o--|| BenhNhan : "MaBenhNhan"
+    LuotKham }o--|| NhanVien : "MaBacSi"
+    
+    BenhAn ||--|| LuotKham : "MaLuotKham"
+    BenhAn }o--|| ICD10 : "MaICD_Chinh"
+    
+    PhieuChiDinh }o--|| LuotKham : "MaLuotKham"
+    
+    ChiTietChiDinh }o--|| PhieuChiDinh : "MaPhieu"
+    ChiTietChiDinh }o--|| DichVu : "MaDichVu"
+    
+    LoThuoc }o--|| Thuoc : "MaThuoc"
+    
+    DonThuoc }o--|| LuotKham : "MaLuotKham"
+    
+    ChiTietDonThuoc }o--|| DonThuoc : "MaDon"
+    ChiTietDonThuoc }o--|| Thuoc : "MaThuoc"
+    
+    TheKho }o--|| LoThuoc : "MaLo"
+    
+    HoaDon }o--|| LuotKham : "MaLuotKham"
+    
+    ChiTietHoaDon }o--|| HoaDon : "MaHoaDon"
+
