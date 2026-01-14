@@ -1,0 +1,179 @@
+erDiagram
+    %% 1. QUAN TRI & DANH MUC
+    NguoiDung {
+        bigserial MaNguoiDung PK
+        varchar TenDangNhap
+        varchar MatKhauHash
+        varchar HoTen
+        varchar VaiTro
+        boolean TrangThai
+    }
+
+    PhongKham {
+        serial MaPhong PK
+        varchar TenPhong
+        varchar LoaiPhong
+    }
+
+    NhanVien {
+        bigserial MaNhanVien PK
+        bigint MaNguoiDung FK
+        int MaPhong FK
+        varchar ChuyenKhoa
+        varchar SoDienThoai
+    }
+
+    DichVu {
+        serial MaDichVu PK
+        varchar TenDichVu
+        decimal GiaDichVu
+        varchar NhomDichVu
+        boolean TrangThai
+    }
+
+    Thuoc {
+        serial MaThuoc PK
+        varchar TenThuoc
+        varchar HoatChat
+        varchar DonViTinh
+        decimal GiaBan
+        int SoLuongTon
+        date HanSuDung
+    }
+
+    %% 2. TIEP DON & LICH HEN
+    BenhNhan {
+        bigserial MaBenhNhan PK
+        varchar HoTen
+        varchar SoDienThoai
+        date NgaySinh
+        varchar GioiTinh
+        text DiaChi
+        text TienSuDiUng
+        text BenhManTinh
+        timestamp NgayTao
+    }
+
+    LichHen {
+        bigserial MaLichHen PK
+        varchar TenBenhNhan
+        varchar SoDienThoai
+        date NgayHen
+        time GioHen
+        text LyDoKham
+        varchar TrangThai
+        bigint MaBenhNhan FK
+    }
+
+    %% 3. QUY TRINH KHAM
+    LuotKham {
+        bigserial MaLuotKham PK
+        bigint MaBenhNhan FK
+        bigint MaBacSi FK
+        int MaPhong FK
+        date NgayKham
+        int SoThuTu
+        boolean UuTien
+        varchar TrangThai
+        varchar TrangThaiThanhToan
+        timestamp ThoiGianTao
+    }
+    
+    %% 4. CHUYEN MON (NEW)
+    BenhAn {
+        bigserial MaBenhAn PK
+        bigint MaLuotKham FK
+        int Mach
+        decimal NhietDo
+        varchar HuyetAp
+        decimal CanNang
+        decimal BMI
+        text LyDoKham
+        text KhamThucThe
+        text ChanDoanChinh
+        varchar MaICD10
+        text LoiDanBacSi
+        timestamp ThoiGianCapNhat
+    }
+
+    ChiDinhDichVu {
+        bigserial MaChiDinh PK
+        bigint MaLuotKham FK
+        int MaDichVu FK
+        int SoLuong
+        decimal DonGia
+        text GhiChu
+        text KetQua
+        text FileKetQua
+        varchar TrangThai
+        boolean DaThanhToan
+    }
+
+    DonThuoc {
+        bigserial MaDon PK
+        bigint MaLuotKham FK
+        text LoiDanChung
+        timestamp NgayKe
+        varchar TrangThai
+    }
+
+    ChiTietDonThuoc {
+        bigserial MaChiTiet PK
+        bigint MaDon FK
+        int MaThuoc FK
+        int SoLuong
+        text CachDung
+        decimal DonGia
+        decimal ThanhTien
+    }
+
+    %% 5. TAI CHINH
+    HoaDon {
+        bigserial MaHoaDon PK
+        bigint MaLuotKham FK
+        bigint MaThuNgan FK
+        decimal TongTien
+        decimal GiamGia
+        decimal ThucThu
+        varchar PhuongThucTT
+        timestamp NgayThanhToan
+        text NoiDungThu
+    }
+
+    ChiTietHoaDon {
+        bigserial MaChiTietHD PK
+        bigint MaHoaDon FK
+        varchar TenMuc
+        varchar DonViTinh
+        int SoLuong
+        decimal DonGia
+        decimal ThanhTien
+        varchar LoaiMuc
+        bigint Ref_MaChiDinh
+        bigint Ref_MaChiTietDon
+    }
+
+    %% Relationships
+    NhanVien ||--|| NguoiDung : "MaNguoiDung"
+    NhanVien }|--|| PhongKham : "MaPhong"
+    
+    LichHen }|--|| BenhNhan : "MaBenhNhan"
+    
+    LuotKham }|--|| BenhNhan : "MaBenhNhan"
+    LuotKham }|--|| NhanVien : "MaBacSi"
+    LuotKham }|--|| PhongKham : "MaPhong"
+    
+    BenhAn ||--|| LuotKham : "MaLuotKham"
+
+    ChiDinhDichVu }|--|| LuotKham : "MaLuotKham"
+    ChiDinhDichVu }|--|| DichVu : "MaDichVu"
+    
+    DonThuoc ||--|| LuotKham : "MaLuotKham"
+    
+    ChiTietDonThuoc }|--|| DonThuoc : "MaDon"
+    ChiTietDonThuoc }|--|| Thuoc : "MaThuoc"
+    
+    HoaDon ||--|| LuotKham : "MaLuotKham"
+    HoaDon }|--|| NhanVien : "MaThuNgan"
+    
+    ChiTietHoaDon }|--|| HoaDon : "MaHoaDon"
