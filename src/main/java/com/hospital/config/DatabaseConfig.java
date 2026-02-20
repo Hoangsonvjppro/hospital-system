@@ -9,9 +9,9 @@ import java.sql.SQLException;
  * Database connection manager.
  */
 public class DatabaseConfig {
-    private static final String URL = "jdbc:mysql://localhost:3306/hospital_db?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh&characterEncoding=utf8mb4";
+    private static final String URL = "jdbc:mysql://localhost:3306/clinic_management?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Ho_Chi_Minh&characterEncoding=utf8mb4";
     private static final String USER = "root";
-    private static final String PASSWORD = "password";
+    private static final String PASSWORD = "123456";
 
     private static DatabaseConfig instance;
     private Connection connection;
