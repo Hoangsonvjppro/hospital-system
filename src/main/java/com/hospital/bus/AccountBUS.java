@@ -5,9 +5,11 @@ import com.hospital.dao.BaseDAO;
 import com.hospital.model.Account;
 import org.mindrot.jbcrypt.BCrypt;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class AccountBUS extends BaseBUS<Account>{
     AccountDAO dao=new AccountDAO();
-
     public AccountBUS(BaseDAO<Account> dao) {
         super(dao);
     }
@@ -46,7 +48,17 @@ public class AccountBUS extends BaseBUS<Account>{
         //gia su tang DAO co ham check duplicate
         return false;
     }
-    public boolean createAccount(Account account,String password){
+    public Account login(String username,String password){
+       Account acc=dao.findUsername();
+       if(acc!=null&&BCrypt.checkpw(password,acc.getPassword())){
+           if(!acc.isActive()){
+               System.err.println("Tài khoản không còn tồn tại");
+               return null;
+           }
+       }
+       return acc;
+    }
+    public boolean insert(Account account,String password){
         if(!validate(account)){
             return false;
         }
@@ -62,15 +74,27 @@ public class AccountBUS extends BaseBUS<Account>{
         account.setPassword(hashedPassword);
         return dao.insert(account);
     }
-    public Account login(String username,String password){
-       Account acc=dao.findUsername();
-       if(acc!=null&&BCrypt.checkpw(password,acc.getPassword())){
-           if(!acc.isActive()){
-               System.err.println("Tài khoản không còn tồn tại");
-               return null;
-           }
-       }
-       return acc;
 
+    @Override
+    public Account findById(int id) {
+        return super.findById(id);
+    }
+
+    @Override
+    public List<Account> findAll() {
+        return dao.findAll();
+    }
+
+    @Override
+    public boolean update(Account entity) {
+        if(!validate(entity)){
+            return false;
+        }
+        return dao.update(entity);
+    }
+
+    @Override
+    public boolean delete(int id) {
+        return dao.delete(id);
     }
 }
