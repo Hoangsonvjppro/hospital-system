@@ -64,4 +64,3 @@ jv-hs/
 4. Tạo BUS tương ứng trong `bus/`
 5. Tạo Panel/Dialog trong `gui/panels/` hoặc `gui/dialogs/`
 6. Đăng ký menu trong `MainFrame.java`
-Son Le
