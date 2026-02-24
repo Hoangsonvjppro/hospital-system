@@ -417,11 +417,25 @@ public class LoginFrame extends JFrame {
                 try {
                     Account account = get();
                     if (account != null) {
-                        // Đăng nhập thành công → mở MainFrame
+                        // Đăng nhập thành công → mở frame theo vai trò
                         dispose();
                         SwingUtilities.invokeLater(() -> {
-                            MainFrame mainFrame = new MainFrame();
-                            mainFrame.setVisible(true);
+                            JFrame frame;
+                            long roleId = account.getRoleId();
+                            if (roleId == 1) {
+                                // ADMIN
+                                frame = new AdminFrame(account);
+                            } else if (roleId == 2) {
+                                // DOCTOR
+                                frame = new DoctorFrame(account);
+                            } else if (roleId == 4) {
+                                // RECEPTIONIST
+                                frame = new ReceptionistFrame(account);
+                            } else {
+                                // Các role khác → MainFrame mặc định
+                                frame = new MainFrame();
+                            }
+                            frame.setVisible(true);
                         });
                     } else {
                         lblGeneralError.setText("Tên đăng nhập hoặc mật khẩu không đúng!");

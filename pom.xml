@@ -17,6 +17,7 @@
         <maven.compiler.source>25</maven.compiler.source>
         <maven.compiler.target>25</maven.compiler.target>
         <mysql.version>9.2.0</mysql.version>
+        <exec.mainClass>com.hospital.Main</exec.mainClass>
     </properties>
 
     <dependencies>
@@ -62,7 +63,7 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.1.0</version>
                 <configuration>
-                    <mainClass>com.hospital.Main</mainClass>
+                    <mainClass>${exec.mainClass}</mainClass>
                 </configuration>
             </plugin>
 
