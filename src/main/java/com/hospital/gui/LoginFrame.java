@@ -125,6 +125,45 @@ public class LoginFrame extends JFrame {
         txtPassword = new JPasswordField();
         txtPassword.putClientProperty("JTextField.placeholderText", "Nhập mật khẩu");
         JPanel passwordField = createInputField(txtPassword, "\uD83D\uDD12");
+
+        // ── Toggle show/hide password (eye icon) ──────────────
+        JLabel eyeToggle = new JLabel("\uD83D\uDC41");
+        eyeToggle.setFont(new Font("SansSerif", Font.PLAIN, 16));
+        eyeToggle.setForeground(ICON_COLOR);
+        eyeToggle.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        eyeToggle.setPreferredSize(new Dimension(28, 24));
+        eyeToggle.setToolTipText("Hiện/Ẩn mật khẩu");
+        eyeToggle.addMouseListener(new MouseAdapter() {
+            private boolean visible = false;
+
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                visible = !visible;
+                if (visible) {
+                    txtPassword.setEchoChar((char) 0); // Hiện mật khẩu
+                    eyeToggle.setText("\uD83D\uDC41");  // 👁
+                    eyeToggle.setForeground(PRIMARY_COLOR);
+                } else {
+                    txtPassword.setEchoChar('•');       // Ẩn mật khẩu
+                    eyeToggle.setText("\uD83D\uDC41");  // 👁
+                    eyeToggle.setForeground(ICON_COLOR);
+                }
+            }
+
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                eyeToggle.setForeground(PRIMARY_COLOR);
+            }
+
+            @Override
+            public void mouseExited(MouseEvent e) {
+                if (txtPassword.getEchoChar() != (char) 0) {
+                    eyeToggle.setForeground(ICON_COLOR);
+                }
+            }
+        });
+        passwordField.add(eyeToggle, BorderLayout.EAST);
+
         card.add(passwordField);
 
         lblPasswordError = createErrorLabel();
