@@ -430,7 +430,13 @@ INSERT INTO Role (role_name, description) VALUES
     ('PATIENT',      'Bệnh nhân (xem lịch sử khám)');
 
 INSERT INTO `User` (username, password_hash, full_name, email, role_id) VALUES
-    ('admin', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'Quản trị viên', 'admin@clinic.local', 1);
+    ('admin',    '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'Quản trị viên',   'admin@clinic.local',    1),
+    ('doctor',   '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'BS. Nguyễn Văn A', 'doctor@clinic.local',   2),
+    ('letan',    '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'Lê Thị B',        'letan@clinic.local',    4);
+
+-- Tạo record Doctor cho user bác sĩ (user_id = 2)
+INSERT INTO Doctor (user_id, specialty, license_no) VALUES
+    (2, 'Nội tổng quát', 'BS-2024-001');
 
 INSERT INTO Service (service_name, price, description) VALUES
     ('Khám tổng quát',          150000, 'Khám bệnh tổng quát'),

@@ -1,6 +1,7 @@
 package com.hospital;
 
-import com.hospital.gui.MainFrame;
+import com.formdev.flatlaf.FlatLightLaf;
+import com.hospital.gui.LoginFrame;
 import javax.swing.*;
 
 /**
@@ -9,17 +10,20 @@ import javax.swing.*;
  */
 public class Main {
     public static void main(String[] args) {
-        // Đặt Look and Feel
+        // Đặt FlatLaf Look and Feel
         try {
-            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+            FlatLightLaf.setup();
+            UIManager.put("TextComponent.arc", 12);
+            UIManager.put("Button.arc", 12);
+            UIManager.put("Component.focusWidth", 1);
         } catch (Exception e) {
             e.printStackTrace();
         }
 
         // Chạy GUI trên Event Dispatch Thread
         SwingUtilities.invokeLater(() -> {
-            MainFrame frame = new MainFrame();
-            frame.setVisible(true);
+            LoginFrame loginFrame = new LoginFrame();
+            loginFrame.setVisible(true);
         });
     }
 }
