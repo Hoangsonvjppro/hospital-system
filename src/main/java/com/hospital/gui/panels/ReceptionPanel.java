@@ -230,11 +230,12 @@ public class ReceptionPanel extends JPanel {
             bus.insert(p);
             // Đưa bệnh nhân vào hàng đợi khám (persist xuống DB)
             String examType = txtExamType.getText().trim();
-            if (!examType.isEmpty()) {
-                // Sử dụng doctor_id mặc định = 1 (bác sĩ duy nhất)
-                // TODO: Cho phép chọn bác sĩ từ form
-                queueBUS.enqueue(p.getId(), 1, examType);
+            if (examType.isEmpty()) {
+                examType = "Khám tổng quát";
             }
+            // Sử dụng doctor_id mặc định = 1 (bác sĩ duy nhất)
+            // TODO: Cho phép chọn bác sĩ từ form
+            queueBUS.enqueue(p.getId(), 1, examType);
             loadTable(bus.findAll());
             clearForm();
             JOptionPane.showMessageDialog(this, "Đã thêm bệnh nhân thành công.", "Thành công", JOptionPane.INFORMATION_MESSAGE);

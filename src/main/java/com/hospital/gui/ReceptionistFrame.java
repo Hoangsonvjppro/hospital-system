@@ -1,5 +1,6 @@
 package com.hospital.gui;
 
+import com.hospital.bus.QueueBUS;
 import com.hospital.model.Account;
 import com.hospital.config.DatabaseConfig;
 
@@ -24,6 +25,7 @@ public class ReceptionistFrame extends JFrame {
     private static final Color TEXT_MUTED    = new Color(0x8899AA);
 
     private final Account account;
+    private final QueueBUS queueBUS = new QueueBUS();
 
     public ReceptionistFrame(Account account) {
         this.account = account;
@@ -165,12 +167,22 @@ public class ReceptionistFrame extends JFrame {
                 return;
             }
 
+            long patientId = (long) table.getValueAt(selectedRow, 0);
             Object patientName = table.getValueAt(selectedRow, 1);
 
-            JOptionPane.showMessageDialog(dialog,
-                    "Đã đưa bệnh nhân " + patientName + " vào phòng khám!");
-
-            dialog.dispose();
+            try {
+                // Tìm doctor_id đầu tiên từ DB
+                long doctorId = findFirstDoctorId();
+                queueBUS.enqueue(patientId, doctorId, "Khám tổng quát");
+                JOptionPane.showMessageDialog(dialog,
+                        "Đã đưa bệnh nhân " + patientName + " vào phòng khám!");
+                dialog.dispose();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                JOptionPane.showMessageDialog(dialog,
+                        "Lỗi khi đưa bệnh nhân vào hàng đợi: " + ex.getMessage(),
+                        "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
         });
 
         JPanel bottomPanel = new JPanel();
@@ -233,5 +245,23 @@ public class ReceptionistFrame extends JFrame {
             });
         });
         return btn;
+    }
+
+    /**
+     * Tìm doctor_id đầu tiên (active) từ DB.
+     * Nếu không tìm thấy, trả về 1 (fallback mặc định).
+     */
+    private long findFirstDoctorId() {
+        String sql = "SELECT doctor_id FROM Doctor WHERE is_active = TRUE ORDER BY doctor_id LIMIT 1";
+        try (Connection conn = DatabaseConfig.getInstance().getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            if (rs.next()) {
+                return rs.getLong("doctor_id");
+            }
+        } catch (SQLException ex) {
+            ex.printStackTrace();
+        }
+        return 1;
     }
 }

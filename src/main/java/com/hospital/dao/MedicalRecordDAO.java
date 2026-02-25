@@ -171,7 +171,7 @@ public class MedicalRecordDAO {
                SET weight         = ?,
                    height         = ?,
                    blood_pressure = ?,
-                   pulse          = ?,
+                   heart_rate     = ?,
                    updated_at     = NOW()
              WHERE record_id      = ?
         """;

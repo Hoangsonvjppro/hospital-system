@@ -78,10 +78,19 @@ public class DoctorWorkstationPanel extends JPanel {
     private int activeTab = 0;
     private JPanel tabBar;
 
+    private javax.swing.Timer refreshTimer;
+
     public DoctorWorkstationPanel() {
         setBackground(BG_COLOR);
         setLayout(new BorderLayout(0, 0));
         initComponents();
+        startAutoRefresh();
+    }
+
+    private void startAutoRefresh() {
+        refreshTimer = new javax.swing.Timer(10_000, e -> loadPatientList());
+        refreshTimer.setRepeats(true);
+        refreshTimer.start();
     }
 
     private void initComponents() {
