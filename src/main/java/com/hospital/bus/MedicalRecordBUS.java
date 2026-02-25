@@ -1,5 +1,6 @@
 package com.hospital.bus;
 
+import com.hospital.config.DatabaseConfig;
 import com.hospital.dao.MedicalRecordDAO;
 import com.hospital.dao.PatientDAO;
 import com.hospital.exception.BusinessException;
@@ -13,15 +14,15 @@ import java.util.List;
 /**
  * Business logic layer cho benh an.
  * Bao gom: tao benh an + cap nhat chan doan, trieu chung, sinh hieu.
- * Ket hop logic hang doi benh nhan tu PatientDAO.
+ * Không còn giữ Connection trong field — mỗi operation tự tạo connection/transaction.
  */
 public class MedicalRecordBUS {
 
-    private MedicalRecordDAO dao;
-    private PatientDAO patientDAO;
+    private final MedicalRecordDAO dao;
+    private final PatientDAO patientDAO;
 
-    public MedicalRecordBUS(Connection connection) {
-        this.dao = new MedicalRecordDAO(connection);
+    public MedicalRecordBUS() {
+        this.dao = new MedicalRecordDAO();
         this.patientDAO = new PatientDAO();
     }
 
@@ -32,8 +33,15 @@ public class MedicalRecordBUS {
         if (doctorId <= 0) {
             throw new BusinessException("Doctor ID không hợp lệ");
         }
-        try {
-            return dao.createEmptyRecord(patientId, doctorId, appointmentId);
+        // Sử dụng transaction: tạo record + có thể cập nhật trạng thái bệnh nhân
+        try (Connection conn = DatabaseConfig.getInstance().getTransactionalConnection()) {
+            MedicalRecordDAO txnRecordDAO = new MedicalRecordDAO(conn);
+            // PatientDAO txnPatientDAO = new PatientDAO(conn); // Sẵn sàng nếu cần thao tác thêm
+
+            long recordId = txnRecordDAO.createEmptyRecord(patientId, doctorId, appointmentId);
+
+            conn.commit();
+            return recordId;
         } catch (SQLException e) {
             throw new DataAccessException("Không thể tạo bệnh án", e);
         }

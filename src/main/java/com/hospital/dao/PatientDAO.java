@@ -1,8 +1,8 @@
 package com.hospital.dao;
 
 import com.hospital.config.DatabaseConfig;
+import com.hospital.exception.DataAccessException;
 import com.hospital.model.Patient;
-import com.hospital.util.AppUtils;
 
 import java.sql.*;
 import java.time.LocalTime;
@@ -23,8 +23,28 @@ public class PatientDAO implements BaseDAO<Patient> {
     // Key: patient_id, Value: [status, examType, arrivalTime]
     private static final Map<Integer, String[]> queueMap = new ConcurrentHashMap<>();
 
+    private Connection externalConnection;
+
+    public PatientDAO() {
+        // Mode 1: Tự lấy connection (cho thao tác đơn lẻ)
+    }
+
+    public PatientDAO(Connection connection) {
+        // Mode 2: Dùng external connection (cho transaction)
+        this.externalConnection = connection;
+    }
+
     private Connection getConnection() throws SQLException {
+        if (externalConnection != null) {
+            return externalConnection;
+        }
         return DatabaseConfig.getInstance().getConnection();
+    }
+
+    private void closeIfOwned(Connection conn) {
+        if (externalConnection == null && conn != null) {
+            try { conn.close(); } catch (SQLException ignored) {}
+        }
     }
 
     // ── CRUD co ban (tu main) ─────────────────────────────────
@@ -32,19 +52,23 @@ public class PatientDAO implements BaseDAO<Patient> {
     @Override
     public Patient findById(int id) {
         String sql = "SELECT * FROM Patient WHERE patient_id = ?";
-
-        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
-            ps.setInt(1, id);
-            ResultSet rs = ps.executeQuery();
-
-            if (rs.next()) {
-                Patient p = mapResultSet(rs);
-                applyQueueInfo(p);
-                return p;
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setInt(1, id);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        Patient p = mapResultSet(rs);
+                        applyQueueInfo(p);
+                        return p;
+                    }
+                }
             }
-
         } catch (SQLException e) {
-            AppUtils.showError(null, "Loi database");
+            throw new DataAccessException("Lỗi truy vấn bệnh nhân ID=" + id, e);
+        } finally {
+            closeIfOwned(conn);
         }
         return null;
     }
@@ -53,72 +77,71 @@ public class PatientDAO implements BaseDAO<Patient> {
     public List<Patient> findAll() {
         List<Patient> list = new ArrayList<>();
         String sql = "SELECT * FROM Patient WHERE is_active = true";
-
-        try (Statement stm = getConnection().createStatement()) {
-            ResultSet rs = stm.executeQuery(sql);
-
-            while (rs.next()) {
-                Patient p = mapResultSet(rs);
-                applyQueueInfo(p);
-                list.add(p);
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (Statement stm = conn.createStatement();
+                 ResultSet rs = stm.executeQuery(sql)) {
+                while (rs.next()) {
+                    Patient p = mapResultSet(rs);
+                    applyQueueInfo(p);
+                    list.add(p);
+                }
             }
-
         } catch (SQLException e) {
-            AppUtils.showError(null, "Loi database");
+            throw new DataAccessException("Lỗi truy vấn danh sách bệnh nhân", e);
+        } finally {
+            closeIfOwned(conn);
         }
-
         return list;
     }
 
     @Override
     public boolean insert(Patient entity) {
-
         String sql = """
                 INSERT INTO Patient
                 (full_name, gender, date_of_birth, phone, address,
                  is_active)
                 VALUES (?,?,?,?,?,?)
                 """;
-
-        try (PreparedStatement ps = getConnection().prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-
-            ps.setString(1, entity.getFullName());
-
-            if (entity.getGender() != null) {
-                ps.setString(2, entity.getGender().name());
-            } else {
-                ps.setString(2, "OTHER");
-            }
-
-            if (entity.getDateOfBirth() != null) {
-                ps.setDate(3, Date.valueOf(entity.getDateOfBirth()));
-            } else {
-                ps.setNull(3, Types.DATE);
-            }
-
-            ps.setString(4, entity.getPhone());
-            ps.setString(5, entity.getAddress());
-            ps.setBoolean(6, entity.isActive());
-
-            int rows = ps.executeUpdate();
-            if (rows > 0) {
-                ResultSet keys = ps.getGeneratedKeys();
-                if (keys.next()) {
-                    entity.setId(keys.getInt(1));
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+                ps.setString(1, entity.getFullName());
+                if (entity.getGender() != null) {
+                    ps.setString(2, entity.getGender().name());
+                } else {
+                    ps.setString(2, "OTHER");
                 }
-                return true;
+                if (entity.getDateOfBirth() != null) {
+                    ps.setDate(3, Date.valueOf(entity.getDateOfBirth()));
+                } else {
+                    ps.setNull(3, Types.DATE);
+                }
+                ps.setString(4, entity.getPhone());
+                ps.setString(5, entity.getAddress());
+                ps.setBoolean(6, entity.isActive());
+
+                int rows = ps.executeUpdate();
+                if (rows > 0) {
+                    ResultSet keys = ps.getGeneratedKeys();
+                    if (keys.next()) {
+                        entity.setId(keys.getInt(1));
+                    }
+                    return true;
+                }
             }
-
         } catch (SQLException e) {
-            AppUtils.showError(null, "Khong the them benh nhan");
+            throw new DataAccessException("Không thể thêm bệnh nhân", e);
+        } finally {
+            closeIfOwned(conn);
         }
-
         return false;
     }
 
     @Override
     public boolean update(Patient entity) {
-
         String sql = """
                 UPDATE Patient
                 SET full_name=?,
@@ -129,50 +152,49 @@ public class PatientDAO implements BaseDAO<Patient> {
                     is_active=?
                 WHERE patient_id=?
                 """;
-
-        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
-
-            ps.setString(1, entity.getFullName());
-
-            if (entity.getGender() != null) {
-                ps.setString(2, entity.getGender().name());
-            } else {
-                ps.setString(2, "OTHER");
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, entity.getFullName());
+                if (entity.getGender() != null) {
+                    ps.setString(2, entity.getGender().name());
+                } else {
+                    ps.setString(2, "OTHER");
+                }
+                if (entity.getDateOfBirth() != null) {
+                    ps.setDate(3, Date.valueOf(entity.getDateOfBirth()));
+                } else {
+                    ps.setNull(3, Types.DATE);
+                }
+                ps.setString(4, entity.getPhone());
+                ps.setString(5, entity.getAddress());
+                ps.setBoolean(6, entity.isActive());
+                ps.setInt(7, entity.getId());
+                return ps.executeUpdate() > 0;
             }
-
-            if (entity.getDateOfBirth() != null) {
-                ps.setDate(3, Date.valueOf(entity.getDateOfBirth()));
-            } else {
-                ps.setNull(3, Types.DATE);
-            }
-
-            ps.setString(4, entity.getPhone());
-            ps.setString(5, entity.getAddress());
-            ps.setBoolean(6, entity.isActive());
-            ps.setInt(7, entity.getId());
-
-            return ps.executeUpdate() > 0;
-
         } catch (SQLException e) {
-            AppUtils.showError(null, "Khong the cap nhat");
+            throw new DataAccessException("Không thể cập nhật bệnh nhân ID=" + entity.getId(), e);
+        } finally {
+            closeIfOwned(conn);
         }
-
-        return false;
     }
 
     @Override
     public boolean delete(int id) {
         String sql = "UPDATE Patient SET is_active=false WHERE patient_id=?";
-
-        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
-            ps.setInt(1, id);
-            return ps.executeUpdate() > 0;
-
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setInt(1, id);
+                return ps.executeUpdate() > 0;
+            }
         } catch (SQLException e) {
-            AppUtils.showError(null, "Khong the xoa");
+            throw new DataAccessException("Không thể xóa bệnh nhân ID=" + id, e);
+        } finally {
+            closeIfOwned(conn);
         }
-
-        return false;
     }
 
     // ── Hang doi kham benh (doctor workflow) ──────────────────

@@ -1,6 +1,7 @@
 package com.hospital.dao;
 
 import com.hospital.config.DatabaseConfig;
+import com.hospital.exception.DataAccessException;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -13,8 +14,28 @@ import java.sql.SQLException;
  */
 public class DashboardDAO {
 
+    private Connection externalConnection;
+
+    public DashboardDAO() {
+        // Mode 1: Tự lấy connection
+    }
+
+    public DashboardDAO(Connection connection) {
+        // Mode 2: Dùng external connection
+        this.externalConnection = connection;
+    }
+
     private Connection getConnection() throws SQLException {
+        if (externalConnection != null) {
+            return externalConnection;
+        }
         return DatabaseConfig.getInstance().getConnection();
+    }
+
+    private void closeIfOwned(Connection conn) {
+        if (externalConnection == null && conn != null) {
+            try { conn.close(); } catch (SQLException ignored) {}
+        }
     }
 
     /**
@@ -68,13 +89,19 @@ public class DashboardDAO {
     // ── Helper ────────────────────────────────────────────────
 
     private int queryCount(String sql) {
-        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
-            ResultSet rs = ps.executeQuery();
-            if (rs.next()) {
-                return rs.getInt(1);
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql);
+                 ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1);
+                }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new DataAccessException("Lỗi thống kê Dashboard", e);
+        } finally {
+            closeIfOwned(conn);
         }
         return 0;
     }

@@ -1,6 +1,7 @@
 package com.hospital.dao;
 
 import com.hospital.config.DatabaseConfig;
+import com.hospital.exception.DataAccessException;
 import com.hospital.model.Account;
 
 import java.sql.*;
@@ -18,8 +19,28 @@ import java.util.List;
  */
 public class AccountDAO implements BaseDAO<Account> {
 
+    private Connection externalConnection;
+
+    public AccountDAO() {
+        // Mode 1: Tự lấy connection (cho thao tác đơn lẻ)
+    }
+
+    public AccountDAO(Connection connection) {
+        // Mode 2: Dùng external connection (cho transaction)
+        this.externalConnection = connection;
+    }
+
     private Connection getConnection() throws SQLException {
+        if (externalConnection != null) {
+            return externalConnection;
+        }
         return DatabaseConfig.getInstance().getConnection();
+    }
+
+    private void closeIfOwned(Connection conn) {
+        if (externalConnection == null && conn != null) {
+            try { conn.close(); } catch (SQLException ignored) {}
+        }
     }
 
     // ── CRUD cơ bản (BaseDAO) ─────────────────────────────────
@@ -27,14 +48,21 @@ public class AccountDAO implements BaseDAO<Account> {
     @Override
     public Account findById(int id) {
         String sql = "SELECT * FROM `User` WHERE user_id = ?";
-        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
-            ps.setInt(1, id);
-            ResultSet rs = ps.executeQuery();
-            if (rs.next()) {
-                return mapResultSet(rs);
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setInt(1, id);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return mapResultSet(rs);
+                    }
+                }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new DataAccessException("Lỗi truy vấn tài khoản ID=" + id, e);
+        } finally {
+            closeIfOwned(conn);
         }
         return null;
     }
@@ -43,13 +71,19 @@ public class AccountDAO implements BaseDAO<Account> {
     public List<Account> findAll() {
         List<Account> list = new ArrayList<>();
         String sql = "SELECT * FROM `User`";
-        try (Statement stmt = getConnection().createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-            while (rs.next()) {
-                list.add(mapResultSet(rs));
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (Statement stmt = conn.createStatement();
+                 ResultSet rs = stmt.executeQuery(sql)) {
+                while (rs.next()) {
+                    list.add(mapResultSet(rs));
+                }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new DataAccessException("Lỗi truy vấn danh sách tài khoản", e);
+        } finally {
+            closeIfOwned(conn);
         }
         return list;
     }
@@ -58,51 +92,66 @@ public class AccountDAO implements BaseDAO<Account> {
     public boolean insert(Account account) {
         String sql = "INSERT INTO `User` (username, password_hash, full_name, email, phone, role_id, is_active) "
                    + "VALUES (?, ?, ?, ?, ?, ?, ?)";
-        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
-            ps.setString(1, account.getUsername());
-            ps.setString(2, account.getPasswordHash());
-            ps.setString(3, account.getFullName());
-            ps.setString(4, account.getEmail());
-            ps.setString(5, account.getPhone());
-            ps.setLong(6, account.getRoleId());
-            ps.setBoolean(7, account.isActive());
-            return ps.executeUpdate() > 0;
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, account.getUsername());
+                ps.setString(2, account.getPasswordHash());
+                ps.setString(3, account.getFullName());
+                ps.setString(4, account.getEmail());
+                ps.setString(5, account.getPhone());
+                ps.setLong(6, account.getRoleId());
+                ps.setBoolean(7, account.isActive());
+                return ps.executeUpdate() > 0;
+            }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new DataAccessException("Không thể thêm tài khoản", e);
+        } finally {
+            closeIfOwned(conn);
         }
-        return false;
     }
 
     @Override
     public boolean update(Account account) {
         String sql = "UPDATE `User` SET username = ?, password_hash = ?, full_name = ?, "
                    + "email = ?, phone = ?, role_id = ?, is_active = ? WHERE user_id = ?";
-        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
-            ps.setString(1, account.getUsername());
-            ps.setString(2, account.getPasswordHash());
-            ps.setString(3, account.getFullName());
-            ps.setString(4, account.getEmail());
-            ps.setString(5, account.getPhone());
-            ps.setLong(6, account.getRoleId());
-            ps.setBoolean(7, account.isActive());
-            ps.setInt(8, account.getId());
-            return ps.executeUpdate() > 0;
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, account.getUsername());
+                ps.setString(2, account.getPasswordHash());
+                ps.setString(3, account.getFullName());
+                ps.setString(4, account.getEmail());
+                ps.setString(5, account.getPhone());
+                ps.setLong(6, account.getRoleId());
+                ps.setBoolean(7, account.isActive());
+                ps.setInt(8, account.getId());
+                return ps.executeUpdate() > 0;
+            }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new DataAccessException("Không thể cập nhật tài khoản ID=" + account.getId(), e);
+        } finally {
+            closeIfOwned(conn);
         }
-        return false;
     }
 
     @Override
     public boolean delete(int id) {
         String sql = "DELETE FROM `User` WHERE user_id = ?";
-        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
-            ps.setInt(1, id);
-            return ps.executeUpdate() > 0;
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setInt(1, id);
+                return ps.executeUpdate() > 0;
+            }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new DataAccessException("Không thể xóa tài khoản ID=" + id, e);
+        } finally {
+            closeIfOwned(conn);
         }
-        return false;
     }
 
     // ── Truy vấn phục vụ đăng nhập ───────────────────────────
@@ -117,14 +166,21 @@ public class AccountDAO implements BaseDAO<Account> {
      */
     public Account findByUsername(String username) {
         String sql = "SELECT * FROM `User` WHERE username = ? AND is_active = TRUE";
-        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
-            ps.setString(1, username);
-            ResultSet rs = ps.executeQuery();
-            if (rs.next()) {
-                return mapResultSet(rs);
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, username);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return mapResultSet(rs);
+                    }
+                }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new DataAccessException("Lỗi tìm tài khoản: " + username, e);
+        } finally {
+            closeIfOwned(conn);
         }
         return null;
     }
@@ -138,14 +194,21 @@ public class AccountDAO implements BaseDAO<Account> {
      */
     public boolean existsByUsername(String username) {
         String sql = "SELECT COUNT(*) FROM `User` WHERE username = ?";
-        try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
-            ps.setString(1, username);
-            ResultSet rs = ps.executeQuery();
-            if (rs.next()) {
-                return rs.getInt(1) > 0;
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, username);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getInt(1) > 0;
+                    }
+                }
             }
         } catch (SQLException e) {
-            e.printStackTrace();
+            throw new DataAccessException("Lỗi kiểm tra username: " + username, e);
+        } finally {
+            closeIfOwned(conn);
         }
         return false;
     }
