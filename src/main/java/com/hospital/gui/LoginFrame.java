@@ -470,6 +470,9 @@ public class LoginFrame extends JFrame {
                             } else if (roleId == 4) {
                                 // RECEPTIONIST
                                 frame = new ReceptionistFrame(account);
+                            } else if (roleId == 5) {
+                                // ACCOUNTANT
+                                frame = new AccountantFrame(account);
                             } else {
                                 // Các role khác → MainFrame mặc định
                                 frame = new MainFrame();

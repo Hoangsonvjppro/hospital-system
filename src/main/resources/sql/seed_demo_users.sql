@@ -9,7 +9,8 @@ USE clinic_management;
 INSERT IGNORE INTO `User` (username, password_hash, full_name, email, role_id) VALUES
     ('admin',    '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'Quản trị viên',   'admin@clinic.local',    1),
     ('doctor',   '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'BS. Nguyễn Văn A', 'doctor@clinic.local',   2),
-    ('letan',    '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'Lê Thị B',        'letan@clinic.local',    4);
+    ('letan',    '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'Lê Thị B',        'letan@clinic.local',    4),
+    ('ketoan',   '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'Lê Thị C',        'ketoan@clinic.local',    5);
 
 -- Tạo record Doctor cho user bác sĩ
 INSERT IGNORE INTO Doctor (user_id, specialty, license_no)
