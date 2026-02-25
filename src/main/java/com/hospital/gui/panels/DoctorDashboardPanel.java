@@ -2,6 +2,7 @@ package com.hospital.gui.panels;
 
 import com.hospital.bus.AppointmentBUS;
 import com.hospital.bus.PatientBUS;
+import com.hospital.bus.QueueBUS;
 import com.hospital.gui.UIConstants;
 import com.hospital.gui.components.RoundedButton;
 import com.hospital.gui.components.RoundedPanel;
@@ -23,6 +24,7 @@ public class DoctorDashboardPanel extends JPanel {
 
     private final PatientBUS     patientBUS     = new PatientBUS();
     private final AppointmentBUS appointmentBUS = new AppointmentBUS();
+    private final QueueBUS       queueBUS       = new QueueBUS();
 
     private DefaultTableModel waitingModel;
     private JTable waitingTable;
@@ -90,12 +92,9 @@ public class DoctorDashboardPanel extends JPanel {
         p.setOpaque(false);
         p.setPreferredSize(new Dimension(0, 100));
 
-        long waiting = patientBUS.findAll().stream()
-            .filter(pt -> "CHỜ KHÁM".equals(pt.getStatus())).count();
-        long inProgress = patientBUS.findAll().stream()
-            .filter(pt -> "ĐANG KHÁM".equals(pt.getStatus())).count();
-        long done = patientBUS.findAll().stream()
-            .filter(pt -> "XONG".equals(pt.getStatus())).count();
+        long waiting = queueBUS.countByStatus("WAITING");
+        long inProgress = queueBUS.countByStatus("EXAMINING");
+        long done = queueBUS.countByStatus("COMPLETED");
 
         p.add(new StatCard("Chờ khám",    String.valueOf(waiting),
                 "Bệnh nhân đang đợi", "⏳", UIConstants.WARNING_ORANGE));
@@ -311,9 +310,7 @@ public class DoctorDashboardPanel extends JPanel {
     // ── Helpers ───────────────────────────────────────────────────────────────
     private void loadWaiting() {
         waitingModel.setRowCount(0);
-        List<Patient> list = patientBUS.findAll().stream()
-            .filter(p -> !"XONG".equals(p.getStatus()))
-            .collect(java.util.stream.Collectors.toList());
+        List<Patient> list = queueBUS.getWaitingPatients();
         int no = 1;
         for (Patient p : list) {
             waitingModel.addRow(new Object[]{
@@ -326,10 +323,10 @@ public class DoctorDashboardPanel extends JPanel {
     private void callSelectedRow(int row) {
         if (row >= 0 && row < waitingModel.getRowCount()) {
             String code = (String) waitingModel.getValueAt(row, 1);
-            patientBUS.findAll().stream()
+            queueBUS.getWaitingPatients().stream()
                 .filter(p -> p.getPatientCode().equals(code))
                 .findFirst()
-                .ifPresent(p -> patientBUS.updateStatus(p.getId(), "ĐANG KHÁM"));
+                .ifPresent(p -> queueBUS.updateQueueStatus(p.getCurrentRecordId(), "EXAMINING"));
             loadWaiting();
             JOptionPane.showMessageDialog(this,
                 "Đã gọi bệnh nhân vào phòng khám.", "Gọi khám",
@@ -338,11 +335,10 @@ public class DoctorDashboardPanel extends JPanel {
     }
 
     private void callNextPatient() {
-        patientBUS.findAll().stream()
-            .filter(p -> "CHỜ KHÁM".equals(p.getStatus()))
+        queueBUS.getPatientsByStatus("WAITING").stream()
             .findFirst()
             .ifPresentOrElse(p -> {
-                patientBUS.updateStatus(p.getId(), "ĐANG KHÁM");
+                queueBUS.updateQueueStatus(p.getCurrentRecordId(), "EXAMINING");
                 loadWaiting();
                 JOptionPane.showMessageDialog(this,
                     "Đã gọi bệnh nhân: " + p.getFullName(), "Gọi khám",

@@ -5,18 +5,14 @@ import com.hospital.exception.BusinessException;
 import com.hospital.model.Patient;
 import com.hospital.util.AppUtils;
 
-import java.util.List;
-
 /**
- * BUS benh nhan — validation + quan ly hang doi kham.
+ * BUS benh nhan — validation + CRUD.
+ * Các method liên quan hàng đợi đã chuyển sang QueueBUS.
  */
 public class PatientBUS extends BaseBUS<Patient> {
 
-    private final PatientDAO patientDAO;
-
     public PatientBUS() {
         super(new PatientDAO());
-        this.patientDAO = (PatientDAO) dao;
     }
 
     @Override
@@ -35,27 +31,5 @@ public class PatientBUS extends BaseBUS<Patient> {
         }
 
         return true;
-    }
-
-    // -- Doctor workflow methods --
-
-    public void addToQueue(int patientId, String examType) {
-        patientDAO.addToQueue(patientId, examType);
-    }
-
-    public List<Patient> getWaitingPatients() {
-        return patientDAO.findWaiting();
-    }
-
-    public List<Patient> getPatientsByStatus(String status) {
-        return patientDAO.findByStatus(status);
-    }
-
-    public boolean updateStatus(int patientId, String newStatus) {
-        return patientDAO.updateStatus(patientId, newStatus);
-    }
-
-    public int countToday() {
-        return patientDAO.countToday();
     }
 }

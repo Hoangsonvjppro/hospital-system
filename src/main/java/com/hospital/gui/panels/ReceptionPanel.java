@@ -1,12 +1,12 @@
 package com.hospital.gui.panels;
 
 import com.hospital.bus.PatientBUS;
+import com.hospital.bus.QueueBUS;
 import com.hospital.exception.BusinessException;
 import com.hospital.exception.DataAccessException;
 import com.hospital.gui.UIConstants;
 import com.hospital.gui.components.RoundedButton;
 import com.hospital.gui.components.RoundedPanel;
-import com.hospital.gui.components.StatusBadge;
 import com.hospital.model.Patient;
 
 import javax.swing.*;
@@ -21,12 +21,13 @@ import java.util.List;
 public class ReceptionPanel extends JPanel {
 
     private final PatientBUS bus = new PatientBUS();
+    private final QueueBUS queueBUS = new QueueBUS();
     private DefaultTableModel tableModel;
     private JTable table;
 
     // Form fields
-    private JTextField txtCode, txtName, txtPhone, txtAddress, txtArrival, txtExamType;
-    private JComboBox<String> cbGender, cbStatus;
+    private JTextField txtName, txtPhone, txtAddress, txtExamType;
+    private JComboBox<String> cbGender;
     private JSpinner spnBirthYear;
 
     public ReceptionPanel() {
@@ -76,27 +77,21 @@ public class ReceptionPanel extends JPanel {
         g.insets = new Insets(5, 0, 5, 0);
         g.gridx = 0; g.weightx = 1;
 
-        txtCode      = new JTextField();
         txtName      = new JTextField();
         txtPhone     = new JTextField();
         txtAddress   = new JTextField();
-        txtArrival   = new JTextField("08:00");
         txtExamType  = new JTextField();
         cbGender     = new JComboBox<>(new String[]{"Nam", "Nữ"});
-        cbStatus     = new JComboBox<>(new String[]{"CHỜ KHÁM", "ĐANG KHÁM", "XONG"});
         spnBirthYear = new JSpinner(new SpinnerNumberModel(1990, 1900, 2026, 1));
         spnBirthYear.setEditor(new JSpinner.NumberEditor(spnBirthYear, "#"));
 
         Object[][] rows = {
-            {"Mã BN (*)", txtCode},
             {"Họ và tên (*)", txtName},
             {"Năm sinh", spnBirthYear},
             {"Giới tính", cbGender},
             {"Số điện thoại (*)", txtPhone},
             {"Địa chỉ", txtAddress},
-            {"Giờ tiếp nhận", txtArrival},
             {"Loại khám", txtExamType},
-            {"Trạng thái", cbStatus},
         };
 
         int gridy = 0;
@@ -162,7 +157,7 @@ public class ReceptionPanel extends JPanel {
         card.add(topBar, BorderLayout.NORTH);
 
         // Table
-        String[] cols = {"Mã BN", "Họ và tên", "Tuổi", "Giới tính", "Điện thoại", "Giờ nhận", "Loại khám", "Trạng thái"};
+        String[] cols = {"Mã BN", "Họ và tên", "Tuổi", "Giới tính", "Điện thoại", "Địa chỉ"};
         tableModel = new DefaultTableModel(cols, 0) {
             @Override public boolean isCellEditable(int r, int c) { return false; }
         };
@@ -178,15 +173,7 @@ public class ReceptionPanel extends JPanel {
         header.setFont(UIConstants.FONT_BOLD);
 
         // Status renderer
-        table.getColumnModel().getColumn(7).setCellRenderer(
-            new DefaultTableCellRenderer() {
-                @Override public Component getTableCellRendererComponent(
-                        JTable t, Object v, boolean s, boolean f, int r, int c) {
-                    StatusBadge badge = new StatusBadge(v == null ? "" : v.toString());
-                    badge.setHorizontalAlignment(SwingConstants.CENTER);
-                    return badge;
-                }
-            });
+        // (removed — status column no longer in patient table)
 
         // Selection listener to populate form
         table.getSelectionModel().addListSelectionListener(e -> {
@@ -206,8 +193,7 @@ public class ReceptionPanel extends JPanel {
         for (Patient p : list) {
             tableModel.addRow(new Object[]{
                 p.getPatientCode(), p.getFullName(), p.getAge(),
-                p.getGender(), p.getPhone(), p.getArrivalTime(),
-                p.getExamType(), p.getStatus()
+                p.getGender(), p.getPhone(), p.getAddress()
             });
         }
     }
@@ -224,10 +210,9 @@ public class ReceptionPanel extends JPanel {
     }
 
     private void addPatient() {
-        String code = txtCode.getText().trim();
         String name = txtName.getText().trim();
         String phone = txtPhone.getText().trim();
-        if (code.isEmpty() || name.isEmpty() || phone.isEmpty()) {
+        if (name.isEmpty() || phone.isEmpty()) {
             JOptionPane.showMessageDialog(this, "Vui lòng điền các trường có dấu (*)", "Thiếu thông tin", JOptionPane.WARNING_MESSAGE);
             return;
         }
@@ -236,18 +221,20 @@ public class ReceptionPanel extends JPanel {
         Patient p = new Patient();
         p.setFullName(name);
         String genderStr = (String) cbGender.getSelectedItem();
-        p.setGender("Nu".equals(genderStr) ? Patient.Gender.FEMALE : Patient.Gender.MALE);
+        p.setGender("Nữ".equals(genderStr) ? Patient.Gender.FEMALE : Patient.Gender.MALE);
         p.setDateOfBirth(LocalDate.of(year, 1, 1));
         p.setPhone(phone);
         p.setAddress(txtAddress.getText().trim());
         p.setActive(true);
-        // Truong workflow (in-memory)
-        p.setPatientCode(code);
-        p.setStatus((String) cbStatus.getSelectedItem());
-        p.setExamType(txtExamType.getText().trim());
-        p.setArrivalTime(txtArrival.getText().trim());
         try {
             bus.insert(p);
+            // Đưa bệnh nhân vào hàng đợi khám (persist xuống DB)
+            String examType = txtExamType.getText().trim();
+            if (!examType.isEmpty()) {
+                // Sử dụng doctor_id mặc định = 1 (bác sĩ duy nhất)
+                // TODO: Cho phép chọn bác sĩ từ form
+                queueBUS.enqueue(p.getId(), 1, examType);
+            }
             loadTable(bus.findAll());
             clearForm();
             JOptionPane.showMessageDialog(this, "Đã thêm bệnh nhân thành công.", "Thành công", JOptionPane.INFORMATION_MESSAGE);
@@ -276,19 +263,15 @@ public class ReceptionPanel extends JPanel {
     }
 
     private void populateForm(int row) {
-        txtCode.setText((String) tableModel.getValueAt(row, 0));
         txtName.setText((String) tableModel.getValueAt(row, 1));
         txtPhone.setText((String) tableModel.getValueAt(row, 4));
-        txtArrival.setText((String) tableModel.getValueAt(row, 5));
-        txtExamType.setText((String) tableModel.getValueAt(row, 6));
         cbGender.setSelectedItem(tableModel.getValueAt(row, 3));
-        cbStatus.setSelectedItem(tableModel.getValueAt(row, 7));
     }
 
     private void clearForm() {
-        txtCode.setText(""); txtName.setText(""); txtPhone.setText("");
-        txtAddress.setText(""); txtArrival.setText("08:00"); txtExamType.setText("");
-        cbGender.setSelectedIndex(0); cbStatus.setSelectedIndex(0);
+        txtName.setText(""); txtPhone.setText("");
+        txtAddress.setText(""); txtExamType.setText("");
+        cbGender.setSelectedIndex(0);
         spnBirthYear.setValue(1990);
         table.clearSelection();
     }

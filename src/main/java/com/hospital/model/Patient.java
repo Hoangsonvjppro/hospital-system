@@ -20,11 +20,12 @@ public class Patient extends BaseModel {
     private Long userId;
     private boolean isActive;
 
-    // -- Truong workflow (in-memory, phuc vu hang doi kham) --
+    // -- Truong workflow (transient, phuc vu hang doi kham) --
     private String patientCode;   // Ma BN hien thi (vd: "BN001")
-    private String status;        // CHO KHAM / DANG KHAM / XONG
+    private String status;        // WAITING / EXAMINING / COMPLETED / TRANSFERRED
     private String examType;      // Loai kham (vd: "Kham tong quat")
     private String arrivalTime;   // Gio den (vd: "08:30")
+    private long currentRecordId; // Record ID hien tai (dung cho queue workflow)
 
     public enum Gender {
         MALE("Nam"),
@@ -126,6 +127,9 @@ public class Patient extends BaseModel {
     // -- Workflow field getters/setters --
 
     public String getPatientCode() {
+        if (patientCode == null || patientCode.isEmpty()) {
+            return String.format("BN%03d", id);
+        }
         return patientCode;
     }
 
@@ -155,6 +159,14 @@ public class Patient extends BaseModel {
 
     public void setArrivalTime(String arrivalTime) {
         this.arrivalTime = arrivalTime;
+    }
+
+    public long getCurrentRecordId() {
+        return currentRecordId;
+    }
+
+    public void setCurrentRecordId(long currentRecordId) {
+        this.currentRecordId = currentRecordId;
     }
 
     // -- Helper methods --

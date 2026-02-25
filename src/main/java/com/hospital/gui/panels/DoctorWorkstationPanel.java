@@ -1,6 +1,6 @@
 package com.hospital.gui.panels;
 
-import com.hospital.bus.PatientBUS;
+import com.hospital.bus.QueueBUS;
 import com.hospital.exception.BusinessException;
 import com.hospital.exception.DataAccessException;
 import com.hospital.gui.UIConstants;
@@ -53,12 +53,13 @@ public class DoctorWorkstationPanel extends JPanel {
         "Thong tin & Sinh hieu", "Kham benh", "Chi dinh Dich vu", "Ke don thuoc"
     };
 
-    private final PatientBUS patientBUS = new PatientBUS();
+    private final QueueBUS queueBUS = new QueueBUS();
 
     private JPanel patientListPanel;
     private JPanel rightContentPanel;
     private JLabel lblPatientCount;
     private Patient selectedPatient;
+    private long selectedRecordId = -1;
     private int selectedIndex = -1;
 
     private JTextField txtWeight;
@@ -98,7 +99,7 @@ public class DoctorWorkstationPanel extends JPanel {
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 11));
         lblTitle.setForeground(TEXT_SECONDARY);
 
-        List<Patient> waiting = patientBUS.getWaitingPatients();
+        List<Patient> waiting = queueBUS.getWaitingPatients();
         lblPatientCount = new JLabel(waiting.size() + " Patients");
         lblPatientCount.setFont(FONT_HEADER);
         lblPatientCount.setForeground(TEXT_DARK);
@@ -151,7 +152,7 @@ public class DoctorWorkstationPanel extends JPanel {
 
     private void loadPatientList() {
         patientListPanel.removeAll();
-        List<Patient> waiting = patientBUS.getWaitingPatients();
+        List<Patient> waiting = queueBUS.getWaitingPatients();
         lblPatientCount.setText(waiting.size() + " Patients");
 
         for (int i = 0; i < waiting.size(); i++) {
@@ -238,7 +239,7 @@ public class DoctorWorkstationPanel extends JPanel {
 
         card.add(info, BorderLayout.CENTER);
 
-        if (isSelected || "DANG KHAM".equals(patient.getStatus())) {
+        if (isSelected || "EXAMINING".equals(patient.getStatus())) {
             JLabel dot = new JLabel() {
                 @Override
                 protected void paintComponent(Graphics g) {
@@ -261,6 +262,11 @@ public class DoctorWorkstationPanel extends JPanel {
             public void mousePressed(MouseEvent e) {
                 selectedIndex = index;
                 selectedPatient = patient;
+                selectedRecordId = patient.getCurrentRecordId();
+                // Cập nhật trạng thái: WAITING → EXAMINING
+                if ("WAITING".equals(patient.getStatus())) {
+                    queueBUS.updateQueueStatus(selectedRecordId, "EXAMINING");
+                }
                 loadPatientList();
                 updateRightPanel();
             }
@@ -284,10 +290,11 @@ public class DoctorWorkstationPanel extends JPanel {
 
         right.add(createBottomBar(), BorderLayout.SOUTH);
 
-        List<Patient> waiting = patientBUS.getWaitingPatients();
+        List<Patient> waiting = queueBUS.getWaitingPatients();
         if (!waiting.isEmpty()) {
             selectedIndex = 0;
             selectedPatient = waiting.get(0);
+            selectedRecordId = selectedPatient.getCurrentRecordId();
             loadPatientList();
             updateRightPanel();
         } else {
@@ -674,12 +681,12 @@ public class DoctorWorkstationPanel extends JPanel {
 
     // ACTIONS
     private void onSaveAndComplete() {
-        if (selectedPatient == null) {
+        if (selectedPatient == null || selectedRecordId <= 0) {
             JOptionPane.showMessageDialog(this, "Vui long chon benh nhan.", "Thong bao", JOptionPane.WARNING_MESSAGE);
             return;
         }
         try {
-            patientBUS.updateStatus(selectedPatient.getId(), "XONG");
+            queueBUS.updateQueueStatus(selectedRecordId, "COMPLETED");
             JOptionPane.showMessageDialog(this,
                     "Da luu va hoan tat kham cho benh nhan: " + selectedPatient.getFullName(),
                     "Thanh cong", JOptionPane.INFORMATION_MESSAGE);
@@ -692,12 +699,12 @@ public class DoctorWorkstationPanel extends JPanel {
     }
 
     private void onTransferPayment() {
-        if (selectedPatient == null) {
+        if (selectedPatient == null || selectedRecordId <= 0) {
             JOptionPane.showMessageDialog(this, "Vui long chon benh nhan.", "Thong bao", JOptionPane.WARNING_MESSAGE);
             return;
         }
         try {
-            patientBUS.updateStatus(selectedPatient.getId(), "XONG");
+            queueBUS.updateQueueStatus(selectedRecordId, "TRANSFERRED");
             JOptionPane.showMessageDialog(this,
                     "Da chuyen benh nhan " + selectedPatient.getFullName() + " sang thanh toan.",
                     "Chuyen thanh toan", JOptionPane.INFORMATION_MESSAGE);
@@ -712,10 +719,12 @@ public class DoctorWorkstationPanel extends JPanel {
     private void refreshAfterAction() {
         selectedIndex = -1;
         selectedPatient = null;
-        List<Patient> waiting = patientBUS.getWaitingPatients();
+        selectedRecordId = -1;
+        List<Patient> waiting = queueBUS.getWaitingPatients();
         if (!waiting.isEmpty()) {
             selectedIndex = 0;
             selectedPatient = waiting.get(0);
+            selectedRecordId = selectedPatient.getCurrentRecordId();
         }
         loadPatientList();
         updateRightPanel();

@@ -2,28 +2,24 @@ package com.hospital.bus;
 
 import com.hospital.config.DatabaseConfig;
 import com.hospital.dao.MedicalRecordDAO;
-import com.hospital.dao.PatientDAO;
 import com.hospital.exception.BusinessException;
 import com.hospital.exception.DataAccessException;
-import com.hospital.model.Patient;
 
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.List;
 
 /**
  * Business logic layer cho benh an.
  * Bao gom: tao benh an + cap nhat chan doan, trieu chung, sinh hieu.
  * Không còn giữ Connection trong field — mỗi operation tự tạo connection/transaction.
+ * Các method liên quan hàng đợi đã chuyển sang QueueBUS.
  */
 public class MedicalRecordBUS {
 
     private final MedicalRecordDAO dao;
-    private final PatientDAO patientDAO;
 
     public MedicalRecordBUS() {
         this.dao = new MedicalRecordDAO();
-        this.patientDAO = new PatientDAO();
     }
 
     public long createMedicalRecord(long patientId, long doctorId, Long appointmentId) {
@@ -122,13 +118,5 @@ public class MedicalRecordBUS {
         } catch (SQLException e) {
             throw new DataAccessException("Không thể cập nhật trạng thái bệnh án", e);
         }
-    }
-
-    public List<Patient> getWaitingPatients() {
-        return patientDAO.findWaiting();
-    }
-
-    public List<Patient> getPatientsByStatus(String status) {
-        return patientDAO.findByStatus(status);
     }
 }

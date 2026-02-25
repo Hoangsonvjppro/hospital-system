@@ -230,6 +230,10 @@ CREATE TABLE MedicalRecord (
     symptoms       TEXT,
     diagnosis      TEXT,
     notes          TEXT,
+    -- Hàng đợi khám bệnh (queue)
+    queue_status   ENUM('WAITING','EXAMINING','COMPLETED','TRANSFERRED') DEFAULT NULL,
+    arrival_time   TIME         DEFAULT NULL,
+    exam_type      VARCHAR(100) DEFAULT NULL,
     created_at     DATETIME     DEFAULT CURRENT_TIMESTAMP,
     updated_at     DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (patient_id)     REFERENCES Patient(patient_id),
@@ -399,6 +403,7 @@ CREATE INDEX idx_ingredient_name ON MedicineIngredient(ingredient_name);
 -- Lịch sử khám
 CREATE INDEX idx_record_patient ON MedicalRecord(patient_id, visit_date);
 CREATE INDEX idx_record_doctor  ON MedicalRecord(doctor_id, visit_date);
+CREATE INDEX idx_record_queue   ON MedicalRecord(queue_status, visit_date);
 
 -- Doanh thu
 CREATE INDEX idx_invoice_date   ON Invoice(invoice_date);

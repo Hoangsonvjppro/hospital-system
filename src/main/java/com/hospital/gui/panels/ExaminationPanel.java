@@ -2,6 +2,7 @@ package com.hospital.gui.panels;
 
 import com.hospital.bus.DoctorBUS;
 import com.hospital.bus.PatientBUS;
+import com.hospital.bus.QueueBUS;
 import com.hospital.gui.UIConstants;
 import com.hospital.gui.components.RoundedButton;
 import com.hospital.gui.components.RoundedPanel;
@@ -21,6 +22,7 @@ public class ExaminationPanel extends JPanel {
 
     private final PatientBUS patientBUS = new PatientBUS();
     private final DoctorBUS  doctorBUS  = new DoctorBUS();
+    private final QueueBUS   queueBUS   = new QueueBUS();
 
     private DefaultTableModel waitingModel;
     private DefaultTableModel doctorModel;
@@ -192,7 +194,7 @@ public class ExaminationPanel extends JPanel {
     // ── Logic ─────────────────────────────────────────────────────────────────
     private void loadWaiting() {
         waitingModel.setRowCount(0);
-        for (Patient p : patientBUS.getWaitingPatients()) {
+        for (Patient p : queueBUS.getWaitingPatients()) {
             waitingModel.addRow(new Object[]{
                 p.getPatientCode(), p.getFullName(), p.getExamType(), p.getStatus()
             });
@@ -203,10 +205,10 @@ public class ExaminationPanel extends JPanel {
         int row = waitingTable.getSelectedRow();
         if (row < 0) { JOptionPane.showMessageDialog(this, "Chọn bệnh nhân để gọi vào khám."); return; }
         String code = (String) waitingModel.getValueAt(row, 0);
-        patientBUS.findAll().stream()
+        queueBUS.getWaitingPatients().stream()
             .filter(p -> p.getPatientCode().equals(code))
             .findFirst()
-            .ifPresent(p -> { patientBUS.updateStatus(p.getId(), "ĐANG KHÁM"); loadWaiting(); });
+            .ifPresent(p -> { queueBUS.updateQueueStatus(p.getCurrentRecordId(), "EXAMINING"); loadWaiting(); });
         JOptionPane.showMessageDialog(this, "Đã gọi bệnh nhân vào phòng khám.", "Gọi khám", JOptionPane.INFORMATION_MESSAGE);
     }
 

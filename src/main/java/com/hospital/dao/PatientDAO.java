@@ -5,23 +5,13 @@ import com.hospital.exception.DataAccessException;
 import com.hospital.model.Patient;
 
 import java.sql.*;
-import java.time.LocalTime;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * DAO benh nhan — truy van bang Patient trong CSDL.
- * Bo sung quan ly hang doi kham (in-memory) phuc vu DoctorWorkstationPanel.
  */
 public class PatientDAO implements BaseDAO<Patient> {
-
-    // ── In-memory queue tracking ──────────────────────────────
-    // Key: patient_id, Value: [status, examType, arrivalTime]
-    private static final Map<Integer, String[]> queueMap = new ConcurrentHashMap<>();
 
     private Connection externalConnection;
 
@@ -59,9 +49,7 @@ public class PatientDAO implements BaseDAO<Patient> {
                 ps.setInt(1, id);
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next()) {
-                        Patient p = mapResultSet(rs);
-                        applyQueueInfo(p);
-                        return p;
+                        return mapResultSet(rs);
                     }
                 }
             }
@@ -83,9 +71,7 @@ public class PatientDAO implements BaseDAO<Patient> {
             try (Statement stm = conn.createStatement();
                  ResultSet rs = stm.executeQuery(sql)) {
                 while (rs.next()) {
-                    Patient p = mapResultSet(rs);
-                    applyQueueInfo(p);
-                    list.add(p);
+                    list.add(mapResultSet(rs));
                 }
             }
         } catch (SQLException e) {
@@ -197,85 +183,7 @@ public class PatientDAO implements BaseDAO<Patient> {
         }
     }
 
-    // ── Hang doi kham benh (doctor workflow) ──────────────────
-
-    /**
-     * Dua benh nhan vao hang doi cho kham.
-     * @param patientId  ID benh nhan trong DB
-     * @param examType   Loai kham (vd: "Kham tong quat")
-     */
-    public void addToQueue(int patientId, String examType) {
-        String arrival = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"));
-        queueMap.put(patientId, new String[]{"CHO KHAM", examType, arrival});
-    }
-
-    /**
-     * Tim benh nhan dang cho hoac dang kham.
-     */
-    public List<Patient> findWaiting() {
-        return findByStatus("CHO KHAM", "DANG KHAM");
-    }
-
-    /**
-     * Tim benh nhan theo trang thai hang doi.
-     */
-    public List<Patient> findByStatus(String... statuses) {
-        Set<String> statusSet = Set.of(statuses);
-        List<Patient> result = new ArrayList<>();
-
-        for (Map.Entry<Integer, String[]> entry : queueMap.entrySet()) {
-            if (statusSet.contains(entry.getValue()[0])) {
-                Patient p = findById(entry.getKey());
-                if (p != null) {
-                    result.add(p);
-                }
-            }
-        }
-
-        return result;
-    }
-
-    /**
-     * Cap nhat trang thai hang doi cua benh nhan.
-     */
-    public boolean updateStatus(int patientId, String newStatus) {
-        String[] info = queueMap.get(patientId);
-        if (info != null) {
-            info[0] = newStatus;
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * Dem so benh nhan trong hang doi hom nay.
-     */
-    public int countToday() {
-        return queueMap.size();
-    }
-
-    /**
-     * Xoa hang doi (reset moi ngay).
-     */
-    public void clearQueue() {
-        queueMap.clear();
-    }
-
     // -- Helper --
-
-    /**
-     * Gan thong tin hang doi (status, examType, arrivalTime) vao Patient object.
-     */
-    private void applyQueueInfo(Patient p) {
-        String[] info = queueMap.get(p.getId());
-        if (info != null) {
-            p.setStatus(info[0]);
-            p.setExamType(info[1]);
-            p.setArrivalTime(info[2]);
-        }
-        // Tao patientCode tu ID
-        p.setPatientCode(String.format("BN%03d", p.getId()));
-    }
 
     private Patient mapResultSet(ResultSet rs) throws SQLException {
 
