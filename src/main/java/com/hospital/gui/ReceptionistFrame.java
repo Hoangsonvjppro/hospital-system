@@ -1,11 +1,14 @@
 package com.hospital.gui;
 
 import com.hospital.model.Account;
+import com.hospital.config.DatabaseConfig;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.geom.RoundRectangle2D;
+import java.sql.*;
+import java.util.Vector;
 
 /**
  * Frame chính dành cho Lễ tân.
@@ -17,8 +20,8 @@ public class ReceptionistFrame extends JFrame {
     private static final Color CARD_BG       = new Color(0x22223B);
     private static final Color ACCENT_COLOR  = new Color(0x4A4E69);
     private static final Color PRIMARY_COLOR = new Color(0xF2A65A);
-    private static final Color TEXT_WHITE     = new Color(0xEEEEEE);
-    private static final Color TEXT_MUTED     = new Color(0x8899AA);
+    private static final Color TEXT_WHITE    = new Color(0xEEEEEE);
+    private static final Color TEXT_MUTED    = new Color(0x8899AA);
 
     private final Account account;
 
@@ -40,7 +43,6 @@ public class ReceptionistFrame extends JFrame {
     private void initComponents() {
         setLayout(new GridBagLayout());
 
-        // ── Main card ─────────────────────────────────────────
         JPanel card = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
@@ -52,12 +54,12 @@ public class ReceptionistFrame extends JFrame {
                 super.paintComponent(g);
             }
         };
+
         card.setOpaque(false);
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
         card.setBorder(new EmptyBorder(50, 60, 50, 60));
-        card.setPreferredSize(new Dimension(500, 350));
+        card.setPreferredSize(new Dimension(500, 400));
 
-        // ── Role badge ────────────────────────────────────────
         JLabel badge = new JLabel("LỄ TÂN");
         badge.setFont(new Font("SansSerif", Font.BOLD, 14));
         badge.setForeground(new Color(0x1A1A2E));
@@ -68,14 +70,12 @@ public class ReceptionistFrame extends JFrame {
         card.add(badge);
         card.add(Box.createVerticalStrut(20));
 
-        // ── Icon ──────────────────────────────────────────────
         JLabel icon = new JLabel("🏥");
         icon.setFont(new Font("SansSerif", Font.PLAIN, 48));
         icon.setAlignmentX(Component.CENTER_ALIGNMENT);
         card.add(icon);
         card.add(Box.createVerticalStrut(16));
 
-        // ── Title ─────────────────────────────────────────────
         JLabel title = new JLabel("Lễ tân");
         title.setFont(new Font("SansSerif", Font.BOLD, 28));
         title.setForeground(TEXT_WHITE);
@@ -83,7 +83,6 @@ public class ReceptionistFrame extends JFrame {
         card.add(title);
         card.add(Box.createVerticalStrut(8));
 
-        // ── Welcome message ───────────────────────────────────
         JLabel welcome = new JLabel("Xin chào, " + account.getFullName());
         welcome.setFont(new Font("SansSerif", Font.PLAIN, 16));
         welcome.setForeground(TEXT_MUTED);
@@ -91,12 +90,97 @@ public class ReceptionistFrame extends JFrame {
         card.add(welcome);
         card.add(Box.createVerticalStrut(24));
 
-        // ── Logout button ─────────────────────────────────────
+        // ================== NÚT CHỌN BỆNH NHÂN ==================
+        JButton btnSelectPatient = new JButton("Chọn bệnh nhân đưa vào phòng khám");
+        btnSelectPatient.setAlignmentX(Component.CENTER_ALIGNMENT);
+        btnSelectPatient.setMaximumSize(new Dimension(300, 40));
+        btnSelectPatient.setFont(new Font("SansSerif", Font.BOLD, 14));
+        btnSelectPatient.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+        btnSelectPatient.addActionListener(e -> openPatientSelectionDialog());
+
+        card.add(btnSelectPatient);
+        card.add(Box.createVerticalStrut(20));
+        // ==========================================================
+
         JButton btnLogout = createLogoutButton();
         card.add(btnLogout);
 
-        // ── Add card to frame ─────────────────────────────────
         add(card, new GridBagConstraints());
+    }
+
+    private void openPatientSelectionDialog() {
+        JDialog dialog = new JDialog(this, "Danh sách bệnh nhân", true);
+        dialog.setSize(700, 400);
+        dialog.setLocationRelativeTo(this);
+
+        Vector<String> columnNames = new Vector<>();
+        columnNames.add("ID");
+        columnNames.add("Họ tên");
+        columnNames.add("Giới tính");
+        columnNames.add("Ngày sinh");
+        columnNames.add("SĐT");
+
+        Vector<Vector<Object>> data = new Vector<>();
+
+        try {
+            Connection conn = DatabaseConfig.getInstance().getConnection();
+            String sql = "SELECT patient_id, full_name, gender, date_of_birth, phone FROM Patient WHERE is_active = TRUE";
+            PreparedStatement ps = conn.prepareStatement(sql);
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                Vector<Object> row = new Vector<>();
+                row.add(rs.getLong("patient_id"));
+                row.add(rs.getString("full_name"));
+                row.add(rs.getString("gender"));
+                row.add(rs.getDate("date_of_birth"));
+                row.add(rs.getString("phone"));
+                data.add(row);
+            }
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Lỗi tải danh sách bệnh nhân!");
+            return;
+        }
+        JTable table = new JTable(data, columnNames) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        table.setRowSelectionAllowed(true);
+        table.setColumnSelectionAllowed(false);
+
+        JScrollPane scrollPane = new JScrollPane(table);
+
+        JButton btnAddToRoom = new JButton("Đưa vào phòng khám");
+
+        btnAddToRoom.addActionListener(e -> {
+            int selectedRow = table.getSelectedRow();
+            if (selectedRow == -1) {
+                JOptionPane.showMessageDialog(dialog, "Vui lòng chọn bệnh nhân!");
+                return;
+            }
+
+            Object patientName = table.getValueAt(selectedRow, 1);
+
+            JOptionPane.showMessageDialog(dialog,
+                    "Đã đưa bệnh nhân " + patientName + " vào phòng khám!");
+
+            dialog.dispose();
+        });
+
+        JPanel bottomPanel = new JPanel();
+        bottomPanel.add(btnAddToRoom);
+
+        dialog.setLayout(new BorderLayout());
+        dialog.add(scrollPane, BorderLayout.CENTER);
+        dialog.add(bottomPanel, BorderLayout.SOUTH);
+
+        dialog.setVisible(true);
     }
 
     private JButton createLogoutButton() {
