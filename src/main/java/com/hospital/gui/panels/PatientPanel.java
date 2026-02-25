@@ -1,4 +1,4 @@
-package com.hospital.gui;
+package com.hospital.gui.panels;
 
 import com.hospital.bus.PatientBUS;
 import com.hospital.model.Patient;
@@ -60,7 +60,7 @@ public class PatientPanel extends JPanel {
 
         try {
             Patient p = new Patient();
-            p.setPatientName(txtName.getText());
+            p.setFullName(txtName.getText());
             p.setPhone(txtPhone.getText());
             p.setAddress(txtAddress.getText());
 
@@ -87,7 +87,7 @@ public class PatientPanel extends JPanel {
         for (Patient p : list) {
             model.addRow(new Object[]{
                     p.getId(),
-                    p.getPatientName(),
+                    p.getFullName(),
                     p.getPhone(),
                     p.getAddress(),
                     p.getDateOfBirth()

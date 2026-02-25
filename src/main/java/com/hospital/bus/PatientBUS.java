@@ -13,7 +13,7 @@ public class PatientBUS extends BaseBUS<Patient> {
     @Override
     protected boolean validate(Patient entity) {
 
-        if (AppUtils.isNullOrEmpty(entity.getPatientName())) {
+        if (AppUtils.isNullOrEmpty(entity.getFullName())) {
             AppUtils.showError(null, "Tên bệnh nhân không được để trống.");
             return false;
         }

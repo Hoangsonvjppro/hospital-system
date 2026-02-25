@@ -56,28 +56,30 @@ public class PatientDAO implements BaseDAO<Patient> {
 
         String sql = """
                 INSERT INTO Patient
-                (patient_name, phone, address, date_of_birth,
-                 is_active, created_at, updated_at)
-                VALUES (?,?,?,?,?,?,?)
+                (full_name, gender, date_of_birth, phone, address,
+                 is_active)
+                VALUES (?,?,?,?,?,?)
                 """;
 
         try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
 
-            ps.setString(1, entity.getPatientName());
-            ps.setString(2, entity.getPhone());
-            ps.setString(3, entity.getAddress());
+            ps.setString(1, entity.getFullName());
 
-            if (entity.getDateOfBirth() != null) {
-                ps.setDate(4, Date.valueOf(entity.getDateOfBirth()));
+            if (entity.getGender() != null) {
+                ps.setString(2, entity.getGender().name());
             } else {
-                ps.setNull(4, Types.DATE);
+                ps.setString(2, "OTHER");
             }
 
-            ps.setBoolean(5, entity.isActive());
+            if (entity.getDateOfBirth() != null) {
+                ps.setDate(3, Date.valueOf(entity.getDateOfBirth()));
+            } else {
+                ps.setNull(3, Types.DATE);
+            }
 
-            Timestamp now = Timestamp.valueOf(java.time.LocalDateTime.now());
-            ps.setTimestamp(6, now);
-            ps.setTimestamp(7, now);
+            ps.setString(4, entity.getPhone());
+            ps.setString(5, entity.getAddress());
+            ps.setBoolean(6, entity.isActive());
 
             return ps.executeUpdate() > 0;
 
@@ -93,29 +95,34 @@ public class PatientDAO implements BaseDAO<Patient> {
 
         String sql = """
                 UPDATE Patient
-                SET patient_name=?,
+                SET full_name=?,
+                    gender=?,
+                    date_of_birth=?,
                     phone=?,
                     address=?,
-                    date_of_birth=?,
-                    is_active=?,
-                    updated_at=?
+                    is_active=?
                 WHERE patient_id=?
                 """;
 
         try (PreparedStatement ps = getConnection().prepareStatement(sql)) {
 
-            ps.setString(1, entity.getPatientName());
-            ps.setString(2, entity.getPhone());
-            ps.setString(3, entity.getAddress());
+            ps.setString(1, entity.getFullName());
 
-            if (entity.getDateOfBirth() != null) {
-                ps.setDate(4, Date.valueOf(entity.getDateOfBirth()));
+            if (entity.getGender() != null) {
+                ps.setString(2, entity.getGender().name());
             } else {
-                ps.setNull(4, Types.DATE);
+                ps.setString(2, "OTHER");
             }
 
-            ps.setBoolean(5, entity.isActive());
-            ps.setTimestamp(6, Timestamp.valueOf(java.time.LocalDateTime.now()));
+            if (entity.getDateOfBirth() != null) {
+                ps.setDate(3, Date.valueOf(entity.getDateOfBirth()));
+            } else {
+                ps.setNull(3, Types.DATE);
+            }
+
+            ps.setString(4, entity.getPhone());
+            ps.setString(5, entity.getAddress());
+            ps.setBoolean(6, entity.isActive());
             ps.setInt(7, entity.getId());
 
             return ps.executeUpdate() > 0;
@@ -147,9 +154,14 @@ public class PatientDAO implements BaseDAO<Patient> {
         Patient p = new Patient();
 
         p.setId(rs.getInt("patient_id"));
-        p.setPatientName(rs.getString("patient_name"));
+        p.setFullName(rs.getString("full_name"));
         p.setPhone(rs.getString("phone"));
         p.setAddress(rs.getString("address"));
+
+        String genderStr = rs.getString("gender");
+        if (genderStr != null) {
+            p.setGender(Patient.Gender.valueOf(genderStr));
+        }
 
         if (rs.getDate("date_of_birth") != null) {
             p.setDateOfBirth(rs.getDate("date_of_birth").toLocalDate());

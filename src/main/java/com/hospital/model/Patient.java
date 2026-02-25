@@ -71,6 +71,10 @@ public class Patient extends BaseModel {
         return address;
     }
 
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
     public Long getUserId() {
         return userId;
     }
