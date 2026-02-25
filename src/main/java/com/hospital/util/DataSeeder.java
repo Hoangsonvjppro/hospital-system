@@ -35,7 +35,7 @@ public class DataSeeder {
             System.err.println("[3] Kết nối DB thành công ✅");
 
             // Update password hash cho tất cả user
-            String updateSql = "UPDATE `User` SET password_hash = ? WHERE username IN ('admin', 'doctor', 'letan', 'ketoan')";
+            String updateSql = "UPDATE `User` SET password_hash = ? WHERE username IN ('admin', 'doctor', 'doctor2', 'letan', 'ketoan', 'nurse1')";
             PreparedStatement ps = conn.prepareStatement(updateSql);
             ps.setString(1, hash);
             int rows = ps.executeUpdate();
