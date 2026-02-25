@@ -1,14 +1,19 @@
 package com.hospital.dao;
 
 import com.hospital.config.DatabaseConfig;
+import com.hospital.exception.DataAccessException;
 
 import java.sql.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * DAO bệnh án – hỗ trợ cả 2 mode: tự lấy Connection hoặc nhận từ bên ngoài.
  * Bao gồm: tạo bệnh án trống + cập nhật chẩn đoán, triệu chứng, sinh hiệu.
  */
 public class MedicalRecordDAO {
+
+    private static final Logger LOGGER = Logger.getLogger(MedicalRecordDAO.class.getName());
 
     private Connection externalConnection;
 
@@ -35,7 +40,7 @@ public class MedicalRecordDAO {
     }
 
     // ── Tạo bệnh án trống và trả về record_id ──────────────────────────────
-    public long createEmptyRecord(long patientId, long doctorId, Long appointmentId) throws SQLException {
+    public long createEmptyRecord(long patientId, long doctorId, Long appointmentId) {
 
         String sql = """
             INSERT INTO MedicalRecord (
@@ -61,20 +66,24 @@ public class MedicalRecordDAO {
 
                 ps.executeUpdate();
 
-                ResultSet rs = ps.getGeneratedKeys();
-                if (rs.next()) {
-                    return rs.getLong(1);
+                try (ResultSet rs = ps.getGeneratedKeys()) {
+                    if (rs.next()) {
+                        return rs.getLong(1);
+                    }
                 }
             }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi tạo bệnh án cho patientId=" + patientId, e);
+            throw new DataAccessException("Không thể tạo bệnh án", e);
         } finally {
             closeIfOwned(conn);
         }
 
-        throw new SQLException("Không thể tạo Medical Record");
+        throw new DataAccessException("Không thể tạo Medical Record - không lấy được generated key", null);
     }
 
     // ── Cập nhật chẩn đoán ──────────────────────────────────────────────────
-    public boolean updateDiagnosis(long recordId, String diagnosis) throws SQLException {
+    public boolean updateDiagnosis(long recordId, String diagnosis) {
 
         String sql = """
             UPDATE MedicalRecord
@@ -91,13 +100,16 @@ public class MedicalRecordDAO {
                 ps.setLong(2, recordId);
                 return ps.executeUpdate() > 0;
             }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "L\u1ed7i c\u1eadp nh\u1eadt ch\u1ea9n \u0111o\u00e1n recordId=" + recordId, e);
+            throw new DataAccessException("Kh\u00f4ng th\u1ec3 c\u1eadp nh\u1eadt ch\u1ea9n \u0111o\u00e1n", e);
         } finally {
             closeIfOwned(conn);
         }
     }
 
     // ── Cập nhật triệu chứng ────────────────────────────────────────────────
-    public boolean updateSymptoms(long recordId, String symptoms) throws SQLException {
+    public boolean updateSymptoms(long recordId, String symptoms) {
 
         String sql = """
             UPDATE MedicalRecord
@@ -114,13 +126,16 @@ public class MedicalRecordDAO {
                 ps.setLong(2, recordId);
                 return ps.executeUpdate() > 0;
             }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "L\u1ed7i c\u1eadp nh\u1eadt tri\u1ec7u ch\u1ee9ng recordId=" + recordId, e);
+            throw new DataAccessException("Kh\u00f4ng th\u1ec3 c\u1eadp nh\u1eadt tri\u1ec7u ch\u1ee9ng", e);
         } finally {
             closeIfOwned(conn);
         }
     }
 
     // ── Cập nhật chẩn đoán + triệu chứng cùng lúc ─────────────────────────
-    public boolean updateDiagnosisAndSymptoms(long recordId, String diagnosis, String symptoms) throws SQLException {
+    public boolean updateDiagnosisAndSymptoms(long recordId, String diagnosis, String symptoms) {
 
         String sql = """
             UPDATE MedicalRecord
@@ -139,6 +154,9 @@ public class MedicalRecordDAO {
                 ps.setLong(3, recordId);
                 return ps.executeUpdate() > 0;
             }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "L\u1ed7i c\u1eadp nh\u1eadt ch\u1ea9n \u0111o\u00e1n v\u00e0 tri\u1ec7u ch\u1ee9ng recordId=" + recordId, e);
+            throw new DataAccessException("Kh\u00f4ng th\u1ec3 c\u1eadp nh\u1eadt ch\u1ea9n \u0111o\u00e1n v\u00e0 tri\u1ec7u ch\u1ee9ng", e);
         } finally {
             closeIfOwned(conn);
         }
@@ -146,7 +164,7 @@ public class MedicalRecordDAO {
 
     // ── Cập nhật sinh hiệu (vital signs) ───────────────────────────────────
     public boolean updateVitalSigns(long recordId, double weight, double height,
-                                     String bloodPressure, int pulse) throws SQLException {
+                                     String bloodPressure, int pulse) {
 
         String sql = """
             UPDATE MedicalRecord
@@ -169,13 +187,16 @@ public class MedicalRecordDAO {
                 ps.setLong(5, recordId);
                 return ps.executeUpdate() > 0;
             }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "L\u1ed7i c\u1eadp nh\u1eadt sinh hi\u1ec7u recordId=" + recordId, e);
+            throw new DataAccessException("Kh\u00f4ng th\u1ec3 c\u1eadp nh\u1eadt sinh hi\u1ec7u", e);
         } finally {
             closeIfOwned(conn);
         }
     }
 
     // ── Cập nhật trạng thái bệnh án ────────────────────────────────────────
-    public boolean updateStatus(long recordId, String status) throws SQLException {
+    public boolean updateStatus(long recordId, String status) {
 
         String sql = """
             UPDATE MedicalRecord
@@ -192,6 +213,9 @@ public class MedicalRecordDAO {
                 ps.setLong(2, recordId);
                 return ps.executeUpdate() > 0;
             }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi cập nhật trạng thái bệnh án recordId=" + recordId, e);
+            throw new DataAccessException("Không thể cập nhật trạng thái bệnh án", e);
         } finally {
             closeIfOwned(conn);
         }

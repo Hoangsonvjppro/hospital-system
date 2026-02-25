@@ -8,12 +8,16 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * DAO hàng đợi khám bệnh — query trực tiếp từ DB (MedicalRecord JOIN Patient).
  * Thay thế hoàn toàn ConcurrentHashMap trong PatientDAO cũ.
  */
 public class QueueDAO {
+
+    private static final Logger LOGGER = Logger.getLogger(QueueDAO.class.getName());
 
     private Connection externalConnection;
 
@@ -81,6 +85,7 @@ public class QueueDAO {
                 }
             }
         } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi truy vấn hàng đợi khám bệnh", e);
             throw new DataAccessException("Lỗi truy vấn hàng đợi khám bệnh", e);
         } finally {
             closeIfOwned(conn);
@@ -121,6 +126,7 @@ public class QueueDAO {
                 }
             }
         } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Không thể đưa bệnh nhân vào hàng đợi, patientId=" + patientId, e);
             throw new DataAccessException("Không thể đưa bệnh nhân vào hàng đợi", e);
         } finally {
             closeIfOwned(conn);
@@ -153,6 +159,7 @@ public class QueueDAO {
                 return ps.executeUpdate() > 0;
             }
         } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Không thể cập nhật trạng thái hàng đợi, recordId=" + recordId, e);
             throw new DataAccessException("Không thể cập nhật trạng thái hàng đợi", e);
         } finally {
             closeIfOwned(conn);
@@ -180,6 +187,7 @@ public class QueueDAO {
                 }
             }
         } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi đếm hàng đợi hôm nay", e);
             throw new DataAccessException("Lỗi đếm hàng đợi hôm nay", e);
         } finally {
             closeIfOwned(conn);
@@ -212,6 +220,7 @@ public class QueueDAO {
                 }
             }
         } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi đếm hàng đợi theo trạng thái: " + status, e);
             throw new DataAccessException("Lỗi đếm hàng đợi theo trạng thái", e);
         } finally {
             closeIfOwned(conn);

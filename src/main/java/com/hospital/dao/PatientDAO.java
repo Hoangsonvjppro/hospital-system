@@ -7,11 +7,15 @@ import com.hospital.model.Patient;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * DAO benh nhan — truy van bang Patient trong CSDL.
  */
 public class PatientDAO implements BaseDAO<Patient> {
+
+    private static final Logger LOGGER = Logger.getLogger(PatientDAO.class.getName());
 
     private Connection externalConnection;
 
@@ -54,6 +58,7 @@ public class PatientDAO implements BaseDAO<Patient> {
                 }
             }
         } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi truy vấn bệnh nhân ID=" + id, e);
             throw new DataAccessException("Lỗi truy vấn bệnh nhân ID=" + id, e);
         } finally {
             closeIfOwned(conn);
@@ -75,6 +80,7 @@ public class PatientDAO implements BaseDAO<Patient> {
                 }
             }
         } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi truy vấn danh sách bệnh nhân", e);
             throw new DataAccessException("Lỗi truy vấn danh sách bệnh nhân", e);
         } finally {
             closeIfOwned(conn);
@@ -119,6 +125,7 @@ public class PatientDAO implements BaseDAO<Patient> {
                 }
             }
         } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Không thể thêm bệnh nhân", e);
             throw new DataAccessException("Không thể thêm bệnh nhân", e);
         } finally {
             closeIfOwned(conn);
@@ -160,6 +167,7 @@ public class PatientDAO implements BaseDAO<Patient> {
                 return ps.executeUpdate() > 0;
             }
         } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Không thể cập nhật bệnh nhân ID=" + entity.getId(), e);
             throw new DataAccessException("Không thể cập nhật bệnh nhân ID=" + entity.getId(), e);
         } finally {
             closeIfOwned(conn);
@@ -177,6 +185,7 @@ public class PatientDAO implements BaseDAO<Patient> {
                 return ps.executeUpdate() > 0;
             }
         } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Không thể xóa bệnh nhân ID=" + id, e);
             throw new DataAccessException("Không thể xóa bệnh nhân ID=" + id, e);
         } finally {
             closeIfOwned(conn);

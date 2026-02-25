@@ -1,5 +1,6 @@
 package com.hospital.gui.panels;
 
+import com.hospital.bus.MedicalRecordBUS;
 import com.hospital.bus.QueueBUS;
 import com.hospital.exception.BusinessException;
 import com.hospital.exception.DataAccessException;
@@ -54,6 +55,7 @@ public class DoctorWorkstationPanel extends JPanel {
     };
 
     private final QueueBUS queueBUS = new QueueBUS();
+    private final MedicalRecordBUS medicalRecordBUS = new MedicalRecordBUS();
 
     private JPanel patientListPanel;
     private JPanel rightContentPanel;
@@ -66,6 +68,12 @@ public class DoctorWorkstationPanel extends JPanel {
     private JTextField txtHeight;
     private JTextField txtBloodPressure;
     private JTextField txtPulse;
+
+    private JTextArea txtSymptoms;
+    private JTextArea txtDiagnosis;
+
+    private static final String SYMPTOMS_PLACEHOLDER = "Nhap trieu chung cua benh nhan...";
+    private static final String DIAGNOSIS_PLACEHOLDER = "Nhap chan doan...";
 
     private int activeTab = 0;
     private JPanel tabBar;
@@ -583,13 +591,19 @@ public class DoctorWorkstationPanel extends JPanel {
         JPanel content = new JPanel();
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setOpaque(false);
-        content.add(createTextSection("Trieu chung (Symptoms)", "Nhap trieu chung cua benh nhan..."));
+
+        // Symptoms
+        txtSymptoms = new JTextArea(5, 0);
+        content.add(createTextSection("Trieu chung (Symptoms)", SYMPTOMS_PLACEHOLDER, txtSymptoms));
         content.add(Box.createVerticalStrut(20));
-        content.add(createTextSection("Chan doan (Diagnosis)", "Nhap chan doan..."));
+
+        // Diagnosis
+        txtDiagnosis = new JTextArea(5, 0);
+        content.add(createTextSection("Chan doan (Diagnosis)", DIAGNOSIS_PLACEHOLDER, txtDiagnosis));
         return content;
     }
 
-    private JPanel createTextSection(String title, String placeholder) {
+    private JPanel createTextSection(String title, String placeholder, JTextArea area) {
         JPanel section = new JPanel();
         section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
         section.setOpaque(false);
@@ -602,7 +616,6 @@ public class DoctorWorkstationPanel extends JPanel {
         section.add(lbl);
         section.add(Box.createVerticalStrut(10));
 
-        JTextArea area = new JTextArea(5, 0);
         area.setFont(UIConstants.FONT_LABEL);
         area.setLineWrap(true);
         area.setWrapStyleWord(true);
@@ -686,7 +699,29 @@ public class DoctorWorkstationPanel extends JPanel {
             return;
         }
         try {
+            // Luu sinh hieu (vital signs)
+            double weight = Double.parseDouble(txtWeight.getText().trim());
+            double height = Double.parseDouble(txtHeight.getText().trim());
+            String bp = txtBloodPressure.getText().trim();
+            int pulse = Integer.parseInt(txtPulse.getText().trim());
+
+            medicalRecordBUS.updateVitalSigns(selectedRecordId, weight, height, bp, pulse);
+
+            // Luu trieu chung + chan doan (neu da nhap)
+            String symptoms = getTextAreaValue(txtSymptoms, SYMPTOMS_PLACEHOLDER);
+            String diagnosis = getTextAreaValue(txtDiagnosis, DIAGNOSIS_PLACEHOLDER);
+
+            if (symptoms != null && diagnosis != null) {
+                medicalRecordBUS.updateDiagnosisAndSymptoms(selectedRecordId, diagnosis, symptoms);
+            } else if (symptoms != null) {
+                medicalRecordBUS.updateSymptoms(selectedRecordId, symptoms);
+            } else if (diagnosis != null) {
+                medicalRecordBUS.updateDiagnosis(selectedRecordId, diagnosis);
+            }
+
+            // Chuyen trang thai hang doi
             queueBUS.updateQueueStatus(selectedRecordId, "COMPLETED");
+
             JOptionPane.showMessageDialog(this,
                     "Da luu va hoan tat kham cho benh nhan: " + selectedPatient.getFullName(),
                     "Thanh cong", JOptionPane.INFORMATION_MESSAGE);
@@ -695,6 +730,8 @@ public class DoctorWorkstationPanel extends JPanel {
             JOptionPane.showMessageDialog(this, e.getMessage(), "Loi nghiep vu", JOptionPane.ERROR_MESSAGE);
         } catch (DataAccessException e) {
             JOptionPane.showMessageDialog(this, "Loi he thong: " + e.getMessage(), "Loi", JOptionPane.ERROR_MESSAGE);
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Sinh hieu phai la so hop le.", "Loi", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -704,6 +741,26 @@ public class DoctorWorkstationPanel extends JPanel {
             return;
         }
         try {
+            // Luu sinh hieu truoc khi chuyen
+            double weight = Double.parseDouble(txtWeight.getText().trim());
+            double height = Double.parseDouble(txtHeight.getText().trim());
+            String bp = txtBloodPressure.getText().trim();
+            int pulse = Integer.parseInt(txtPulse.getText().trim());
+
+            medicalRecordBUS.updateVitalSigns(selectedRecordId, weight, height, bp, pulse);
+
+            // Luu trieu chung + chan doan (neu da nhap)
+            String symptoms = getTextAreaValue(txtSymptoms, SYMPTOMS_PLACEHOLDER);
+            String diagnosis = getTextAreaValue(txtDiagnosis, DIAGNOSIS_PLACEHOLDER);
+
+            if (symptoms != null && diagnosis != null) {
+                medicalRecordBUS.updateDiagnosisAndSymptoms(selectedRecordId, diagnosis, symptoms);
+            } else if (symptoms != null) {
+                medicalRecordBUS.updateSymptoms(selectedRecordId, symptoms);
+            } else if (diagnosis != null) {
+                medicalRecordBUS.updateDiagnosis(selectedRecordId, diagnosis);
+            }
+
             queueBUS.updateQueueStatus(selectedRecordId, "TRANSFERRED");
             JOptionPane.showMessageDialog(this,
                     "Da chuyen benh nhan " + selectedPatient.getFullName() + " sang thanh toan.",
@@ -713,7 +770,19 @@ public class DoctorWorkstationPanel extends JPanel {
             JOptionPane.showMessageDialog(this, e.getMessage(), "Loi nghiep vu", JOptionPane.ERROR_MESSAGE);
         } catch (DataAccessException e) {
             JOptionPane.showMessageDialog(this, "Loi he thong: " + e.getMessage(), "Loi", JOptionPane.ERROR_MESSAGE);
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Sinh hieu phai la so hop le.", "Loi", JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+    /**
+     * Lay gia tri tu JTextArea, tra ve null neu van la placeholder.
+     */
+    private String getTextAreaValue(JTextArea area, String placeholder) {
+        if (area == null) return null;
+        String text = area.getText().trim();
+        if (text.isEmpty() || text.equals(placeholder)) return null;
+        return text;
     }
 
     private void refreshAfterAction() {

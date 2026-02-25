@@ -50,11 +50,7 @@ public class MedicalRecordBUS {
         if (diagnosis == null || diagnosis.trim().isEmpty()) {
             throw new BusinessException("Chẩn đoán không được để trống");
         }
-        try {
-            return dao.updateDiagnosis(recordId, diagnosis.trim());
-        } catch (SQLException e) {
-            throw new DataAccessException("Không thể cập nhật chẩn đoán", e);
-        }
+        return dao.updateDiagnosis(recordId, diagnosis.trim());
     }
 
     public boolean updateSymptoms(long recordId, String symptoms) {
@@ -64,11 +60,7 @@ public class MedicalRecordBUS {
         if (symptoms == null || symptoms.trim().isEmpty()) {
             throw new BusinessException("Triệu chứng không được để trống");
         }
-        try {
-            return dao.updateSymptoms(recordId, symptoms.trim());
-        } catch (SQLException e) {
-            throw new DataAccessException("Không thể cập nhật triệu chứng", e);
-        }
+        return dao.updateSymptoms(recordId, symptoms.trim());
     }
 
     public boolean updateDiagnosisAndSymptoms(long recordId, String diagnosis, String symptoms) {
@@ -81,11 +73,7 @@ public class MedicalRecordBUS {
         if (symptoms == null || symptoms.trim().isEmpty()) {
             throw new BusinessException("Triệu chứng không được để trống");
         }
-        try {
-            return dao.updateDiagnosisAndSymptoms(recordId, diagnosis.trim(), symptoms.trim());
-        } catch (SQLException e) {
-            throw new DataAccessException("Không thể cập nhật chẩn đoán và triệu chứng", e);
-        }
+        return dao.updateDiagnosisAndSymptoms(recordId, diagnosis.trim(), symptoms.trim());
     }
 
     public boolean updateVitalSigns(long recordId, double weight, double height,
@@ -102,21 +90,13 @@ public class MedicalRecordBUS {
         if (pulse <= 0) {
             throw new BusinessException("Mạch phải lớn hơn 0");
         }
-        try {
-            return dao.updateVitalSigns(recordId, weight, height, bloodPressure, pulse);
-        } catch (SQLException e) {
-            throw new DataAccessException("Không thể cập nhật sinh hiệu", e);
-        }
+        return dao.updateVitalSigns(recordId, weight, height, bloodPressure, pulse);
     }
 
     public boolean updateStatus(long recordId, String status) {
         if (recordId <= 0) {
             throw new BusinessException("Record ID không hợp lệ");
         }
-        try {
-            return dao.updateStatus(recordId, status);
-        } catch (SQLException e) {
-            throw new DataAccessException("Không thể cập nhật trạng thái bệnh án", e);
-        }
+        return dao.updateStatus(recordId, status);
     }
 }

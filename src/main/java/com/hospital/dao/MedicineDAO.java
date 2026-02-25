@@ -7,8 +7,12 @@ import com.hospital.model.Medicine;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class MedicineDAO implements BaseDAO<Medicine> {
+
+    private static final Logger LOGGER = Logger.getLogger(MedicineDAO.class.getName());
 
     private Connection externalConnection;
 
@@ -49,6 +53,7 @@ public class MedicineDAO implements BaseDAO<Medicine> {
                 }
             }
         } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi truy vấn thuốc ID=" + id, e);
             throw new DataAccessException("Lỗi truy vấn thuốc ID=" + id, e);
         } finally {
             closeIfOwned(conn);
@@ -71,6 +76,7 @@ public class MedicineDAO implements BaseDAO<Medicine> {
                 }
             }
         } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Không thể tìm thuốc theo tên: " + keyword, e);
             throw new DataAccessException("Không thể tìm thuốc theo tên: " + keyword, e);
         } finally {
             closeIfOwned(conn);
@@ -81,7 +87,7 @@ public class MedicineDAO implements BaseDAO<Medicine> {
     @Override
     public List<Medicine> findAll() {
         List<Medicine> arr = new ArrayList<>();
-        String sql = "Select * from Medicine";
+        String sql = "SELECT * FROM Medicine WHERE is_active = true";
         Connection conn = null;
         try {
             conn = getConnection();
@@ -92,6 +98,7 @@ public class MedicineDAO implements BaseDAO<Medicine> {
                 }
             }
         } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi truy vấn danh sách thuốc", e);
             throw new DataAccessException("Lỗi truy vấn danh sách thuốc", e);
         } finally {
             closeIfOwned(conn);
@@ -122,6 +129,7 @@ public class MedicineDAO implements BaseDAO<Medicine> {
                 return ps.executeUpdate() > 0;
             }
         } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Không thể thêm thuốc", e);
             throw new DataAccessException("Không thể thêm thuốc", e);
         } finally {
             closeIfOwned(conn);
@@ -152,6 +160,7 @@ public class MedicineDAO implements BaseDAO<Medicine> {
                 return ps.executeUpdate() > 0;
             }
         } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Không thể cập nhật thuốc ID=" + entity.getId(), e);
             throw new DataAccessException("Không thể cập nhật thuốc ID=" + entity.getId(), e);
         } finally {
             closeIfOwned(conn);
@@ -160,7 +169,7 @@ public class MedicineDAO implements BaseDAO<Medicine> {
 
     @Override
     public boolean delete(int id) {
-        String sql = "Delete from Medicine where medicine_id=?";
+        String sql = "UPDATE Medicine SET is_active = false WHERE medicine_id = ?";
         Connection conn = null;
         try {
             conn = getConnection();
@@ -169,6 +178,7 @@ public class MedicineDAO implements BaseDAO<Medicine> {
                 return ps.executeUpdate() > 0;
             }
         } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Không thể xoá thuốc ID=" + id, e);
             throw new DataAccessException("Không thể xoá thuốc ID=" + id, e);
         } finally {
             closeIfOwned(conn);
