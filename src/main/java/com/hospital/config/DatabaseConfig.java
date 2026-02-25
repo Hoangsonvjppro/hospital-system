@@ -14,8 +14,6 @@ public class DatabaseConfig {
     private static final String PASSWORD = "123456";
 
     private static DatabaseConfig instance;
-    private Connection connection;
-
     private DatabaseConfig() {
     }
 
@@ -27,19 +25,12 @@ public class DatabaseConfig {
     }
 
     public Connection getConnection() throws SQLException {
-        if (connection == null || connection.isClosed()) {
-            connection = DriverManager.getConnection(URL, USER, PASSWORD);
-        }
-        return connection;
+        return DriverManager.getConnection(URL, USER, PASSWORD);
     }
 
-    public void closeConnection() {
-        try {
-            if (connection != null && !connection.isClosed()) {
-                connection.close();
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+    public Connection getTransactionalConnection() throws SQLException {
+        Connection conn = DriverManager.getConnection(URL, USER, PASSWORD);
+        conn.setAutoCommit(false);
+        return conn;
     }
 }
