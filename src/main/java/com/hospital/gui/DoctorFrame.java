@@ -1,24 +1,17 @@
 package com.hospital.gui;
 
 import com.hospital.model.Account;
+import com.hospital.gui.panels.DoctorWorkstationPanel;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
-import java.awt.geom.RoundRectangle2D;
 
 /**
  * Frame chính dành cho Bác sĩ.
  * Doctor main frame — displayed after successful login with DOCTOR role.
  */
 public class DoctorFrame extends JFrame {
-
-    private static final Color BG_COLOR      = new Color(0x0D1B2A);
-    private static final Color CARD_BG       = new Color(0x1B2838);
-    private static final Color ACCENT_COLOR  = new Color(0x1B4332);
-    private static final Color PRIMARY_COLOR = new Color(0x2D6A4F);
-    private static final Color TEXT_WHITE     = new Color(0xEEEEEE);
-    private static final Color TEXT_MUTED     = new Color(0x8899AA);
 
     private final Account account;
 
@@ -29,125 +22,63 @@ public class DoctorFrame extends JFrame {
     }
 
     private void initFrame() {
-        setTitle("Bác sĩ — Phòng Mạch Tư");
-        setSize(900, 600);
-        setMinimumSize(new Dimension(700, 500));
+        setTitle("Doctor Workstation — Phòng Mạch Tư");
+        setSize(1200, 750);
+        setMinimumSize(new Dimension(1000, 650));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
-        getContentPane().setBackground(BG_COLOR);
+        getContentPane().setBackground(new Color(245, 247, 251));
     }
 
     private void initComponents() {
-        setLayout(new GridBagLayout());
+        setLayout(new BorderLayout(0, 0));
 
-        // ── Main card ─────────────────────────────────────────
-        JPanel card = new JPanel() {
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(CARD_BG);
-                g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 24, 24));
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-        card.setOpaque(false);
-        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-        card.setBorder(new EmptyBorder(50, 60, 50, 60));
-        card.setPreferredSize(new Dimension(500, 350));
+        // ── Top bar ───────────────────────────────────────
+        JPanel topBar = new JPanel(new BorderLayout());
+        topBar.setBackground(Color.WHITE);
+        topBar.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(226, 232, 240)),
+                new EmptyBorder(10, 20, 10, 20)));
 
-        // ── Role badge ────────────────────────────────────────
-        JLabel badge = new JLabel("BÁC SĨ");
-        badge.setFont(new Font("SansSerif", Font.BOLD, 14));
-        badge.setForeground(Color.WHITE);
-        badge.setOpaque(true);
-        badge.setBackground(PRIMARY_COLOR);
-        badge.setBorder(new EmptyBorder(6, 20, 6, 20));
-        badge.setAlignmentX(Component.CENTER_ALIGNMENT);
-        card.add(badge);
-        card.add(Box.createVerticalStrut(20));
+        // Left: title
+        JPanel leftTop = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        leftTop.setOpaque(false);
+        JLabel titleLabel = new JLabel("Doctor Workstation");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 17));
+        titleLabel.setForeground(new Color(30, 41, 59));
+        leftTop.add(titleLabel);
+        topBar.add(leftTop, BorderLayout.WEST);
 
-        // ── Icon ──────────────────────────────────────────────
-        JLabel icon = new JLabel("🩺");
-        icon.setFont(new Font("SansSerif", Font.PLAIN, 48));
-        icon.setAlignmentX(Component.CENTER_ALIGNMENT);
-        card.add(icon);
-        card.add(Box.createVerticalStrut(16));
+        // Right: doctor info + logout
+        JPanel rightTop = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
+        rightTop.setOpaque(false);
 
-        // ── Title ─────────────────────────────────────────────
-        JLabel title = new JLabel("Bác sĩ");
-        title.setFont(new Font("SansSerif", Font.BOLD, 28));
-        title.setForeground(TEXT_WHITE);
-        title.setAlignmentX(Component.CENTER_ALIGNMENT);
-        card.add(title);
-        card.add(Box.createVerticalStrut(8));
+        JLabel doctorName = new JLabel(account.getFullName());
+        doctorName.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        doctorName.setForeground(new Color(30, 41, 59));
+        rightTop.add(doctorName);
 
-        // ── Welcome message ───────────────────────────────────
-        JLabel welcome = new JLabel("Xin chào, " + account.getFullName());
-        welcome.setFont(new Font("SansSerif", Font.PLAIN, 16));
-        welcome.setForeground(TEXT_MUTED);
-        welcome.setAlignmentX(Component.CENTER_ALIGNMENT);
-        card.add(welcome);
-        card.add(Box.createVerticalStrut(24));
-
-        // ── Logout button ─────────────────────────────────────
-        JButton btnLogout = createLogoutButton();
-        card.add(btnLogout);
-
-        // ── Add card to frame ─────────────────────────────────
-        add(card, new GridBagConstraints());
-    }
-
-    private JButton createLogoutButton() {
-        JButton btn = new JButton("Đăng xuất") {
-            private boolean hovering = false;
-
-            {
-                setContentAreaFilled(false);
-                setFocusPainted(false);
-                setBorderPainted(false);
-                setForeground(Color.WHITE);
-                setFont(new Font("SansSerif", Font.BOLD, 14));
-                setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-                setMaximumSize(new Dimension(200, 40));
-                setPreferredSize(new Dimension(200, 40));
-                setAlignmentX(Component.CENTER_ALIGNMENT);
-
-                addMouseListener(new java.awt.event.MouseAdapter() {
-                    @Override
-                    public void mouseEntered(java.awt.event.MouseEvent e) {
-                        hovering = true;
-                        repaint();
-                    }
-
-                    @Override
-                    public void mouseExited(java.awt.event.MouseEvent e) {
-                        hovering = false;
-                        repaint();
-                    }
-                });
-            }
-
-            @Override
-            protected void paintComponent(Graphics g) {
-                Graphics2D g2 = (Graphics2D) g.create();
-                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                Color bg = hovering ? PRIMARY_COLOR.darker() : ACCENT_COLOR;
-                g2.setColor(bg);
-                g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 12, 12));
-                g2.dispose();
-                super.paintComponent(g);
-            }
-        };
-
-        btn.addActionListener(e -> {
+        JButton btnLogout = new JButton("Logout");
+        btnLogout.setFont(new Font("Segoe UI", Font.PLAIN, 16));
+        btnLogout.setForeground(new Color(100, 116, 139));
+        btnLogout.setBorderPainted(false);
+        btnLogout.setContentAreaFilled(false);
+        btnLogout.setFocusPainted(false);
+        btnLogout.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnLogout.setToolTipText("Đăng xuất");
+        btnLogout.addActionListener(e -> {
             dispose();
             SwingUtilities.invokeLater(() -> {
                 LoginFrame loginFrame = new LoginFrame();
                 loginFrame.setVisible(true);
             });
         });
-        return btn;
+        rightTop.add(btnLogout);
+        topBar.add(rightTop, BorderLayout.EAST);
+
+        add(topBar, BorderLayout.NORTH);
+
+        // ── Doctor Workstation Panel ──────────────────────
+        add(new DoctorWorkstationPanel(), BorderLayout.CENTER);
     }
 }
