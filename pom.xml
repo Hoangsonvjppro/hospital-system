@@ -14,9 +14,10 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
+        <maven.compiler.source>25</maven.compiler.source>
+        <maven.compiler.target>25</maven.compiler.target>
         <mysql.version>9.2.0</mysql.version>
+        <exec.mainClass>com.hospital.Main</exec.mainClass>
     </properties>
 
     <dependencies>
@@ -27,18 +28,18 @@
             <version>${mysql.version}</version>
         </dependency>
 
-        <!-- FlatLaf Look and Feel -->
+        <!-- jBCrypt — Hash & verify password -->
+        <dependency>
+            <groupId>org.mindrot</groupId>
+            <artifactId>jbcrypt</artifactId>
+            <version>0.4</version>
+        </dependency>
+
+        <!-- FlatLaf — Modern Flat Look and Feel -->
         <dependency>
             <groupId>com.formdev</groupId>
             <artifactId>flatlaf</artifactId>
-            <version>3.4.1</version>
-        </dependency>
-
-        <!-- FlatLaf extras (optional icons) -->
-        <dependency>
-            <groupId>com.formdev</groupId>
-            <artifactId>flatlaf-extras</artifactId>
-            <version>3.4.1</version>
+            <version>3.6</version>
         </dependency>
     </dependencies>
 
@@ -62,7 +63,7 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.1.0</version>
                 <configuration>
-                    <mainClass>com.hospital.Main</mainClass>
+                    <mainClass>${exec.mainClass}</mainClass>
                 </configuration>
             </plugin>
 
