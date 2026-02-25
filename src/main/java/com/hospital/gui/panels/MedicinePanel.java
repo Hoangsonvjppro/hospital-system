@@ -5,7 +5,10 @@
 //để chuột vào tên thuốc sẽ hiện lên mô tả.
 package com.hospital.gui.panels;
 import com.hospital.bus.MedicineBUS;
+import com.hospital.exception.BusinessException;
+import com.hospital.exception.DataAccessException;
 import com.hospital.model.Medicine;
+import com.hospital.util.AppUtils;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.icons.FlatSearchIcon;
 import javax.swing.*;
@@ -248,11 +251,15 @@ public class MedicinePanel extends JPanel {
                             "Xác nhận xóa", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
 
                     if (confirm == JOptionPane.YES_OPTION) {
-                        if (medicineBUS.delete(selectedMedicine.getId())) {
-                            JOptionPane.showMessageDialog(this, "Đã xóa thành công!");
-                            loadData();
-                        } else {
-                            JOptionPane.showMessageDialog(this, "Lỗi khi xóa thuốc!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                        try {
+                            if (medicineBUS.delete(selectedMedicine.getId())) {
+                                JOptionPane.showMessageDialog(this, "Đã xóa thành công!");
+                                loadData();
+                            } else {
+                                JOptionPane.showMessageDialog(this, "Lỗi khi xóa thuốc!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                            }
+                        } catch (DataAccessException ex) {
+                            AppUtils.showError(this, "Lỗi hệ thống: " + ex.getMessage());
                         }
                     }
                 }
@@ -385,20 +392,45 @@ class MedicineDialog extends JDialog {
     }
 
     private void save() {
+        try {
             if (currentMedicine == null) currentMedicine = new Medicine();
             currentMedicine.setMedicineName(txtName.getText().trim());
             currentMedicine.setUnit(txtUnit.getText().trim());
-            currentMedicine.setCostPrice(Double.parseDouble(txtCostPrice.getText()));
-            currentMedicine.setSellPrice(Double.parseDouble(txtSellPrice.getText()));
-            currentMedicine.setStockQty(Integer.parseInt(txtStock.getText()));currentMedicine.setMinThreshold(Integer.parseInt(txtMinThreshold.getText()));
-            currentMedicine.setExpiryDate(LocalDate.parse(txtExpiryDate.getText(),dateFormat));
+            currentMedicine.setCostPrice(parseDouble(txtCostPrice, "Giá nhập"));
+            currentMedicine.setSellPrice(parseDouble(txtSellPrice, "Giá bán"));
+            currentMedicine.setStockQty(parseInt(txtStock, "Số lượng tồn"));
+            currentMedicine.setMinThreshold(parseInt(txtMinThreshold, "Mức báo hết"));
+            currentMedicine.setExpiryDate(LocalDate.parse(txtExpiryDate.getText(), dateFormat));
             currentMedicine.setDescription(txtDescription.getText());
-            boolean res=(currentMedicine.getId() == 0) ? bus.insert(currentMedicine) : bus.update(currentMedicine);
+            boolean res = (currentMedicine.getId() == 0) ? bus.insert(currentMedicine) : bus.update(currentMedicine);
             if (res) {
                 JOptionPane.showMessageDialog(this, "Lưu thành công!");
-                isDataChanged=true;
+                isDataChanged = true;
                 dispose();
             }
+        } catch (BusinessException ex) {
+            AppUtils.showError(this, ex.getMessage());
+        } catch (DataAccessException ex) {
+            AppUtils.showError(this, "Lỗi hệ thống: " + ex.getMessage());
+        } catch (Exception ex) {
+            AppUtils.showError(this, "Dữ liệu không hợp lệ: " + ex.getMessage());
+        }
+    }
+
+    private double parseDouble(JTextField field, String fieldName) {
+        try {
+            return Double.parseDouble(field.getText().trim());
+        } catch (NumberFormatException e) {
+            throw new BusinessException(fieldName + " phải là số hợp lệ.");
+        }
+    }
+
+    private int parseInt(JTextField field, String fieldName) {
+        try {
+            return Integer.parseInt(field.getText().trim());
+        } catch (NumberFormatException e) {
+            throw new BusinessException(fieldName + " phải là số nguyên hợp lệ.");
+        }
     }
     public boolean isDataChanged() { return isDataChanged; }
 }

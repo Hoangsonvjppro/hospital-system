@@ -1,6 +1,8 @@
 package com.hospital.gui.panels;
 
 import com.hospital.bus.PatientBUS;
+import com.hospital.exception.BusinessException;
+import com.hospital.exception.DataAccessException;
 import com.hospital.gui.UIConstants;
 import com.hospital.gui.components.RoundedButton;
 import com.hospital.gui.components.RoundedPanel;
@@ -244,10 +246,16 @@ public class ReceptionPanel extends JPanel {
         p.setStatus((String) cbStatus.getSelectedItem());
         p.setExamType(txtExamType.getText().trim());
         p.setArrivalTime(txtArrival.getText().trim());
-        bus.insert(p);
-        loadTable(bus.findAll());
-        clearForm();
-        JOptionPane.showMessageDialog(this, "Đã thêm bệnh nhân thành công.", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+        try {
+            bus.insert(p);
+            loadTable(bus.findAll());
+            clearForm();
+            JOptionPane.showMessageDialog(this, "Đã thêm bệnh nhân thành công.", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+        } catch (BusinessException e) {
+            JOptionPane.showMessageDialog(this, e.getMessage(), "Lỗi nghiệp vụ", JOptionPane.ERROR_MESSAGE);
+        } catch (DataAccessException e) {
+            JOptionPane.showMessageDialog(this, "Lỗi hệ thống: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private void deleteSelected() {
@@ -255,11 +263,15 @@ public class ReceptionPanel extends JPanel {
         if (row < 0) { JOptionPane.showMessageDialog(this, "Vui lòng chọn một bệnh nhân."); return; }
         int confirm = JOptionPane.showConfirmDialog(this, "Xóa bệnh nhân đã chọn?", "Xác nhận", JOptionPane.YES_NO_OPTION);
         if (confirm == JOptionPane.YES_OPTION) {
-            String code = (String) tableModel.getValueAt(row, 0);
-            bus.findAll().stream()
-                .filter(p -> p.getPatientCode().equals(code))
-                .findFirst()
-                .ifPresent(p -> { bus.delete(p.getId()); loadTable(bus.findAll()); });
+            try {
+                String code = (String) tableModel.getValueAt(row, 0);
+                bus.findAll().stream()
+                    .filter(p -> p.getPatientCode().equals(code))
+                    .findFirst()
+                    .ifPresent(p -> { bus.delete(p.getId()); loadTable(bus.findAll()); });
+            } catch (DataAccessException e) {
+                JOptionPane.showMessageDialog(this, "Lỗi hệ thống: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
         }
     }
 

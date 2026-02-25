@@ -2,6 +2,7 @@ package com.hospital.bus;
 
 import com.hospital.dao.BaseDAO;
 import com.hospital.dao.MedicineDAO;
+import com.hospital.exception.BusinessException;
 import com.hospital.model.Medicine;
 import com.hospital.util.AppUtils;
 
@@ -20,26 +21,21 @@ public class MedicineBUS extends BaseBUS<Medicine> {
 
     @Override
     protected boolean validate(Medicine entity) {
-        if(AppUtils.isNullOrEmpty(entity.getMedicineName())){
-            AppUtils.showError(null,"Tên thuốc không được để trống.");
-            return false;
+        if (AppUtils.isNullOrEmpty(entity.getMedicineName())) {
+            throw new BusinessException("Tên thuốc không được để trống.");
         }
-        if(AppUtils.isNullOrEmpty(entity.getUnit())){
-            AppUtils.showError(null,"Đơn vị tính không được để trống.");
-            return false;
+        if (AppUtils.isNullOrEmpty(entity.getUnit())) {
+            throw new BusinessException("Đơn vị tính không được để trống.");
         }
-        if(entity.getCostPrice()>entity.getSellPrice()){
-            AppUtils.showError(null,"Cảnh báo: Giá bán đang thấp hơn giá vốn.");
-            return false;
+        if (entity.getCostPrice() < 0 || entity.getSellPrice() < 0) {
+            throw new BusinessException("Giá không được âm.");
         }
-        if(entity.getCostPrice()<0||entity.getSellPrice()<0){
-            AppUtils.showError(null,"Giá không được âm");
-            return false;
+        if (entity.getCostPrice() > entity.getSellPrice()) {
+            throw new BusinessException("Cảnh báo: Giá bán đang thấp hơn giá vốn.");
         }
         LocalDate expiryDate = entity.getExpiryDate();
-        if (expiryDate.isBefore(LocalDate.now()) || expiryDate.isEqual(LocalDate.now())) {
-            AppUtils.showError(null, "Ngày hết hạn không thể là hôm nay hay trước đó!");
-            return false;
+        if (expiryDate != null && (expiryDate.isBefore(LocalDate.now()) || expiryDate.isEqual(LocalDate.now()))) {
+            throw new BusinessException("Ngày hết hạn không thể là hôm nay hay trước đó!");
         }
         return true;
     }

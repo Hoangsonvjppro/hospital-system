@@ -54,7 +54,6 @@ public class DataSeeder {
                         + " | checkpw='" + plainPassword + "' → " + (check ? "OK ✅" : "FAIL ❌"));
             }
 
-            DatabaseConfig.getInstance().closeConnection();
             System.err.println("=== DataSeeder HOÀN TẤT ===");
 
         } catch (SQLException e) {

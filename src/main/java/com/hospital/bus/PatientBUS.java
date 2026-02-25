@@ -1,6 +1,7 @@
 package com.hospital.bus;
 
 import com.hospital.dao.PatientDAO;
+import com.hospital.exception.BusinessException;
 import com.hospital.model.Patient;
 import com.hospital.util.AppUtils;
 
@@ -22,18 +23,15 @@ public class PatientBUS extends BaseBUS<Patient> {
     protected boolean validate(Patient entity) {
 
         if (AppUtils.isNullOrEmpty(entity.getFullName())) {
-            AppUtils.showError(null, "Ten benh nhan khong duoc de trong.");
-            return false;
+            throw new BusinessException("Tên bệnh nhân không được để trống.");
         }
 
         if (AppUtils.isNullOrEmpty(entity.getPhone())) {
-            AppUtils.showError(null, "SDT khong duoc de trong.");
-            return false;
+            throw new BusinessException("SĐT không được để trống.");
         }
 
         if (!entity.getPhone().matches("\\d{10}")) {
-            AppUtils.showError(null, "SDT phai du 10 chu so.");
-            return false;
+            throw new BusinessException("SĐT phải đủ 10 chữ số.");
         }
 
         return true;

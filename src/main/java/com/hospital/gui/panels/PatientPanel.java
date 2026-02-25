@@ -1,6 +1,8 @@
 package com.hospital.gui.panels;
 
 import com.hospital.bus.PatientBUS;
+import com.hospital.exception.BusinessException;
+import com.hospital.exception.DataAccessException;
 import com.hospital.model.Patient;
 
 import javax.swing.*;
@@ -74,8 +76,12 @@ public class PatientPanel extends JPanel {
                 clearForm();
             }
 
+        } catch (BusinessException e) {
+            JOptionPane.showMessageDialog(this, e.getMessage(), "Lỗi nghiệp vụ", JOptionPane.ERROR_MESSAGE);
+        } catch (DataAccessException e) {
+            JOptionPane.showMessageDialog(this, "Lỗi hệ thống: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
         } catch (Exception e) {
-            JOptionPane.showMessageDialog(this, "Sai định dạng ngày!");
+            JOptionPane.showMessageDialog(this, "Dữ liệu không hợp lệ: " + e.getMessage());
         }
     }
 

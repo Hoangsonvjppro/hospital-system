@@ -1,6 +1,8 @@
 package com.hospital.gui.panels;
 
 import com.hospital.bus.PatientBUS;
+import com.hospital.exception.BusinessException;
+import com.hospital.exception.DataAccessException;
 import com.hospital.gui.UIConstants;
 import com.hospital.gui.components.RoundedButton;
 import com.hospital.gui.components.RoundedPanel;
@@ -676,11 +678,17 @@ public class DoctorWorkstationPanel extends JPanel {
             JOptionPane.showMessageDialog(this, "Vui long chon benh nhan.", "Thong bao", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        patientBUS.updateStatus(selectedPatient.getId(), "XONG");
-        JOptionPane.showMessageDialog(this,
-                "Da luu va hoan tat kham cho benh nhan: " + selectedPatient.getFullName(),
-                "Thanh cong", JOptionPane.INFORMATION_MESSAGE);
-        refreshAfterAction();
+        try {
+            patientBUS.updateStatus(selectedPatient.getId(), "XONG");
+            JOptionPane.showMessageDialog(this,
+                    "Da luu va hoan tat kham cho benh nhan: " + selectedPatient.getFullName(),
+                    "Thanh cong", JOptionPane.INFORMATION_MESSAGE);
+            refreshAfterAction();
+        } catch (BusinessException e) {
+            JOptionPane.showMessageDialog(this, e.getMessage(), "Loi nghiep vu", JOptionPane.ERROR_MESSAGE);
+        } catch (DataAccessException e) {
+            JOptionPane.showMessageDialog(this, "Loi he thong: " + e.getMessage(), "Loi", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private void onTransferPayment() {
@@ -688,11 +696,17 @@ public class DoctorWorkstationPanel extends JPanel {
             JOptionPane.showMessageDialog(this, "Vui long chon benh nhan.", "Thong bao", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        patientBUS.updateStatus(selectedPatient.getId(), "XONG");
-        JOptionPane.showMessageDialog(this,
-                "Da chuyen benh nhan " + selectedPatient.getFullName() + " sang thanh toan.",
-                "Chuyen thanh toan", JOptionPane.INFORMATION_MESSAGE);
-        refreshAfterAction();
+        try {
+            patientBUS.updateStatus(selectedPatient.getId(), "XONG");
+            JOptionPane.showMessageDialog(this,
+                    "Da chuyen benh nhan " + selectedPatient.getFullName() + " sang thanh toan.",
+                    "Chuyen thanh toan", JOptionPane.INFORMATION_MESSAGE);
+            refreshAfterAction();
+        } catch (BusinessException e) {
+            JOptionPane.showMessageDialog(this, e.getMessage(), "Loi nghiep vu", JOptionPane.ERROR_MESSAGE);
+        } catch (DataAccessException e) {
+            JOptionPane.showMessageDialog(this, "Loi he thong: " + e.getMessage(), "Loi", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     private void refreshAfterAction() {
