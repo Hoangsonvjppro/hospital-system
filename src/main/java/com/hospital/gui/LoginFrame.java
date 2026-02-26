@@ -1,6 +1,8 @@
 package com.hospital.gui;
 
 import com.hospital.bus.AccountBUS;
+import com.hospital.gui.components.RoundedBorder;
+import com.hospital.gui.components.RoundedPanel;
 import com.hospital.model.Account;
 
 import javax.swing.*;
@@ -15,18 +17,7 @@ import java.awt.geom.RoundRectangle2D;
  */
 public class LoginFrame extends JFrame {
 
-    // ── UI Colors ─────────────────────────────────────────────
-    private static final Color BG_COLOR        = new Color(0xEEF2F7);
-    private static final Color CARD_BG         = Color.WHITE;
-    private static final Color PRIMARY_COLOR   = new Color(0x2196F3);
-    private static final Color PRIMARY_HOVER   = new Color(0x1976D2);
-    private static final Color TEXT_PRIMARY     = new Color(0x333333);
-    private static final Color TEXT_SECONDARY   = new Color(0x888888);
-    private static final Color ERROR_COLOR      = new Color(0xE53935);
-    private static final Color FIELD_BG         = new Color(0xF5F7FA);
-    private static final Color FIELD_BORDER     = new Color(0xDDE2E8);
-    private static final Color FIELD_FOCUS      = PRIMARY_COLOR;
-    private static final Color ICON_COLOR       = new Color(0xB0BEC5);
+    // Tất cả màu/font dùng UIConstants — KHÔNG khai báo cục bộ.
 
     // ── Components ────────────────────────────────────────────
     private JTextField     txtUsername;
@@ -56,7 +47,7 @@ public class LoginFrame extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         setResizable(false);
-        getContentPane().setBackground(BG_COLOR);
+        getContentPane().setBackground(UIConstants.CONTENT_BG);
     }
 
     // ══════════════════════════════════════════════════════════
@@ -68,7 +59,7 @@ public class LoginFrame extends JFrame {
 
         // ── Card Panel (rounded white card) ───────────────────
         JPanel card = new RoundedPanel(24);
-        card.setBackground(CARD_BG);
+        card.setBackground(UIConstants.CARD_BG);
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
         card.setBorder(new EmptyBorder(40, 50, 35, 50));
         card.setPreferredSize(new Dimension(420, 460));
@@ -81,23 +72,23 @@ public class LoginFrame extends JFrame {
 
         // ── Title ─────────────────────────────────────────────
         JLabel title = new JLabel("Phòng Mạch Tư");
-        title.setFont(new Font("SansSerif", Font.BOLD, 24));
-        title.setForeground(PRIMARY_COLOR);
+        title.setFont(UIConstants.FONT_TITLE);
+        title.setForeground(UIConstants.PRIMARY);
         title.setAlignmentX(Component.CENTER_ALIGNMENT);
         card.add(title);
         card.add(Box.createVerticalStrut(4));
 
         JLabel subtitle = new JLabel("Hệ thống quản lý phòng khám");
-        subtitle.setFont(new Font("SansSerif", Font.PLAIN, 13));
-        subtitle.setForeground(TEXT_SECONDARY);
+        subtitle.setFont(UIConstants.FONT_LABEL);
+        subtitle.setForeground(UIConstants.TEXT_SECONDARY);
         subtitle.setAlignmentX(Component.CENTER_ALIGNMENT);
         card.add(subtitle);
         card.add(Box.createVerticalStrut(28));
 
         // ── General error label ───────────────────────────────
         lblGeneralError = new JLabel(" ");
-        lblGeneralError.setFont(new Font("SansSerif", Font.PLAIN, 12));
-        lblGeneralError.setForeground(ERROR_COLOR);
+        lblGeneralError.setFont(UIConstants.FONT_CAPTION);
+        lblGeneralError.setForeground(UIConstants.ERROR_COLOR);
         lblGeneralError.setAlignmentX(Component.CENTER_ALIGNMENT);
         lblGeneralError.setMaximumSize(new Dimension(Integer.MAX_VALUE, 20));
         card.add(lblGeneralError);
@@ -128,8 +119,8 @@ public class LoginFrame extends JFrame {
 
         // ── Toggle show/hide password (eye icon) ──────────────
         JLabel eyeToggle = new JLabel("\uD83D\uDC41");
-        eyeToggle.setFont(new Font("SansSerif", Font.PLAIN, 16));
-        eyeToggle.setForeground(ICON_COLOR);
+        eyeToggle.setFont(new Font(UIConstants.FONT_NAME, Font.PLAIN, 16));
+        eyeToggle.setForeground(UIConstants.ICON_MUTED);
         eyeToggle.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         eyeToggle.setPreferredSize(new Dimension(28, 24));
         eyeToggle.setToolTipText("Hiện/Ẩn mật khẩu");
@@ -142,23 +133,23 @@ public class LoginFrame extends JFrame {
                 if (visible) {
                     txtPassword.setEchoChar((char) 0); // Hiện mật khẩu
                     eyeToggle.setText("\uD83D\uDC41");  // 👁
-                    eyeToggle.setForeground(PRIMARY_COLOR);
+                    eyeToggle.setForeground(UIConstants.PRIMARY);
                 } else {
                     txtPassword.setEchoChar('•');       // Ẩn mật khẩu
                     eyeToggle.setText("\uD83D\uDC41");  // 👁
-                    eyeToggle.setForeground(ICON_COLOR);
+                    eyeToggle.setForeground(UIConstants.ICON_MUTED);
                 }
             }
 
             @Override
             public void mouseEntered(MouseEvent e) {
-                eyeToggle.setForeground(PRIMARY_COLOR);
+                eyeToggle.setForeground(UIConstants.PRIMARY);
             }
 
             @Override
             public void mouseExited(MouseEvent e) {
                 if (txtPassword.getEchoChar() != (char) 0) {
-                    eyeToggle.setForeground(ICON_COLOR);
+                    eyeToggle.setForeground(UIConstants.ICON_MUTED);
                 }
             }
         });
@@ -177,8 +168,8 @@ public class LoginFrame extends JFrame {
 
         // ── Forgot password link ──────────────────────────────
         JLabel forgotLink = new JLabel("Quên mật khẩu?");
-        forgotLink.setFont(new Font("SansSerif", Font.PLAIN, 13));
-        forgotLink.setForeground(TEXT_SECONDARY);
+        forgotLink.setFont(UIConstants.FONT_LABEL);
+        forgotLink.setForeground(UIConstants.TEXT_SECONDARY);
         forgotLink.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         forgotLink.setAlignmentX(Component.CENTER_ALIGNMENT);
         forgotLink.addMouseListener(new MouseAdapter() {
@@ -191,12 +182,12 @@ public class LoginFrame extends JFrame {
 
             @Override
             public void mouseEntered(MouseEvent e) {
-                forgotLink.setForeground(PRIMARY_COLOR);
+                forgotLink.setForeground(UIConstants.PRIMARY);
             }
 
             @Override
             public void mouseExited(MouseEvent e) {
-                forgotLink.setForeground(TEXT_SECONDARY);
+                forgotLink.setForeground(UIConstants.TEXT_SECONDARY);
             }
         });
         card.add(forgotLink);
@@ -206,8 +197,8 @@ public class LoginFrame extends JFrame {
 
         // ── Footer ────────────────────────────────────────────
         JLabel footer = new JLabel("© 2024 Phòng Mạch Tư, Version 2.4.1");
-        footer.setFont(new Font("SansSerif", Font.PLAIN, 11));
-        footer.setForeground(new Color(0xB0B0B0));
+        footer.setFont(UIConstants.FONT_SMALL);
+        footer.setForeground(UIConstants.TEXT_MUTED);
         footer.setHorizontalAlignment(SwingConstants.CENTER);
 
         GridBagConstraints footerGbc = new GridBagConstraints();
@@ -231,10 +222,10 @@ public class LoginFrame extends JFrame {
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
                 // Circle background
                 int size = Math.min(getWidth(), getHeight());
-                g2.setColor(new Color(0xE3F2FD));
+                g2.setColor(UIConstants.PRIMARY_BG_SOFT);
                 g2.fillOval((getWidth() - size) / 2, (getHeight() - size) / 2, size, size);
                 // Cross icon
-                g2.setColor(PRIMARY_COLOR);
+                g2.setColor(UIConstants.PRIMARY);
                 g2.setStroke(new BasicStroke(3f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
                 int cx = getWidth() / 2;
                 int cy = getHeight() / 2;
@@ -260,8 +251,8 @@ public class LoginFrame extends JFrame {
      */
     private JLabel createFieldLabel(String text) {
         JLabel lbl = new JLabel(text);
-        lbl.setFont(new Font("SansSerif", Font.PLAIN, 13));
-        lbl.setForeground(TEXT_PRIMARY);
+        lbl.setFont(UIConstants.FONT_LABEL);
+        lbl.setForeground(UIConstants.TEXT_PRIMARY);
         lbl.setAlignmentX(Component.CENTER_ALIGNMENT);
         lbl.setMaximumSize(new Dimension(Integer.MAX_VALUE, 20));
         return lbl;
@@ -272,8 +263,8 @@ public class LoginFrame extends JFrame {
      */
     private JLabel createErrorLabel() {
         JLabel lbl = new JLabel(" ");
-        lbl.setFont(new Font("SansSerif", Font.PLAIN, 11));
-        lbl.setForeground(ERROR_COLOR);
+        lbl.setFont(UIConstants.FONT_SMALL);
+        lbl.setForeground(UIConstants.ERROR_COLOR);
         lbl.setAlignmentX(Component.CENTER_ALIGNMENT);
         lbl.setMaximumSize(new Dimension(Integer.MAX_VALUE, 16));
         return lbl;
@@ -287,9 +278,9 @@ public class LoginFrame extends JFrame {
             private boolean focused = false;
 
             {
-                setBackground(FIELD_BG);
+                setBackground(UIConstants.FIELD_BG);
                 setBorder(BorderFactory.createCompoundBorder(
-                        new RoundedBorder(12, FIELD_BORDER),
+                        new RoundedBorder(12, UIConstants.FIELD_BORDER),
                         new EmptyBorder(0, 12, 0, 12)
                 ));
                 setLayout(new BorderLayout(8, 0));
@@ -299,17 +290,17 @@ public class LoginFrame extends JFrame {
 
                 // Icon
                 JLabel icon = new JLabel(iconText);
-                icon.setFont(new Font("SansSerif", Font.PLAIN, 16));
-                icon.setForeground(ICON_COLOR);
+                icon.setFont(new Font(UIConstants.FONT_NAME, Font.PLAIN, 16));
+                icon.setForeground(UIConstants.ICON_MUTED);
                 icon.setPreferredSize(new Dimension(24, 24));
                 add(icon, BorderLayout.WEST);
 
                 // Field styling
                 field.setOpaque(false);
                 field.setBorder(null);
-                field.setFont(new Font("SansSerif", Font.PLAIN, 14));
+                field.setFont(UIConstants.FONT_BODY);
                 if (field instanceof JTextField) {
-                    ((JTextField) field).setCaretColor(TEXT_PRIMARY);
+                    ((JTextField) field).setCaretColor(UIConstants.TEXT_PRIMARY);
                 }
                 add(field, BorderLayout.CENTER);
 
@@ -319,7 +310,7 @@ public class LoginFrame extends JFrame {
                     public void focusGained(FocusEvent e) {
                         focused = true;
                         setBorder(BorderFactory.createCompoundBorder(
-                                new RoundedBorder(12, FIELD_FOCUS),
+                                new RoundedBorder(12, UIConstants.PRIMARY),
                                 new EmptyBorder(0, 12, 0, 12)
                         ));
                         repaint();
@@ -329,7 +320,7 @@ public class LoginFrame extends JFrame {
                     public void focusLost(FocusEvent e) {
                         focused = false;
                         setBorder(BorderFactory.createCompoundBorder(
-                                new RoundedBorder(12, FIELD_BORDER),
+                                new RoundedBorder(12, UIConstants.FIELD_BORDER),
                                 new EmptyBorder(0, 12, 0, 12)
                         ));
                         repaint();
@@ -352,7 +343,7 @@ public class LoginFrame extends JFrame {
                 setFocusPainted(false);
                 setBorderPainted(false);
                 setForeground(Color.WHITE);
-                setFont(new Font("SansSerif", Font.BOLD, 15));
+                setFont(UIConstants.FONT_SUBTITLE);
                 setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
                 setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
                 setPreferredSize(new Dimension(320, 44));
@@ -377,7 +368,7 @@ public class LoginFrame extends JFrame {
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                Color bg = hovering ? PRIMARY_HOVER : PRIMARY_COLOR;
+                Color bg = hovering ? UIConstants.PRIMARY_DARK : UIConstants.PRIMARY;
                 g2.setColor(bg);
                 g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 12, 12));
                 g2.dispose();
@@ -494,57 +485,4 @@ public class LoginFrame extends JFrame {
         }.execute();
     }
 
-    // ══════════════════════════════════════════════════════════
-    //  CUSTOM PAINTING HELPERS
-    // ══════════════════════════════════════════════════════════
-
-    /**
-     * JPanel bo tròn góc.
-     */
-    private static class RoundedPanel extends JPanel {
-        private final int radius;
-
-        RoundedPanel(int radius) {
-            this.radius = radius;
-            setOpaque(false);
-        }
-
-        @Override
-        protected void paintComponent(Graphics g) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setColor(getBackground());
-            g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), radius, radius));
-            g2.dispose();
-            super.paintComponent(g);
-        }
-    }
-
-    /**
-     * Border bo tròn góc.
-     */
-    private static class RoundedBorder extends javax.swing.border.AbstractBorder {
-        private final int radius;
-        private final Color color;
-
-        RoundedBorder(int radius, Color color) {
-            this.radius = radius;
-            this.color = color;
-        }
-
-        @Override
-        public void paintBorder(Component c, Graphics g, int x, int y, int width, int height) {
-            Graphics2D g2 = (Graphics2D) g.create();
-            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-            g2.setColor(color);
-            g2.setStroke(new BasicStroke(1.5f));
-            g2.draw(new RoundRectangle2D.Float(x + 0.5f, y + 0.5f, width - 1, height - 1, radius, radius));
-            g2.dispose();
-        }
-
-        @Override
-        public Insets getBorderInsets(Component c) {
-            return new Insets(0, 0, 0, 0);
-        }
-    }
 }

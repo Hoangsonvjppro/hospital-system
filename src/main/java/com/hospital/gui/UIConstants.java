@@ -18,13 +18,13 @@ public class UIConstants {
     public static final Color PRIMARY_BG_SOFT   = new Color(253, 237, 236);  // nền mềm đỏ nhạt
 
     /** @deprecated Dùng {@link #PRIMARY} thay thế */
-    public static final Color PRIMARY_RED       = PRIMARY;
+    @Deprecated public static final Color PRIMARY_RED       = PRIMARY;
     /** @deprecated Dùng {@link #PRIMARY_DARK} thay thế */
-    public static final Color PRIMARY_RED_DARK  = PRIMARY_DARK;
+    @Deprecated public static final Color PRIMARY_RED_DARK  = PRIMARY_DARK;
     /** @deprecated Dùng {@link #PRIMARY_LIGHT} thay thế */
-    public static final Color PRIMARY_RED_LIGHT = PRIMARY_LIGHT;
+    @Deprecated public static final Color PRIMARY_RED_LIGHT = PRIMARY_LIGHT;
     /** @deprecated Dùng {@link #PRIMARY_BG_SOFT} thay thế */
-    public static final Color RED_BG_SOFT       = PRIMARY_BG_SOFT;
+    @Deprecated public static final Color RED_BG_SOFT       = PRIMARY_BG_SOFT;
 
     // ═══════════════════════════════════════════════════════════════════════════
     //  SIDEBAR
@@ -71,12 +71,29 @@ public class UIConstants {
     public static final Color LOGOUT_HOVER      = new Color(192, 57,  43);   // #C0392B
 
     // ═══════════════════════════════════════════════════════════════════════════
+    //  ACCENT BLUE (Doctor Workstation & clinical context)
+    // ═══════════════════════════════════════════════════════════════════════════
+    public static final Color ACCENT_BLUE       = new Color(37,  99,  235);  // #2563EB
+    public static final Color ACCENT_BLUE_DARK  = new Color(29,  78,  216);  // #1D4ED8
+    public static final Color ACCENT_BLUE_LIGHT = new Color(59,  130, 246);  // #3B82F6
+    public static final Color ACCENT_BLUE_SOFT  = new Color(239, 246, 255);  // #EFF6FF
+
+    // ═══════════════════════════════════════════════════════════════════════════
+    //  FORM / INPUT
+    // ═══════════════════════════════════════════════════════════════════════════
+    public static final Color FIELD_BG          = new Color(245, 247, 250);  // #F5F7FA
+    public static final Color FIELD_BORDER      = new Color(221, 226, 232);  // #DDE2E8
+    public static final Color ERROR_COLOR       = new Color(229, 57,  53);   // #E53935
+    public static final Color ICON_MUTED        = new Color(176, 190, 197);  // #B0BEC5
+
+    // ═══════════════════════════════════════════════════════════════════════════
     //  KHÁC (Miscellaneous)
     // ═══════════════════════════════════════════════════════════════════════════
     public static final Color BORDER_COLOR      = new Color(220, 221, 226);
     public static final Color TABLE_HEADER_BG   = new Color(248, 249, 250);
     public static final Color TABLE_ROW_ALT     = new Color(252, 252, 252);
     public static final Color SUCCESS_GREEN     = new Color(39,  174, 96);
+    public static final Color SUCCESS_GREEN_DARK= new Color(21,  128, 61);   // #15803D
     public static final Color WARNING_ORANGE    = new Color(230, 126, 34);
 
     // ═══════════════════════════════════════════════════════════════════════════
@@ -87,11 +104,17 @@ public class UIConstants {
     // Tiêu đề & nội dung
     public static final Font   FONT_TITLE           = new Font(FONT_NAME, Font.BOLD,  22);
     public static final Font   FONT_SUBTITLE        = new Font(FONT_NAME, Font.BOLD,  15);
+    public static final Font   FONT_HEADER          = new Font(FONT_NAME, Font.BOLD,  18);
+    public static final Font   FONT_SECTION         = new Font(FONT_NAME, Font.BOLD,  16);
+    public static final Font   FONT_BODY            = new Font(FONT_NAME, Font.PLAIN, 14);
     public static final Font   FONT_LABEL           = new Font(FONT_NAME, Font.PLAIN, 13);
+    public static final Font   FONT_CAPTION         = new Font(FONT_NAME, Font.PLAIN, 12);
     public static final Font   FONT_SMALL           = new Font(FONT_NAME, Font.PLAIN, 11);
+    public static final Font   FONT_OVERLINE        = new Font(FONT_NAME, Font.BOLD,  10);
     public static final Font   FONT_BOLD            = new Font(FONT_NAME, Font.BOLD,  13);
     public static final Font   FONT_BUTTON          = new Font(FONT_NAME, Font.BOLD,  13);
     public static final Font   FONT_NUMBER_BIG      = new Font(FONT_NAME, Font.BOLD,  28);
+    public static final Font   FONT_ITALIC          = new Font(FONT_NAME, Font.ITALIC, 12);
 
     // Sidebar
     public static final Font   FONT_SIDEBAR         = new Font(FONT_NAME, Font.PLAIN, 13);

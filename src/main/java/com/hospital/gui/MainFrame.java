@@ -1,17 +1,14 @@
 package com.hospital.gui;
 
-import com.hospital.gui.panels.SamplePanel;
-
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import java.awt.*;
 
 /**
- * Cửa sổ chính của ứng dụng.
- * Main application window.
+ * Cửa sổ chính mặc định (fallback cho role chưa cấu hình).
+ * Main application window — fallback for unconfigured roles.
  */
 public class MainFrame extends JFrame {
-    private JPanel contentPanel;
-    private JPanel sidebarPanel;
 
     public MainFrame() {
         initComponents();
@@ -23,76 +20,33 @@ public class MainFrame extends JFrame {
         setMinimumSize(new Dimension(1000, 600));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
+        getContentPane().setBackground(UIConstants.CONTENT_BG);
+        setLayout(new GridBagLayout());
 
-        // Layout chính
-        setLayout(new BorderLayout());
+        JPanel card = new JPanel();
+        card.setBackground(UIConstants.CARD_BG);
+        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+        card.setBorder(new EmptyBorder(40, 60, 40, 60));
 
-        // Sidebar
-        sidebarPanel = createSidebar();
-        add(sidebarPanel, BorderLayout.WEST);
+        JLabel icon = new JLabel("🏥", SwingConstants.CENTER);
+        icon.setFont(UIConstants.FONT_ICON);
+        icon.setAlignmentX(Component.CENTER_ALIGNMENT);
+        card.add(icon);
+        card.add(Box.createVerticalStrut(16));
 
-        // Panel nội dung chính
-        contentPanel = new JPanel(new BorderLayout());
-        contentPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        add(contentPanel, BorderLayout.CENTER);
+        JLabel title = new JLabel("Phòng Mạch Tư");
+        title.setFont(UIConstants.FONT_TITLE);
+        title.setForeground(UIConstants.TEXT_PRIMARY);
+        title.setAlignmentX(Component.CENTER_ALIGNMENT);
+        card.add(title);
+        card.add(Box.createVerticalStrut(8));
 
-        // Mặc định hiển thị panel mẫu
-        showPanel(new SamplePanel());
-    }
+        JLabel subtitle = new JLabel("Vai trò của bạn chưa được cấu hình. Vui lòng liên hệ quản trị viên.");
+        subtitle.setFont(UIConstants.FONT_LABEL);
+        subtitle.setForeground(UIConstants.TEXT_SECONDARY);
+        subtitle.setAlignmentX(Component.CENTER_ALIGNMENT);
+        card.add(subtitle);
 
-    /**
-     * Tạo sidebar điều hướng.
-     */
-    private JPanel createSidebar() {
-        JPanel sidebar = new JPanel();
-        sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
-        sidebar.setPreferredSize(new Dimension(200, 0));
-        sidebar.setBackground(new Color(44, 62, 80));
-        sidebar.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-
-        // Tiêu đề sidebar
-        JLabel titleLabel = new JLabel("MENU");
-        titleLabel.setForeground(Color.WHITE);
-        titleLabel.setFont(new Font("Arial", Font.BOLD, 16));
-        titleLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
-        sidebar.add(titleLabel);
-        sidebar.add(Box.createVerticalStrut(20));
-
-        // Thêm các nút menu ở đây
-        // addMenuButton(sidebar, "Trang chủ", e -> showPanel(new HomePanel()));
-        // addMenuButton(sidebar, "Bệnh nhân", e -> showPanel(new PatientPanel()));
-        // addMenuButton(sidebar, "Bác sĩ", e -> showPanel(new DoctorPanel()));
-
-        JButton sampleBtn = createMenuButton("Mẫu (Sample)");
-        sampleBtn.addActionListener(e -> showPanel(new SamplePanel()));
-        sidebar.add(sampleBtn);
-
-        sidebar.add(Box.createVerticalGlue());
-        return sidebar;
-    }
-
-    /**
-     * Tạo nút menu cho sidebar.
-     */
-    private JButton createMenuButton(String text) {
-        JButton btn = new JButton(text);
-        btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, 40));
-        btn.setAlignmentX(Component.CENTER_ALIGNMENT);
-        btn.setForeground(Color.WHITE);
-        btn.setBackground(new Color(52, 73, 94));
-        btn.setBorderPainted(false);
-        btn.setFocusPainted(false);
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        return btn;
-    }
-
-    /**
-     * Thay đổi panel nội dung hiển thị.
-     */
-    public void showPanel(JPanel panel) {
-        contentPanel.removeAll();
-        contentPanel.add(panel, BorderLayout.CENTER);
-        contentPanel.revalidate();
-        contentPanel.repaint();
+        add(card, new GridBagConstraints());
     }
 }

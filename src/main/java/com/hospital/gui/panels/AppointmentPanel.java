@@ -38,10 +38,10 @@ public class AppointmentPanel extends JPanel {
     private static final int END_HOUR   = 18;
     private static final int SLOT_COUNT = END_HOUR - START_HOUR;
 
-    private static final Color CLR_CONFIRMED = new Color(52, 152, 219);
-    private static final Color CLR_WAITING   = new Color(230, 126, 34);
-    private static final Color CLR_DONE      = new Color(39, 174, 96);
-    private static final Color CLR_CANCEL    = new Color(149, 165, 166);
+    private static final Color CLR_CONFIRMED = UIConstants.STATUS_EXAMINING;  // xanh dương
+    private static final Color CLR_WAITING   = UIConstants.STATUS_WAITING;    // cam
+    private static final Color CLR_DONE      = UIConstants.STATUS_DONE;       // xanh lá
+    private static final Color CLR_CANCEL    = UIConstants.STATUS_CANCEL;     // xám
 
     private static final String[] DAY_LABELS = {
         "THỨ 2", "THỨ 3", "THỨ 4", "THỨ 5", "THỨ 6", "THỨ 7", "CHỦ NHẬT"

@@ -24,34 +24,10 @@ import java.util.List;
  */
 public class DoctorWorkstationPanel extends JPanel {
 
-    private static final Color PRIMARY_BLUE      = new Color(37, 99, 235);
-    private static final Color PRIMARY_BLUE_DARK = new Color(29, 78, 216);
-    private static final Color PRIMARY_BLUE_LIGHT= new Color(59, 130, 246);
-    private static final Color BLUE_BG_SOFT      = new Color(239, 246, 255);
-    private static final Color BG_COLOR          = new Color(245, 247, 251);
-    private static final Color CARD_BG           = Color.WHITE;
-    private static final Color TEXT_DARK          = new Color(30, 41, 59);
-    private static final Color TEXT_SECONDARY     = new Color(100, 116, 139);
-    private static final Color TEXT_MUTED         = new Color(148, 163, 184);
-    private static final Color BORDER             = new Color(226, 232, 240);
-    private static final Color GREEN_BTN          = new Color(22, 163, 74);
-    private static final Color GREEN_BTN_DARK     = new Color(21, 128, 61);
-
-    private static final Font FONT_HEADER        = new Font("Segoe UI", Font.BOLD, 18);
-    private static final Font FONT_PATIENT_NAME  = new Font("Segoe UI", Font.BOLD, 14);
-    private static final Font FONT_PATIENT_INFO  = new Font("Segoe UI", Font.PLAIN, 12);
-    private static final Font FONT_PATIENT_TIME  = new Font("Segoe UI", Font.PLAIN, 11);
-    private static final Font FONT_BIG_NAME      = new Font("Segoe UI", Font.BOLD, 22);
-    private static final Font FONT_INFO_DETAIL   = new Font("Segoe UI", Font.PLAIN, 13);
-    private static final Font FONT_VITAL_LABEL   = new Font("Segoe UI", Font.BOLD, 10);
-    private static final Font FONT_VITAL_VALUE   = new Font("Segoe UI", Font.BOLD, 28);
-    private static final Font FONT_VITAL_UNIT    = new Font("Segoe UI", Font.PLAIN, 14);
-    private static final Font FONT_TAB           = new Font("Segoe UI", Font.BOLD, 13);
-    private static final Font FONT_SECTION_TITLE = new Font("Segoe UI", Font.BOLD, 16);
-    private static final Font FONT_STATUS        = new Font("Segoe UI", Font.ITALIC, 12);
+    // Tất cả màu/font dùng UIConstants — KHÔNG khai báo cục bộ.
 
     private static final String[] TAB_NAMES = {
-        "Thong tin & Sinh hieu", "Kham benh", "Chi dinh Dich vu", "Ke don thuoc"
+        "Thông tin & Sinh hiệu", "Khám bệnh", "Chỉ định Dịch vụ", "Kê đơn thuốc"
     };
 
     private final QueueBUS queueBUS = new QueueBUS();
@@ -72,8 +48,8 @@ public class DoctorWorkstationPanel extends JPanel {
     private JTextArea txtSymptoms;
     private JTextArea txtDiagnosis;
 
-    private static final String SYMPTOMS_PLACEHOLDER = "Nhap trieu chung cua benh nhan...";
-    private static final String DIAGNOSIS_PLACEHOLDER = "Nhap chan doan...";
+    private static final String SYMPTOMS_PLACEHOLDER = "Nhập triệu chứng của bệnh nhân...";
+    private static final String DIAGNOSIS_PLACEHOLDER = "Nhập chẩn đoán...";
 
     private int activeTab = 0;
     private JPanel tabBar;
@@ -81,7 +57,7 @@ public class DoctorWorkstationPanel extends JPanel {
     private javax.swing.Timer refreshTimer;
 
     public DoctorWorkstationPanel() {
-        setBackground(BG_COLOR);
+        setBackground(UIConstants.CONTENT_BG);
         setLayout(new BorderLayout(0, 0));
         initComponents();
         startAutoRefresh();
@@ -105,34 +81,34 @@ public class DoctorWorkstationPanel extends JPanel {
     private JPanel createLeftPanel() {
         JPanel left = new JPanel(new BorderLayout(0, 0));
         left.setPreferredSize(new Dimension(260, 0));
-        left.setBackground(CARD_BG);
-        left.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, BORDER));
+        left.setBackground(UIConstants.CARD_BG);
+        left.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, UIConstants.BORDER_COLOR));
 
         JPanel header = new JPanel(new BorderLayout());
-        header.setBackground(CARD_BG);
+        header.setBackground(UIConstants.CARD_BG);
         header.setBorder(new EmptyBorder(20, 18, 16, 18));
 
-        JLabel lblTitle = new JLabel("DANH SACH CHO");
-        lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 11));
-        lblTitle.setForeground(TEXT_SECONDARY);
+        JLabel lblTitle = new JLabel("DANH SÁCH CHỜ");
+        lblTitle.setFont(UIConstants.FONT_SMALL);
+        lblTitle.setForeground(UIConstants.TEXT_SECONDARY);
 
         List<Patient> waiting = queueBUS.getWaitingPatients();
-        lblPatientCount = new JLabel(waiting.size() + " Patients");
-        lblPatientCount.setFont(FONT_HEADER);
-        lblPatientCount.setForeground(TEXT_DARK);
+        lblPatientCount = new JLabel(waiting.size() + " Bệnh nhân");
+        lblPatientCount.setFont(UIConstants.FONT_HEADER);
+        lblPatientCount.setForeground(UIConstants.TEXT_PRIMARY);
 
         JLabel badge = new JLabel("Queue") {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(PRIMARY_BLUE);
+                g2.setColor(UIConstants.ACCENT_BLUE);
                 g2.fillRoundRect(0, 0, getWidth(), getHeight(), 14, 14);
                 g2.dispose();
                 super.paintComponent(g);
             }
         };
-        badge.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        badge.setFont(UIConstants.FONT_SMALL);
         badge.setForeground(Color.WHITE);
         badge.setHorizontalAlignment(SwingConstants.CENTER);
         badge.setPreferredSize(new Dimension(58, 24));
@@ -153,7 +129,7 @@ public class DoctorWorkstationPanel extends JPanel {
 
         patientListPanel = new JPanel();
         patientListPanel.setLayout(new BoxLayout(patientListPanel, BoxLayout.Y_AXIS));
-        patientListPanel.setBackground(CARD_BG);
+        patientListPanel.setBackground(UIConstants.CARD_BG);
         patientListPanel.setBorder(new EmptyBorder(0, 12, 12, 12));
         loadPatientList();
 
@@ -161,7 +137,7 @@ public class DoctorWorkstationPanel extends JPanel {
         scroll.setBorder(null);
         scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         scroll.getVerticalScrollBar().setUnitIncrement(16);
-        scroll.getViewport().setBackground(CARD_BG);
+        scroll.getViewport().setBackground(UIConstants.CARD_BG);
         left.add(scroll, BorderLayout.CENTER);
 
         return left;
@@ -170,7 +146,7 @@ public class DoctorWorkstationPanel extends JPanel {
     private void loadPatientList() {
         patientListPanel.removeAll();
         List<Patient> waiting = queueBUS.getWaitingPatients();
-        lblPatientCount.setText(waiting.size() + " Patients");
+        lblPatientCount.setText(waiting.size() + " Bệnh nhân");
 
         for (int i = 0; i < waiting.size(); i++) {
             patientListPanel.add(createPatientCard(waiting.get(i), i));
@@ -188,14 +164,14 @@ public class DoctorWorkstationPanel extends JPanel {
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(isSelected ? BLUE_BG_SOFT : CARD_BG);
+                g2.setColor(isSelected ? UIConstants.ACCENT_BLUE_SOFT : UIConstants.CARD_BG);
                 g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(), 12, 12));
-                g2.setColor(isSelected ? PRIMARY_BLUE : BORDER);
+                g2.setColor(isSelected ? UIConstants.ACCENT_BLUE : UIConstants.BORDER_COLOR);
                 g2.setStroke(new BasicStroke(isSelected ? 2f : 1f));
                 float off = isSelected ? 1f : 0.5f;
                 g2.draw(new RoundRectangle2D.Float(off, off, getWidth() - 2 * off, getHeight() - 2 * off, 12, 12));
                 if (isSelected) {
-                    g2.setColor(PRIMARY_BLUE);
+                    g2.setColor(UIConstants.ACCENT_BLUE);
                     g2.fillRoundRect(0, 4, 4, getHeight() - 8, 4, 4);
                 }
                 g2.dispose();
@@ -213,14 +189,14 @@ public class DoctorWorkstationPanel extends JPanel {
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(isSelected ? PRIMARY_BLUE : new Color(226, 232, 240));
+                g2.setColor(isSelected ? UIConstants.ACCENT_BLUE : UIConstants.BORDER_COLOR);
                 g2.fill(new Ellipse2D.Float(0, 0, 32, 32));
                 g2.dispose();
                 super.paintComponent(g);
             }
         };
-        numLabel.setFont(new Font("Segoe UI", Font.BOLD, 12));
-        numLabel.setForeground(isSelected ? Color.WHITE : TEXT_SECONDARY);
+        numLabel.setFont(UIConstants.FONT_CAPTION);
+        numLabel.setForeground(isSelected ? Color.WHITE : UIConstants.TEXT_SECONDARY);
         numLabel.setHorizontalAlignment(SwingConstants.CENTER);
         numLabel.setPreferredSize(new Dimension(32, 32));
 
@@ -235,22 +211,22 @@ public class DoctorWorkstationPanel extends JPanel {
         info.setOpaque(false);
 
         JLabel nameLabel = new JLabel(patient.getFullName());
-        nameLabel.setFont(FONT_PATIENT_NAME);
-        nameLabel.setForeground(isSelected ? PRIMARY_BLUE : TEXT_DARK);
+        nameLabel.setFont(UIConstants.FONT_SUBTITLE);
+        nameLabel.setForeground(isSelected ? UIConstants.ACCENT_BLUE : UIConstants.TEXT_PRIMARY);
         nameLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         info.add(nameLabel);
         info.add(Box.createVerticalStrut(2));
 
         JLabel detailLabel = new JLabel(patient.getGender() + " - " + patient.getAge() + " tuoi");
-        detailLabel.setFont(FONT_PATIENT_INFO);
-        detailLabel.setForeground(TEXT_SECONDARY);
+        detailLabel.setFont(UIConstants.FONT_CAPTION);
+        detailLabel.setForeground(UIConstants.TEXT_SECONDARY);
         detailLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         info.add(detailLabel);
         info.add(Box.createVerticalStrut(4));
 
         JLabel timeLabel = new JLabel(patient.getArrivalTime());
-        timeLabel.setFont(FONT_PATIENT_TIME);
-        timeLabel.setForeground(TEXT_MUTED);
+        timeLabel.setFont(UIConstants.FONT_SMALL);
+        timeLabel.setForeground(UIConstants.TEXT_MUTED);
         timeLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         info.add(timeLabel);
 
@@ -262,7 +238,7 @@ public class DoctorWorkstationPanel extends JPanel {
                 protected void paintComponent(Graphics g) {
                     Graphics2D g2 = (Graphics2D) g.create();
                     g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                    g2.setColor(isSelected ? PRIMARY_BLUE : UIConstants.STATUS_EXAMINING);
+                    g2.setColor(isSelected ? UIConstants.ACCENT_BLUE : UIConstants.STATUS_EXAMINING);
                     g2.fill(new Ellipse2D.Float(0, 0, 10, 10));
                     g2.dispose();
                 }
@@ -295,7 +271,7 @@ public class DoctorWorkstationPanel extends JPanel {
     // RIGHT PANEL
     private JPanel createRightPanel() {
         JPanel right = new JPanel(new BorderLayout(0, 0));
-        right.setBackground(BG_COLOR);
+        right.setBackground(UIConstants.CONTENT_BG);
 
         tabBar = buildTabBar();
         right.add(tabBar, BorderLayout.NORTH);
@@ -323,8 +299,8 @@ public class DoctorWorkstationPanel extends JPanel {
 
     private JPanel buildTabBar() {
         JPanel bar = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        bar.setBackground(CARD_BG);
-        bar.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, BORDER));
+        bar.setBackground(UIConstants.CARD_BG);
+        bar.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, UIConstants.BORDER_COLOR));
 
         for (int i = 0; i < TAB_NAMES.length; i++) {
             final int idx = i;
@@ -334,14 +310,14 @@ public class DoctorWorkstationPanel extends JPanel {
                     super.paintComponent(g);
                     if (idx == activeTab) {
                         Graphics2D g2 = (Graphics2D) g.create();
-                        g2.setColor(PRIMARY_BLUE);
+                        g2.setColor(UIConstants.ACCENT_BLUE);
                         g2.fillRect(0, getHeight() - 3, getWidth(), 3);
                         g2.dispose();
                     }
                 }
             };
-            tab.setFont(FONT_TAB);
-            tab.setForeground(idx == activeTab ? PRIMARY_BLUE : TEXT_SECONDARY);
+            tab.setFont(UIConstants.FONT_BOLD);
+            tab.setForeground(idx == activeTab ? UIConstants.ACCENT_BLUE : UIConstants.TEXT_SECONDARY);
             tab.setHorizontalAlignment(SwingConstants.CENTER);
             tab.setBorder(new EmptyBorder(14, 24, 14, 24));
             tab.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -356,11 +332,11 @@ public class DoctorWorkstationPanel extends JPanel {
                 }
                 @Override
                 public void mouseEntered(MouseEvent e) {
-                    if (idx != activeTab) tab.setForeground(PRIMARY_BLUE_LIGHT);
+                    if (idx != activeTab) tab.setForeground(UIConstants.ACCENT_BLUE_LIGHT);
                 }
                 @Override
                 public void mouseExited(MouseEvent e) {
-                    tab.setForeground(idx == activeTab ? PRIMARY_BLUE : TEXT_SECONDARY);
+                    tab.setForeground(idx == activeTab ? UIConstants.ACCENT_BLUE : UIConstants.TEXT_SECONDARY);
                 }
             });
             bar.add(tab);
@@ -378,14 +354,14 @@ public class DoctorWorkstationPanel extends JPanel {
                     super.paintComponent(g);
                     if (idx == activeTab) {
                         Graphics2D g2 = (Graphics2D) g.create();
-                        g2.setColor(PRIMARY_BLUE);
+                        g2.setColor(UIConstants.ACCENT_BLUE);
                         g2.fillRect(0, getHeight() - 3, getWidth(), 3);
                         g2.dispose();
                     }
                 }
             };
-            tab.setFont(FONT_TAB);
-            tab.setForeground(idx == activeTab ? PRIMARY_BLUE : TEXT_SECONDARY);
+            tab.setFont(UIConstants.FONT_BOLD);
+            tab.setForeground(idx == activeTab ? UIConstants.ACCENT_BLUE : UIConstants.TEXT_SECONDARY);
             tab.setHorizontalAlignment(SwingConstants.CENTER);
             tab.setBorder(new EmptyBorder(14, 24, 14, 24));
             tab.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -412,8 +388,8 @@ public class DoctorWorkstationPanel extends JPanel {
             switch (activeTab) {
                 case 0 -> rightContentPanel.add(createInfoAndVitalsContent(), BorderLayout.CENTER);
                 case 1 -> rightContentPanel.add(createExaminationContent(), BorderLayout.CENTER);
-                case 2 -> rightContentPanel.add(createPlaceholderTab("Chi dinh Dich vu"), BorderLayout.CENTER);
-                case 3 -> rightContentPanel.add(createPlaceholderTab("Ke don thuoc"), BorderLayout.CENTER);
+                case 2 -> rightContentPanel.add(createPlaceholderTab("Chỉ định Dịch vụ"), BorderLayout.CENTER);
+                case 3 -> rightContentPanel.add(createPlaceholderTab("Kê đơn thuốc"), BorderLayout.CENTER);
             }
         }
         rightContentPanel.revalidate();
@@ -421,9 +397,9 @@ public class DoctorWorkstationPanel extends JPanel {
     }
 
     private void showEmptyState() {
-        JLabel empty = new JLabel("Chua co benh nhan trong danh sach cho", SwingConstants.CENTER);
+        JLabel empty = new JLabel("Chưa có bệnh nhân trong danh sách chờ", SwingConstants.CENTER);
         empty.setFont(UIConstants.FONT_SUBTITLE);
-        empty.setForeground(TEXT_MUTED);
+        empty.setForeground(UIConstants.TEXT_MUTED);
         rightContentPanel.add(empty, BorderLayout.CENTER);
     }
 
@@ -440,7 +416,7 @@ public class DoctorWorkstationPanel extends JPanel {
 
     private JPanel createPatientInfoCard() {
         RoundedPanel card = new RoundedPanel(14);
-        card.setBackground(CARD_BG);
+        card.setBackground(UIConstants.CARD_BG);
         card.setLayout(new GridBagLayout());
         card.setBorder(new EmptyBorder(24, 28, 24, 28));
         card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 140));
@@ -454,7 +430,7 @@ public class DoctorWorkstationPanel extends JPanel {
                 super.paintComponent(g);
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                g2.setColor(new Color(226, 232, 240));
+                g2.setColor(UIConstants.BORDER_COLOR);
                 g2.fill(new Ellipse2D.Float(0, 0, 60, 60));
                 g2.setColor(new Color(180, 190, 200));
                 g2.fill(new Ellipse2D.Float(18, 10, 24, 24));
@@ -475,8 +451,8 @@ public class DoctorWorkstationPanel extends JPanel {
 
         // Name
         JLabel name = new JLabel(selectedPatient.getFullName());
-        name.setFont(FONT_BIG_NAME);
-        name.setForeground(TEXT_DARK);
+        name.setFont(UIConstants.FONT_TITLE);
+        name.setForeground(UIConstants.TEXT_PRIMARY);
         gbc = new GridBagConstraints();
         gbc.gridx = 1; gbc.gridy = 0; gbc.weightx = 1;
         gbc.anchor = GridBagConstraints.WEST;
@@ -491,8 +467,8 @@ public class DoctorWorkstationPanel extends JPanel {
         String detailText = dobStr + " (" + age + " tuoi)   |   "
                 + selectedPatient.getGender() + "   |   " + selectedPatient.getPhone();
         JLabel detail = new JLabel(detailText);
-        detail.setFont(FONT_INFO_DETAIL);
-        detail.setForeground(TEXT_SECONDARY);
+        detail.setFont(UIConstants.FONT_LABEL);
+        detail.setForeground(UIConstants.TEXT_SECONDARY);
         gbc = new GridBagConstraints();
         gbc.gridx = 1; gbc.gridy = 1; gbc.weightx = 1;
         gbc.anchor = GridBagConstraints.WEST;
@@ -500,24 +476,24 @@ public class DoctorWorkstationPanel extends JPanel {
         card.add(detail, gbc);
 
         // Address
-        JLabel address = new JLabel("Dia chi: " + selectedPatient.getAddress());
-        address.setFont(FONT_INFO_DETAIL);
-        address.setForeground(TEXT_SECONDARY);
+        JLabel address = new JLabel("Địa chỉ: " + selectedPatient.getAddress());
+        address.setFont(UIConstants.FONT_LABEL);
+        address.setForeground(UIConstants.TEXT_SECONDARY);
         gbc = new GridBagConstraints();
         gbc.gridx = 1; gbc.gridy = 2; gbc.weightx = 1;
         gbc.anchor = GridBagConstraints.WEST;
         card.add(address, gbc);
 
         // Edit button
-        JLabel editBtn = new JLabel("Edit Info");
-        editBtn.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        editBtn.setForeground(PRIMARY_BLUE);
+        JLabel editBtn = new JLabel("Chỉnh sửa");
+        editBtn.setFont(UIConstants.FONT_LABEL);
+        editBtn.setForeground(UIConstants.ACCENT_BLUE);
         editBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
         editBtn.addMouseListener(new MouseAdapter() {
             @Override
             public void mousePressed(MouseEvent e) {
                 JOptionPane.showMessageDialog(DoctorWorkstationPanel.this,
-                        "Chuc nang chinh sua thong tin benh nhan.", "Edit Info",
+                        "Chức năng chỉnh sửa thông tin bệnh nhân.", "Chỉnh sửa",
                         JOptionPane.INFORMATION_MESSAGE);
             }
         });
@@ -537,9 +513,9 @@ public class DoctorWorkstationPanel extends JPanel {
         section.setOpaque(false);
         section.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel title = new JLabel("Vital Signs");
-        title.setFont(FONT_SECTION_TITLE);
-        title.setForeground(TEXT_DARK);
+        JLabel title = new JLabel("Sinh hiệu");
+        title.setFont(UIConstants.FONT_SECTION);
+        title.setForeground(UIConstants.TEXT_PRIMARY);
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         section.add(title);
         section.add(Box.createVerticalStrut(16));
@@ -554,10 +530,10 @@ public class DoctorWorkstationPanel extends JPanel {
         txtBloodPressure = new JTextField("120/80");
         txtPulse = new JTextField("80");
 
-        grid.add(createVitalCard("CAN NANG", txtWeight, "kg"));
-        grid.add(createVitalCard("CHIEU CAO", txtHeight, "cm"));
-        grid.add(createVitalCard("HUYET AP", txtBloodPressure, "mmHg"));
-        grid.add(createVitalCard("MACH", txtPulse, "bpm"));
+        grid.add(createVitalCard("CÂN NẶNG", txtWeight, "kg"));
+        grid.add(createVitalCard("CHIỀU CAO", txtHeight, "cm"));
+        grid.add(createVitalCard("HUYẾT ÁP", txtBloodPressure, "mmHg"));
+        grid.add(createVitalCard("MẠCH", txtPulse, "bpm"));
 
         section.add(grid);
         return section;
@@ -565,29 +541,29 @@ public class DoctorWorkstationPanel extends JPanel {
 
     private RoundedPanel createVitalCard(String label, JTextField field, String unit) {
         RoundedPanel card = new RoundedPanel(12);
-        card.setBackground(CARD_BG);
+        card.setBackground(UIConstants.CARD_BG);
         card.setLayout(new BorderLayout(0, 8));
         card.setBorder(new EmptyBorder(16, 18, 16, 18));
 
         JLabel mainLabel = new JLabel(label);
-        mainLabel.setFont(FONT_VITAL_LABEL);
-        mainLabel.setForeground(TEXT_SECONDARY);
+        mainLabel.setFont(UIConstants.FONT_OVERLINE);
+        mainLabel.setForeground(UIConstants.TEXT_SECONDARY);
         card.add(mainLabel, BorderLayout.NORTH);
 
         JPanel valuePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
         valuePanel.setOpaque(false);
 
-        field.setFont(FONT_VITAL_VALUE);
-        field.setForeground(TEXT_DARK);
+        field.setFont(UIConstants.FONT_NUMBER_BIG);
+        field.setForeground(UIConstants.TEXT_PRIMARY);
         field.setBorder(null);
-        field.setBackground(CARD_BG);
+        field.setBackground(UIConstants.CARD_BG);
         field.setColumns(4);
-        field.setCaretColor(PRIMARY_BLUE);
+        field.setCaretColor(UIConstants.ACCENT_BLUE);
         valuePanel.add(field);
 
         JLabel unitLabel = new JLabel(unit);
-        unitLabel.setFont(FONT_VITAL_UNIT);
-        unitLabel.setForeground(TEXT_MUTED);
+        unitLabel.setFont(UIConstants.FONT_BODY);
+        unitLabel.setForeground(UIConstants.TEXT_MUTED);
         valuePanel.add(unitLabel);
 
         card.add(valuePanel, BorderLayout.CENTER);
@@ -603,12 +579,12 @@ public class DoctorWorkstationPanel extends JPanel {
 
         // Symptoms
         txtSymptoms = new JTextArea(5, 0);
-        content.add(createTextSection("Trieu chung (Symptoms)", SYMPTOMS_PLACEHOLDER, txtSymptoms));
+        content.add(createTextSection("Triệu chứng (Symptoms)", SYMPTOMS_PLACEHOLDER, txtSymptoms));
         content.add(Box.createVerticalStrut(20));
 
         // Diagnosis
         txtDiagnosis = new JTextArea(5, 0);
-        content.add(createTextSection("Chan doan (Diagnosis)", DIAGNOSIS_PLACEHOLDER, txtDiagnosis));
+        content.add(createTextSection("Chẩn đoán (Diagnosis)", DIAGNOSIS_PLACEHOLDER, txtDiagnosis));
         return content;
     }
 
@@ -619,8 +595,8 @@ public class DoctorWorkstationPanel extends JPanel {
         section.setAlignmentX(Component.LEFT_ALIGNMENT);
 
         JLabel lbl = new JLabel(title);
-        lbl.setFont(FONT_SECTION_TITLE);
-        lbl.setForeground(TEXT_DARK);
+        lbl.setFont(UIConstants.FONT_SECTION);
+        lbl.setForeground(UIConstants.TEXT_PRIMARY);
         lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
         section.add(lbl);
         section.add(Box.createVerticalStrut(10));
@@ -628,25 +604,25 @@ public class DoctorWorkstationPanel extends JPanel {
         area.setFont(UIConstants.FONT_LABEL);
         area.setLineWrap(true);
         area.setWrapStyleWord(true);
-        area.setCaretColor(PRIMARY_BLUE);
+        area.setCaretColor(UIConstants.ACCENT_BLUE);
         area.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(BORDER, 1, true),
+                BorderFactory.createLineBorder(UIConstants.BORDER_COLOR, 1, true),
                 new EmptyBorder(12, 14, 12, 14)));
         area.setText(placeholder);
-        area.setForeground(TEXT_MUTED);
+        area.setForeground(UIConstants.TEXT_MUTED);
         area.addFocusListener(new java.awt.event.FocusAdapter() {
             @Override
             public void focusGained(java.awt.event.FocusEvent e) {
                 if (area.getText().equals(placeholder)) {
                     area.setText("");
-                    area.setForeground(TEXT_DARK);
+                    area.setForeground(UIConstants.TEXT_PRIMARY);
                 }
             }
             @Override
             public void focusLost(java.awt.event.FocusEvent e) {
                 if (area.getText().isEmpty()) {
                     area.setText(placeholder);
-                    area.setForeground(TEXT_MUTED);
+                    area.setForeground(UIConstants.TEXT_MUTED);
                 }
             }
         });
@@ -665,7 +641,7 @@ public class DoctorWorkstationPanel extends JPanel {
         panel.setOpaque(false);
         JLabel lbl = new JLabel(tabName + " -- Dang phat trien");
         lbl.setFont(UIConstants.FONT_SUBTITLE);
-        lbl.setForeground(TEXT_MUTED);
+        lbl.setForeground(UIConstants.TEXT_MUTED);
         panel.add(lbl);
         return panel;
     }
@@ -673,24 +649,24 @@ public class DoctorWorkstationPanel extends JPanel {
     // BOTTOM BAR
     private JPanel createBottomBar() {
         JPanel bar = new JPanel(new BorderLayout());
-        bar.setBackground(CARD_BG);
+        bar.setBackground(UIConstants.CARD_BG);
         bar.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createMatteBorder(1, 0, 0, 0, BORDER),
+                BorderFactory.createMatteBorder(1, 0, 0, 0, UIConstants.BORDER_COLOR),
                 new EmptyBorder(14, 24, 14, 24)));
 
-        JLabel status = new JLabel("Status: Editing...");
-        status.setFont(FONT_STATUS);
+        JLabel status = new JLabel("Trạng thái: Đang chỉnh sửa...");
+        status.setFont(UIConstants.FONT_ITALIC);
         status.setForeground(UIConstants.STATUS_WAITING);
         bar.add(status, BorderLayout.WEST);
 
         JPanel btns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
         btns.setOpaque(false);
 
-        RoundedButton btnSave = new RoundedButton("Luu & Hoan tat", GREEN_BTN, GREEN_BTN_DARK, 8);
+        RoundedButton btnSave = new RoundedButton("Lưu & Hoàn tất", UIConstants.SUCCESS_GREEN, UIConstants.SUCCESS_GREEN_DARK, 8);
         btnSave.setPreferredSize(new Dimension(160, 40));
         btnSave.addActionListener(e -> onSaveAndComplete());
 
-        RoundedButton btnTransfer = new RoundedButton("Chuyen thanh toan", PRIMARY_BLUE, PRIMARY_BLUE_DARK, 8);
+        RoundedButton btnTransfer = new RoundedButton("Chuyển thanh toán", UIConstants.ACCENT_BLUE, UIConstants.ACCENT_BLUE_DARK, 8);
         btnTransfer.setPreferredSize(new Dimension(180, 40));
         btnTransfer.addActionListener(e -> onTransferPayment());
 
@@ -704,7 +680,7 @@ public class DoctorWorkstationPanel extends JPanel {
     // ACTIONS
     private void onSaveAndComplete() {
         if (selectedPatient == null || selectedRecordId <= 0) {
-            JOptionPane.showMessageDialog(this, "Vui long chon benh nhan.", "Thong bao", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn bệnh nhân.", "Thông báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
         try {
@@ -732,21 +708,21 @@ public class DoctorWorkstationPanel extends JPanel {
             queueBUS.updateQueueStatus(selectedRecordId, "COMPLETED");
 
             JOptionPane.showMessageDialog(this,
-                    "Da luu va hoan tat kham cho benh nhan: " + selectedPatient.getFullName(),
-                    "Thanh cong", JOptionPane.INFORMATION_MESSAGE);
+                    "Đã lưu và hoàn tất khám cho bệnh nhân: " + selectedPatient.getFullName(),
+                    "Thành công", JOptionPane.INFORMATION_MESSAGE);
             refreshAfterAction();
         } catch (BusinessException e) {
-            JOptionPane.showMessageDialog(this, e.getMessage(), "Loi nghiep vu", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, e.getMessage(), "Lỗi nghiệp vụ", JOptionPane.ERROR_MESSAGE);
         } catch (DataAccessException e) {
-            JOptionPane.showMessageDialog(this, "Loi he thong: " + e.getMessage(), "Loi", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Lỗi hệ thống: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
         } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "Sinh hieu phai la so hop le.", "Loi", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Sinh hiệu phải là số hợp lệ.", "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
     }
 
     private void onTransferPayment() {
         if (selectedPatient == null || selectedRecordId <= 0) {
-            JOptionPane.showMessageDialog(this, "Vui long chon benh nhan.", "Thong bao", JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Vui lòng chọn bệnh nhân.", "Thông báo", JOptionPane.WARNING_MESSAGE);
             return;
         }
         try {
@@ -772,15 +748,15 @@ public class DoctorWorkstationPanel extends JPanel {
 
             queueBUS.updateQueueStatus(selectedRecordId, "TRANSFERRED");
             JOptionPane.showMessageDialog(this,
-                    "Da chuyen benh nhan " + selectedPatient.getFullName() + " sang thanh toan.",
-                    "Chuyen thanh toan", JOptionPane.INFORMATION_MESSAGE);
+                    "Đã chuyển bệnh nhân " + selectedPatient.getFullName() + " sang thanh toán.",
+                    "Chuyển thanh toán", JOptionPane.INFORMATION_MESSAGE);
             refreshAfterAction();
         } catch (BusinessException e) {
-            JOptionPane.showMessageDialog(this, e.getMessage(), "Loi nghiep vu", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, e.getMessage(), "Lỗi nghiệp vụ", JOptionPane.ERROR_MESSAGE);
         } catch (DataAccessException e) {
-            JOptionPane.showMessageDialog(this, "Loi he thong: " + e.getMessage(), "Loi", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Lỗi hệ thống: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
         } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "Sinh hieu phai la so hop le.", "Loi", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Sinh hiệu phải là số hợp lệ.", "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
     }
 

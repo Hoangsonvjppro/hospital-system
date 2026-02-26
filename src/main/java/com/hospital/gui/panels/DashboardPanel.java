@@ -2,6 +2,7 @@ package com.hospital.gui.panels;
 
 import com.formdev.flatlaf.FlatClientProperties;
 import com.hospital.dao.DashboardDAO;
+import com.hospital.gui.UIConstants;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -15,22 +16,15 @@ import java.time.format.DateTimeFormatter;
  */
 public class DashboardPanel extends JPanel {
 
-    // ── Colors ────────────────────────────────────────────────
-    private static final Color BG             = new Color(0xF4F7FE);
-    private static final Color CARD_BG        = Color.WHITE;
-    private static final Color TEXT_DARK      = new Color(0x2B3674);
-    private static final Color TEXT_MUTED     = new Color(0xA3AED0);
-    private static final Color BLUE           = new Color(0x4318FF);
-    private static final Color GREEN          = new Color(0x05CD99);
-    private static final Color ORANGE         = new Color(0xFFB547);
-    private static final Color RED            = new Color(0xEE5D50);
+    // Tất cả màu/font dùng UIConstants — KHÔNG khai báo cục bộ.
+    // KPI accent colors (specific to dashboard cards, defined in UIConstants)
 
     private final String userName;
     private final DashboardDAO dashboardDAO = new DashboardDAO();
 
     public DashboardPanel(String userName) {
         this.userName = userName;
-        setBackground(BG);
+        setBackground(UIConstants.CONTENT_BG);
         setLayout(new BorderLayout(0, 24));
         setBorder(new EmptyBorder(28, 28, 28, 28));
         initComponents();
@@ -44,12 +38,12 @@ public class DashboardPanel extends JPanel {
         // Lời chào
         JLabel lblWelcome = new JLabel("Xin chào, " + userName + " 👋");
         lblWelcome.putClientProperty(FlatClientProperties.STYLE, "font: bold +10");
-        lblWelcome.setForeground(TEXT_DARK);
+        lblWelcome.setForeground(UIConstants.TEXT_PRIMARY);
 
         // Ngày hiện tại
         String today = LocalDate.now().format(DateTimeFormatter.ofPattern("EEEE, dd/MM/yyyy"));
         JLabel lblDate = new JLabel(today);
-        lblDate.setForeground(TEXT_MUTED);
+        lblDate.setForeground(UIConstants.TEXT_SECONDARY);
         lblDate.putClientProperty(FlatClientProperties.STYLE, "font: +1");
 
         JPanel welcomeGroup = new JPanel();
@@ -78,10 +72,10 @@ public class DashboardPanel extends JPanel {
         int todayVisits     = dashboardDAO.countTodayVisits();
         int lowStockCount   = dashboardDAO.countLowStockMedicines();
 
-        kpiRow.add(createKPICard("👥", "Tổng bệnh nhân",      String.valueOf(totalPatients),  BLUE));
-        kpiRow.add(createKPICard("💊", "Danh mục thuốc",       String.valueOf(totalMedicines), GREEN));
-        kpiRow.add(createKPICard("🩺", "Khám hôm nay",         String.valueOf(todayVisits),    ORANGE));
-        kpiRow.add(createKPICard("⚠️", "Thuốc sắp hết",       String.valueOf(lowStockCount),  RED));
+        kpiRow.add(createKPICard("👥", "Tổng bệnh nhân",      String.valueOf(totalPatients),  UIConstants.ACCENT_BLUE));
+        kpiRow.add(createKPICard("💊", "Danh mục thuốc",       String.valueOf(totalMedicines), UIConstants.SUCCESS_GREEN));
+        kpiRow.add(createKPICard("🩺", "Khám hôm nay",         String.valueOf(todayVisits),    UIConstants.WARNING_ORANGE));
+        kpiRow.add(createKPICard("⚠️", "Thuốc sắp hết",       String.valueOf(lowStockCount),  UIConstants.PRIMARY));
 
         centerPanel.add(kpiRow);
         centerPanel.add(Box.createVerticalStrut(24));
@@ -121,7 +115,7 @@ public class DashboardPanel extends JPanel {
      */
     private JPanel createKPICard(String icon, String title, String value, Color accentColor) {
         JPanel card = new JPanel(new BorderLayout(12, 0));
-        card.setBackground(CARD_BG);
+        card.setBackground(UIConstants.CARD_BG);
         card.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(0, 4, 0, 0, accentColor),
                 new EmptyBorder(20, 20, 20, 20)
@@ -130,7 +124,7 @@ public class DashboardPanel extends JPanel {
 
         // Left: icon circle
         JLabel lblIcon = new JLabel(icon, SwingConstants.CENTER);
-        lblIcon.setFont(new Font("SansSerif", Font.PLAIN, 28));
+        lblIcon.setFont(UIConstants.FONT_ICON);
         lblIcon.setPreferredSize(new Dimension(50, 50));
         card.add(lblIcon, BorderLayout.WEST);
 
@@ -140,11 +134,11 @@ public class DashboardPanel extends JPanel {
         textPanel.setOpaque(false);
 
         JLabel lblTitle = new JLabel(title);
-        lblTitle.setForeground(TEXT_MUTED);
-        lblTitle.setFont(new Font("SansSerif", Font.PLAIN, 12));
+        lblTitle.setForeground(UIConstants.TEXT_SECONDARY);
+        lblTitle.setFont(UIConstants.FONT_CAPTION);
 
         JLabel lblValue = new JLabel(value);
-        lblValue.setForeground(TEXT_DARK);
+        lblValue.setForeground(UIConstants.TEXT_PRIMARY);
         lblValue.putClientProperty(FlatClientProperties.STYLE, "font: bold +14");
 
         textPanel.add(lblTitle);
@@ -160,7 +154,7 @@ public class DashboardPanel extends JPanel {
      */
     private JPanel createInfoCard(String icon, String title, String[] lines) {
         JPanel card = new JPanel(new BorderLayout(0, 12));
-        card.setBackground(CARD_BG);
+        card.setBackground(UIConstants.CARD_BG);
         card.setBorder(new EmptyBorder(20, 24, 20, 24));
         card.putClientProperty(FlatClientProperties.STYLE, "arc: 16");
 
@@ -169,11 +163,11 @@ public class DashboardPanel extends JPanel {
         header.setOpaque(false);
 
         JLabel lblIcon = new JLabel(icon);
-        lblIcon.setFont(new Font("SansSerif", Font.PLAIN, 22));
+        lblIcon.setFont(new Font(UIConstants.FONT_NAME, Font.PLAIN, 22));
         header.add(lblIcon);
 
         JLabel lblTitle = new JLabel(title);
-        lblTitle.setForeground(TEXT_DARK);
+        lblTitle.setForeground(UIConstants.TEXT_PRIMARY);
         lblTitle.putClientProperty(FlatClientProperties.STYLE, "font: bold +2");
         header.add(lblTitle);
 
@@ -186,8 +180,8 @@ public class DashboardPanel extends JPanel {
 
         for (String line : lines) {
             JLabel lbl = new JLabel("•  " + line);
-            lbl.setForeground(TEXT_MUTED);
-            lbl.setFont(new Font("SansSerif", Font.PLAIN, 13));
+            lbl.setForeground(UIConstants.TEXT_SECONDARY);
+            lbl.setFont(UIConstants.FONT_LABEL);
             lbl.setBorder(new EmptyBorder(3, 0, 3, 0));
             body.add(lbl);
         }

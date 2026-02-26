@@ -7,6 +7,7 @@ package com.hospital.gui.panels;
 import com.hospital.bus.MedicineBUS;
 import com.hospital.exception.BusinessException;
 import com.hospital.exception.DataAccessException;
+import com.hospital.gui.UIConstants;
 import com.hospital.model.Medicine;
 import com.hospital.util.AppUtils;
 import com.formdev.flatlaf.FlatClientProperties;
@@ -44,7 +45,7 @@ public class MedicinePanel extends JPanel {
 
     private void initLayout() {
         setLayout(new BorderLayout(0, 20));
-        setBackground(new Color(244, 247, 254));
+        setBackground(UIConstants.CONTENT_BG);
         setBorder(new EmptyBorder(20, 20, 20, 20));
 
         // ================= 1. KHU VỰC PHÍA TRÊN (TOP) =================
@@ -88,8 +89,8 @@ public class MedicinePanel extends JPanel {
 
         pnlCards.add(createKPICard("Tổng danh mục thuốc", lblTongThuoc, "", null, null));
         pnlCards.add(createKPICard("Tổng tồn kho", lblTongTonKho, "đv", null, null));
-        pnlCards.add(createKPICard("Sắp hết hạn (30 ngày)", lblSapHetHan, "", "", new Color(220, 53, 69)));
-        pnlCards.add(createKPICard("Sắp hết hàng", lblSapHetHang, "", "", new Color(255, 193, 7)));
+        pnlCards.add(createKPICard("Sắp hết hạn (30 ngày)", lblSapHetHan, "", "", UIConstants.PRIMARY));
+        pnlCards.add(createKPICard("Sắp hết hàng", lblSapHetHang, "", "", UIConstants.WARNING_ORANGE));
 
         JPanel pnlFilter = new JPanel(new BorderLayout());
         pnlFilter.setOpaque(false);
