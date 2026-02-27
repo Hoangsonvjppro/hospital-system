@@ -23,17 +23,17 @@ FROM `User` WHERE username = 'doctor2';
 -- 2. BỆNH NHÂN (10 bệnh nhân mẫu)
 -- ============================================================
 
-INSERT INTO Patient (full_name, gender, date_of_birth, phone, address) VALUES
-    ('Nguyễn Văn Hùng',     'MALE',   '1985-03-15', '0912345001', '123 Lê Lợi, Q.1, TP.HCM'),
-    ('Trần Thị Lan',        'FEMALE', '1990-07-22', '0912345002', '45 Nguyễn Huệ, Q.1, TP.HCM'),
-    ('Lê Minh Tuấn',        'MALE',   '1978-11-08', '0912345003', '78 Trần Hưng Đạo, Q.5, TP.HCM'),
-    ('Phạm Thị Hoa',        'FEMALE', '1995-01-30', '0912345004', '12 Hai Bà Trưng, Q.3, TP.HCM'),
-    ('Hoàng Văn Đức',       'MALE',   '1960-06-12', '0912345005', '90 Điện Biên Phủ, Q.Bình Thạnh, TP.HCM'),
-    ('Vũ Thị Mai Anh',      'FEMALE', '2000-09-05', '0912345006', '34 Lý Tự Trọng, Q.1, TP.HCM'),
-    ('Đặng Quốc Bảo',       'MALE',   '1988-04-17', '0912345007', '56 Pasteur, Q.3, TP.HCM'),
-    ('Bùi Thị Ngọc Trinh',  'FEMALE', '1972-12-25', '0912345008', '67 Cách Mạng Tháng 8, Q.10, TP.HCM'),
-    ('Ngô Thanh Tùng',      'MALE',   '1992-08-03', '0912345009', '23 Võ Văn Tần, Q.3, TP.HCM'),
-    ('Lý Thị Kim Ngân',     'FEMALE', '1983-05-20', '0912345010', '89 Nam Kỳ Khởi Nghĩa, Q.1, TP.HCM');
+INSERT INTO Patient (full_name, gender, date_of_birth, phone, id_card, address, allergy_note) VALUES
+    ('Nguyễn Văn Hùng',     'MALE',   '1985-03-15', '0912345001', '079185001001', '123 Lê Lợi, Q.1, TP.HCM',                        'Dị ứng Penicillin'),
+    ('Trần Thị Lan',        'FEMALE', '1990-07-22', '0912345002', '079190002002', '45 Nguyễn Huệ, Q.1, TP.HCM',                      NULL),
+    ('Lê Minh Tuấn',        'MALE',   '1978-11-08', '0912345003', '079178003003', '78 Trần Hưng Đạo, Q.5, TP.HCM',                  'Dị ứng Aspirin'),
+    ('Phạm Thị Hoa',        'FEMALE', '1995-01-30', '0912345004', '079195004004', '12 Hai Bà Trưng, Q.3, TP.HCM',                     NULL),
+    ('Hoàng Văn Đức',       'MALE',   '1960-06-12', '0912345005', '079160005005', '90 Điện Biên Phủ, Q.Bình Thạnh, TP.HCM',           'Dị ứng Paracetamol'),
+    ('Vũ Thị Mai Anh',      'FEMALE', '2000-09-05', '0912345006', '079200006006', '34 Lý Tự Trọng, Q.1, TP.HCM',                     NULL),
+    ('Đặng Quốc Bảo',       'MALE',   '1988-04-17', '0912345007', '079188007007', '56 Pasteur, Q.3, TP.HCM',                           'Dị ứng Sulfonamide'),
+    ('Bùi Thị Ngọc Trinh',  'FEMALE', '1972-12-25', '0912345008', '079172008008', '67 Cách Mạng Tháng 8, Q.10, TP.HCM',               'Dị ứng Ibuprofen'),
+    ('Ngô Thanh Tùng',      'MALE',   '1992-08-03', '0912345009', '079192009009', '23 Võ Văn Tần, Q.3, TP.HCM',                     NULL),
+    ('Lý Thị Kim Ngân',     'FEMALE', '1983-05-20', '0912345010', '079183010010', '89 Nam Kỳ Khởi Nghĩa, Q.1, TP.HCM',              NULL);
 
 -- ============================================================
 -- 3. TIỀN SỬ DỊ ỨNG (một số bệnh nhân có dị ứng)
@@ -50,17 +50,17 @@ INSERT INTO PatientAllergy (patient_id, allergen_name, severity, reaction) VALUE
 -- 4. THÊM THUỐC (bổ sung thêm 10 loại thuốc)
 -- ============================================================
 
-INSERT INTO Medicine (medicine_name, unit, cost_price, sell_price, stock_qty, min_threshold, expiry_date, description) VALUES
-    ('Ibuprofen 400mg',       'Viên',  2000, 3500,  400, 40, '2027-06-30', 'Giảm đau, kháng viêm không steroid'),
-    ('Cetirizine 10mg',       'Viên',  1500, 2500,  300, 30, '2027-12-15', 'Kháng histamin thế hệ 2'),
-    ('Metformin 500mg',       'Viên',  2200, 3800,  250, 25, '2027-09-20', 'Điều trị đái tháo đường type 2'),
-    ('Amlodipine 5mg',        'Viên',  3500, 5500,  200, 20, '2027-08-10', 'Hạ huyết áp, thuốc chẹn kênh calci'),
-    ('Azithromycin 250mg',    'Viên',  5000, 8000,  150, 15, '2027-03-25', 'Kháng sinh nhóm macrolid'),
-    ('Dexamethasone 0.5mg',   'Viên',  1000, 1800,  500, 50, '2027-11-30', 'Corticosteroid kháng viêm'),
-    ('Salbutamol 2mg',        'Viên',  1200, 2000,  350, 35, '2027-07-15', 'Giãn phế quản, điều trị hen'),
-    ('Pantoprazole 40mg',     'Viên',  4000, 6500,  180, 18, '2027-10-20', 'Ức chế bơm proton'),
-    ('Diclofenac 50mg',       'Viên',  1800, 3000,  280, 28, '2027-05-10', 'Giảm đau kháng viêm NSAID'),
-    ('Ciprofloxacin 500mg',   'Viên',  3200, 5200,  220, 22, '2027-04-30', 'Kháng sinh nhóm fluoroquinolone');
+INSERT INTO Medicine (medicine_code, medicine_name, unit, cost_price, sell_price, stock_qty, min_threshold, manufacturer, expiry_date, description) VALUES
+    ('MED006', 'Ibuprofen 400mg',       'Viên',  2000, 3500,  400, 40, 'Công ty Dược Hậu Giang',     '2027-06-30', 'Giảm đau, kháng viêm không steroid'),
+    ('MED007', 'Cetirizine 10mg',       'Viên',  1500, 2500,  300, 30, 'Công ty Dược OPV',           '2027-12-15', 'Kháng histamin thế hệ 2'),
+    ('MED008', 'Metformin 500mg',       'Viên',  2200, 3800,  250, 25, 'Công ty Dược Domesco',       '2027-09-20', 'Điều trị đái tháo đường type 2'),
+    ('MED009', 'Amlodipine 5mg',        'Viên',  3500, 5500,  200, 20, 'Công ty Dược Imexpharm',     '2027-08-10', 'Hạ huyết áp, thuốc chẹn kênh calci'),
+    ('MED010', 'Azithromycin 250mg',    'Viên',  5000, 8000,  150, 15, 'Công ty Dược Pymepharco',    '2027-03-25', 'Kháng sinh nhóm macrolid'),
+    ('MED011', 'Dexamethasone 0.5mg',   'Viên',  1000, 1800,  500, 50, 'Công ty Dược Traphaco',      '2027-11-30', 'Corticosteroid kháng viêm'),
+    ('MED012', 'Salbutamol 2mg',        'Viên',  1200, 2000,  350, 35, 'Công ty Dược Mekophar',      '2027-07-15', 'Giãn phế quản, điều trị hen'),
+    ('MED013', 'Pantoprazole 40mg',     'Viên',  4000, 6500,  180, 18, 'Công ty Dược Imexpharm',     '2027-10-20', 'Ức chế bơm proton'),
+    ('MED014', 'Diclofenac 50mg',       'Viên',  1800, 3000,  280, 28, 'Công ty Dược Hậu Giang',     '2027-05-10', 'Giảm đau kháng viêm NSAID'),
+    ('MED015', 'Ciprofloxacin 500mg',   'Viên',  3200, 5200,  220, 22, 'Công ty Dược Domesco',       '2027-04-30', 'Kháng sinh nhóm fluoroquinolone');
 
 -- Thành phần thuốc mới (phục vụ cảnh báo dị ứng)
 INSERT INTO MedicineIngredient (medicine_id, ingredient_name) VALUES
@@ -106,30 +106,37 @@ INSERT INTO Appointment (patient_id, doctor_id, appointment_date, start_time, en
 -- 7. BỆNH ÁN (3 bệnh án đã hoàn thành + 2 đang chờ khám)
 -- ============================================================
 
--- Bệnh án đã hoàn thành (có triệu chứng + chẩn đoán)
-INSERT INTO MedicalRecord (patient_id, doctor_id, appointment_id, visit_date, blood_pressure, heart_rate, temperature, weight, height, spo2, symptoms, diagnosis, notes) VALUES
+-- Bệnh án đã hoàn thành (có triệu chứng + chẩn đoán + queue_status + priority)
+INSERT INTO MedicalRecord (patient_id, doctor_id, appointment_id, visit_date, blood_pressure, heart_rate, temperature, weight, height, spo2, symptoms, diagnosis, diagnosis_code, notes, queue_status, priority, queue_number, follow_up_date) VALUES
     (1, 1, NULL, DATE_SUB(NOW(), INTERVAL 7 DAY),
      '130/85', 78, 36.8, 72.0, 170.0, 98,
      'Đau đầu, chóng mặt, mệt mỏi',
      'Tăng huyết áp độ 1',
-     'Cần theo dõi huyết áp hàng ngày. Tái khám sau 2 tuần.'),
+     'I10',
+     'Cần theo dõi huyết áp hàng ngày. Tái khám sau 2 tuần.',
+     'COMPLETED', 'NORMAL', 1, DATE_ADD(CURDATE(), INTERVAL 7 DAY)),
 
     (3, 1, NULL, DATE_SUB(NOW(), INTERVAL 5 DAY),
      '150/95', 82, 37.0, 80.5, 168.0, 97,
      'Đau đầu, hoa mắt, tê tay chân',
      'Tăng huyết áp độ 2',
-     'Kê đơn thuốc hạ áp. Kiểm tra lại sau 1 tuần.'),
+     'I11',
+     'Kê đơn thuốc hạ áp. Kiểm tra lại sau 1 tuần.',
+     'COMPLETED', 'ELDERLY', 2, DATE_ADD(CURDATE(), INTERVAL 3 DAY)),
 
     (6, 1, NULL, DATE_SUB(NOW(), INTERVAL 3 DAY),
      '120/80', 72, 38.5, 55.0, 160.0, 96,
      'Ho, sổ mũi, đau họng, sốt nhẹ 38.5°C',
      'Viêm họng cấp',
-     'Nghỉ ngơi, uống nhiều nước ấm. Tái khám nếu sốt cao.');
+     'J02.9',
+     'Nghỉ ngơi, uống nhiều nước ấm. Tái khám nếu sốt cao.',
+     'COMPLETED', 'NORMAL', 3, NULL);
 
 -- Bệnh án mới — đang chờ bác sĩ khám (chưa có triệu chứng & chẩn đoán)
-INSERT INTO MedicalRecord (patient_id, doctor_id, appointment_id, visit_date) VALUES
-    (4, 1, 4, NOW()),
-    (2, 1, NULL, NOW());
+INSERT INTO MedicalRecord (patient_id, doctor_id, appointment_id, visit_date, queue_status, priority, queue_number) VALUES
+    (4, 1, 4, NOW(), 'EXAMINING', 'NORMAL', 1),
+    (2, 1, NULL, NOW(), 'WAITING', 'NORMAL', 2),
+    (5, 1, NULL, NOW(), 'WAITING', 'ELDERLY', 3);
 
 -- ============================================================
 -- 8. ĐƠN THUỐC (cho 3 bệnh án đã hoàn thành)
@@ -187,12 +194,12 @@ UPDATE Medicine SET stock_qty = 480 WHERE medicine_id = 1;   -- Paracetamol
 UPDATE Medicine SET stock_qty = 990 WHERE medicine_id = 5;   -- Vitamin C
 
 -- ============================================================
--- 10. HÓA ĐƠN (cho 2 bệnh án đã phát thuốc)
+-- 10. HÓA ĐƠN (cho 2 bệnh án đã phát thuốc) — cập nhật với trường mới
 -- ============================================================
 
-INSERT INTO Invoice (patient_id, record_id, invoice_date, status, payment_method, notes) VALUES
-    (1, 1, DATE_SUB(NOW(), INTERVAL 7 DAY), 'PAID', 'CASH', 'Thanh toán tiền mặt'),
-    (3, 2, DATE_SUB(NOW(), INTERVAL 5 DAY), 'PAID', 'TRANSFER', 'Chuyển khoản ngân hàng');
+INSERT INTO Invoice (patient_id, record_id, invoice_date, exam_fee, medicine_fee, total_amount, paid_amount, change_amount, status, payment_method, payment_date, notes) VALUES
+    (1, 1, DATE_SUB(NOW(), INTERVAL 7 DAY), 150000, 180000, 330000, 350000, 20000, 'PAID', 'CASH', DATE_SUB(NOW(), INTERVAL 7 DAY), 'Thanh toán tiền mặt'),
+    (3, 2, DATE_SUB(NOW(), INTERVAL 5 DAY), 150000, 205000, 355000, 355000, 0,     'PAID', 'TRANSFER', DATE_SUB(NOW(), INTERVAL 5 DAY), 'Chuyển khoản ngân hàng');
 
 -- Chi tiết hóa đơn — tiền thuốc
 INSERT INTO InvoiceMedicineDetail (invoice_id, medicine_id, medicine_name, quantity, unit_price, cost_price) VALUES
@@ -206,15 +213,15 @@ INSERT INTO InvoiceMedicineDetail (invoice_id, medicine_id, medicine_name, quant
 -- ============================================================
 -- ✅ 2 user mới (doctor2, nurse1)
 -- ✅ 2 bác sĩ (1 Nội tổng quát, 1 Nhi khoa)
--- ✅ 10 bệnh nhân với tên & địa chỉ tiếng Việt
+-- ✅ 10 bệnh nhân với tên, địa chỉ, CCCD tiếng Việt
 -- ✅ 5 dị ứng (cảnh báo khi kê đơn)
--- ✅ 15 loại thuốc (5 cũ + 10 mới)
+-- ✅ 15 loại thuốc (5 cũ + 10 mới, có mã thuốc + nhà SX)
 -- ✅ Lịch làm việc bác sĩ (hôm nay + 2 ngày tới)
 -- ✅ 5 lịch hẹn khám hôm nay
--- ✅ 5 bệnh án (3 hoàn thành + 2 đang chờ)
+-- ✅ 6 bệnh án (3 hoàn thành + 3 đang chờ, có priority + queue_status)
 -- ✅ 3 đơn thuốc
 -- ✅ Giao dịch kho thuốc
--- ✅ 2 hóa đơn đã thanh toán
+-- ✅ 2 hóa đơn đã thanh toán (có exam_fee, medicine_fee, paid_amount)
 
 SELECT '=== SEED TEST DATA HOÀN TẤT ===' AS status;
 SELECT CONCAT('Bệnh nhân: ', COUNT(*)) AS info FROM Patient

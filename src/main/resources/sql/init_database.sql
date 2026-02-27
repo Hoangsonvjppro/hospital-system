@@ -3,7 +3,7 @@
 -- Database: clinic_management
 -- Engine:   MySQL 8.0+
 -- Charset:  UTF-8 (utf8mb4)
--- Version:  4.0 (Round 3 — 20 bảng + 1 VIEW)
+-- Version:  5.0 (Round 4 — 21 bảng + 1 VIEW, bổ sung workflow phòng khám)
 -- ============================================================
 --
 -- ⚠ GHI CHÚ QUAN TRỌNG CHO TẦNG JAVA (BUS LAYER):
@@ -68,7 +68,9 @@ CREATE TABLE Patient (
     gender        ENUM('MALE','FEMALE','OTHER') NOT NULL,
     date_of_birth DATE         NOT NULL,
     phone         VARCHAR(20),
+    id_card       VARCHAR(12)  UNIQUE,                -- CCCD (Căn cước công dân)
     address       VARCHAR(500),
+    allergy_note  VARCHAR(500),                       -- Ghi chú nhanh dị ứng (bổ sung cho PatientAllergy)
     user_id       BIGINT       UNIQUE,                -- Nullable: BN có tài khoản xem lịch sử
     is_active     BOOLEAN      DEFAULT TRUE,
     created_at    DATETIME     DEFAULT CURRENT_TIMESTAMP,
@@ -118,12 +120,14 @@ CREATE TABLE Service (
 -- 7. Bảng Medicine — Kho thuốc
 CREATE TABLE Medicine (
     medicine_id   BIGINT AUTO_INCREMENT PRIMARY KEY,
+    medicine_code VARCHAR(20)    UNIQUE,               -- Mã thuốc: VD "MED001"
     medicine_name VARCHAR(200)   NOT NULL,
     unit          VARCHAR(50)    NOT NULL,             -- Viên, chai, gói, ống…
     cost_price    DECIMAL(15,2)  NOT NULL,             -- Giá nhập (giá vốn)
     sell_price    DECIMAL(15,2)  NOT NULL,             -- Giá bán cho bệnh nhân
     stock_qty     INT            NOT NULL DEFAULT 0,   -- Cache — nguồn sự thật là StockTransaction
     min_threshold INT            NOT NULL DEFAULT 10,  -- Ngưỡng cảnh báo hết thuốc
+    manufacturer  VARCHAR(200),                        -- Nhà sản xuất
     expiry_date   DATE,
     description   VARCHAR(500),
     is_active     BOOLEAN        DEFAULT TRUE,
@@ -213,6 +217,7 @@ CREATE TABLE Appointment (
 -- ============================================================
 
 -- 12. Bảng MedicalRecord — Hồ sơ bệnh án
+-- queue_status theo luồng: WAITING → EXAMINING → PRESCRIBED → DISPENSED → COMPLETED
 CREATE TABLE MedicalRecord (
     record_id      BIGINT AUTO_INCREMENT PRIMARY KEY,
     patient_id     BIGINT       NOT NULL,
@@ -229,11 +234,16 @@ CREATE TABLE MedicalRecord (
     -- Khám lâm sàng
     symptoms       TEXT,
     diagnosis      TEXT,
+    diagnosis_code VARCHAR(10),                        -- Mã ICD-10 (nếu có)
     notes          TEXT,
-    -- Hàng đợi khám bệnh (queue)
-    queue_status   ENUM('WAITING','EXAMINING','COMPLETED','TRANSFERRED') DEFAULT NULL,
+    -- Hàng đợi khám bệnh (queue) — luồng trạng thái chính
+    queue_status   ENUM('WAITING','EXAMINING','PRESCRIBED','DISPENSED','COMPLETED','TRANSFERRED','CANCELLED')
+                   DEFAULT NULL,
+    priority       ENUM('NORMAL','ELDERLY','EMERGENCY') DEFAULT 'NORMAL',
+    queue_number   INT,                                -- Số thứ tự hàng đợi hôm đó
     arrival_time   TIME         DEFAULT NULL,
     exam_type      VARCHAR(100) DEFAULT NULL,
+    follow_up_date DATE         DEFAULT NULL,          -- Ngày hẹn tái khám
     created_at     DATETIME     DEFAULT CURRENT_TIMESTAMP,
     updated_at     DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (patient_id)     REFERENCES Patient(patient_id),
@@ -306,8 +316,18 @@ CREATE TABLE Invoice (
     patient_id     BIGINT        NOT NULL,
     record_id      BIGINT,
     invoice_date   DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    -- Tổng hợp chi phí (cache — chi tiết lấy từ InvoiceServiceDetail + InvoiceMedicineDetail)
+    exam_fee       DECIMAL(15,2) NOT NULL DEFAULT 0,   -- Phí khám
+    medicine_fee   DECIMAL(15,2) NOT NULL DEFAULT 0,   -- Tổng tiền thuốc
+    other_fee      DECIMAL(15,2) NOT NULL DEFAULT 0,   -- Phí khác (xét nghiệm...)
+    discount       DECIMAL(15,2) NOT NULL DEFAULT 0,   -- Giảm giá
+    total_amount   DECIMAL(15,2) NOT NULL DEFAULT 0,   -- Tổng cộng
+    paid_amount    DECIMAL(15,2) NOT NULL DEFAULT 0,   -- Số tiền BN đưa
+    change_amount  DECIMAL(15,2) NOT NULL DEFAULT 0,   -- Tiền thừa trả lại
+    -- Trạng thái & thanh toán
     status         ENUM('PENDING','PAID','CANCELLED') DEFAULT 'PENDING',
     payment_method VARCHAR(50),                       -- 'CASH','CARD','TRANSFER'
+    payment_date   DATETIME,                          -- Thời điểm thanh toán
     notes          TEXT,
     created_by     BIGINT,
     created_at     DATETIME      DEFAULT CURRENT_TIMESTAMP,
@@ -349,8 +369,8 @@ CREATE TABLE InvoiceMedicineDetail (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================
--- VIEW — Tổng tiền hóa đơn tự động (thay cho Invoice.total_amount)
--- [R3] Không lưu total_amount vật lý → tránh sai lệch khi Java quên cập nhật
+-- VIEW — Tổng hợp hóa đơn (bao gồm chi tiết dịch vụ + thuốc)
+-- Dùng VIEW này khi cần xem tổng hợp — hoặc dùng trực tiếp Invoice nếu đã cache
 -- ============================================================
 
 -- 20. VIEW InvoiceSummary — Tổng hợp hóa đơn
@@ -360,26 +380,38 @@ SELECT
     i.patient_id,
     i.record_id,
     i.invoice_date,
+    i.exam_fee,
+    i.medicine_fee,
+    i.other_fee,
+    i.discount,
+    i.total_amount,
+    i.paid_amount,
+    i.change_amount,
     i.status,
     i.payment_method,
+    i.payment_date,
     i.notes,
     i.created_by,
     i.created_at,
-    COALESCE(svc.service_total, 0) AS service_total,
-    COALESCE(med.medicine_total, 0) AS medicine_total,
+    -- Chi tiết từ các bảng con (bổ sung cho báo cáo)
+    COALESCE(svc.service_detail_total, 0) AS service_detail_total,
+    COALESCE(med.medicine_detail_total, 0) AS medicine_detail_total,
     COALESCE(med.medicine_cost, 0) AS medicine_cost,
     COALESCE(med.medicine_profit, 0) AS medicine_profit,
-    COALESCE(svc.service_total, 0) + COALESCE(med.medicine_total, 0) AS total_amount
+    -- Thông tin bệnh nhân (join cho tiện)
+    p.full_name AS patient_name,
+    p.phone AS patient_phone
 FROM Invoice i
+JOIN Patient p ON i.patient_id = p.patient_id
 LEFT JOIN (
     SELECT invoice_id,
-           SUM(line_total) AS service_total
+           SUM(line_total) AS service_detail_total
     FROM InvoiceServiceDetail
     GROUP BY invoice_id
 ) svc ON i.invoice_id = svc.invoice_id
 LEFT JOIN (
     SELECT invoice_id,
-           SUM(line_total) AS medicine_total,
+           SUM(line_total) AS medicine_detail_total,
            SUM(quantity * cost_price) AS medicine_cost,
            SUM(profit_total) AS medicine_profit
     FROM InvoiceMedicineDetail
@@ -387,12 +419,26 @@ LEFT JOIN (
 ) med ON i.invoice_id = med.invoice_id;
 
 -- ============================================================
+-- E. CẤU HÌNH PHÒNG KHÁM
+-- ============================================================
+
+-- 21. Bảng ClinicConfig — Lưu cấu hình chung (key-value)
+CREATE TABLE ClinicConfig (
+    config_id    BIGINT AUTO_INCREMENT PRIMARY KEY,
+    config_key   VARCHAR(50)  NOT NULL UNIQUE,
+    config_value VARCHAR(500) NOT NULL,
+    description  VARCHAR(200),
+    updated_at   DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================
 -- INDEXES
 -- ============================================================
 
 -- Bệnh nhân
-CREATE INDEX idx_patient_name  ON Patient(full_name);
-CREATE INDEX idx_patient_phone ON Patient(phone);
+CREATE INDEX idx_patient_name    ON Patient(full_name);
+CREATE INDEX idx_patient_phone   ON Patient(phone);
+CREATE INDEX idx_patient_id_card ON Patient(id_card);
 
 -- Dị ứng
 CREATE INDEX idx_allergy_patient ON PatientAllergy(patient_id);
@@ -401,9 +447,11 @@ CREATE INDEX idx_allergy_patient ON PatientAllergy(patient_id);
 CREATE INDEX idx_ingredient_name ON MedicineIngredient(ingredient_name);
 
 -- Lịch sử khám
-CREATE INDEX idx_record_patient ON MedicalRecord(patient_id, visit_date);
-CREATE INDEX idx_record_doctor  ON MedicalRecord(doctor_id, visit_date);
-CREATE INDEX idx_record_queue   ON MedicalRecord(queue_status, visit_date);
+CREATE INDEX idx_record_patient    ON MedicalRecord(patient_id, visit_date);
+CREATE INDEX idx_record_doctor     ON MedicalRecord(doctor_id, visit_date);
+CREATE INDEX idx_record_queue      ON MedicalRecord(queue_status, visit_date);
+CREATE INDEX idx_record_followup   ON MedicalRecord(follow_up_date);
+CREATE INDEX idx_record_priority   ON MedicalRecord(priority, queue_number);
 
 -- Doanh thu
 CREATE INDEX idx_invoice_date   ON Invoice(invoice_date);
@@ -432,12 +480,15 @@ INSERT INTO Role (role_name, description) VALUES
     ('NURSE',        'Y tá'),
     ('RECEPTIONIST', 'Lễ tân'),
     ('ACCOUNTANT',   'Kế toán'),
-    ('PATIENT',      'Bệnh nhân (xem lịch sử khám)');
+    ('PATIENT',      'Bệnh nhân (xem lịch sử khám)'),
+    ('PHARMACIST',   'Dược sĩ / Kho dược');
 
 INSERT INTO `User` (username, password_hash, full_name, email, role_id) VALUES
     ('admin',    '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'Quản trị viên',   'admin@clinic.local',    1),
     ('doctor',   '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'BS. Nguyễn Văn A', 'doctor@clinic.local',   2),
-    ('letan',    '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'Lê Thị B',        'letan@clinic.local',    4);
+    ('letan',    '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'Lê Thị B',        'letan@clinic.local',    4),
+    ('ketoan',   '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'Trần Thị C',      'ketoan@clinic.local',   5),
+    ('duocsi',   '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'Phạm Văn D',      'duocsi@clinic.local',   7);
 
 -- Tạo record Doctor cho user bác sĩ (user_id = 2)
 INSERT INTO Doctor (user_id, specialty, license_no) VALUES
@@ -450,12 +501,22 @@ INSERT INTO Service (service_name, price, description) VALUES
     ('Siêu âm bụng',           300000, 'Siêu âm bụng tổng quát'),
     ('Đo điện tim (ECG)',       250000, 'Đo điện tim');
 
-INSERT INTO Medicine (medicine_name, unit, cost_price, sell_price, stock_qty, min_threshold, description) VALUES
-    ('Paracetamol 500mg',    'Viên',  1200, 2000,  500, 50,  'Giảm đau, hạ sốt'),
-    ('Amoxicillin 500mg',    'Viên',  1800, 3000,  300, 30,  'Kháng sinh phổ rộng'),
-    ('Omeprazole 20mg',      'Viên',  3000, 5000,  200, 20,  'Ức chế bơm proton, điều trị dạ dày'),
-    ('Loratadine 10mg',      'Viên',  2500, 4000,  150, 15,  'Kháng histamin, chống dị ứng'),
-    ('Vitamin C 1000mg',     'Viên',   900, 1500, 1000, 100, 'Bổ sung vitamin C');
+INSERT INTO Medicine (medicine_code, medicine_name, unit, cost_price, sell_price, stock_qty, min_threshold, manufacturer, description) VALUES
+    ('MED001', 'Paracetamol 500mg',    'Viên',  1200, 2000,  500, 50,  'Công ty Dược Hậu Giang',     'Giảm đau, hạ sốt'),
+    ('MED002', 'Amoxicillin 500mg',    'Viên',  1800, 3000,  300, 30,  'Công ty Dược Domesco',       'Kháng sinh phổ rộng'),
+    ('MED003', 'Omeprazole 20mg',      'Viên',  3000, 5000,  200, 20,  'Công ty Dược Imexpharm',     'Ức chế bơm proton, điều trị dạ dày'),
+    ('MED004', 'Loratadine 10mg',      'Viên',  2500, 4000,  150, 15,  'Công ty Dược OPV',           'Kháng histamin, chống dị ứng'),
+    ('MED005', 'Vitamin C 1000mg',     'Viên',   900, 1500, 1000, 100, 'Công ty Dược Traphaco',      'Bổ sung vitamin C');
+
+-- Cấu hình phòng khám mặc định
+INSERT INTO ClinicConfig (config_key, config_value, description) VALUES
+    ('clinic_name',      'Phòng Khám Đa Khoa ABC',                'Tên phòng khám'),
+    ('clinic_address',   '123 Đường Nguyễn Văn Linh, Q.7, TP.HCM', 'Địa chỉ'),
+    ('clinic_phone',     '028-1234-5678',                           'Số điện thoại'),
+    ('clinic_email',     'info@phongkhamabc.vn',                    'Email liên hệ'),
+    ('default_exam_fee', '150000',                                  'Phí khám mặc định (VNĐ)'),
+    ('working_hours',    '07:30 - 17:00',                           'Giờ làm việc'),
+    ('invoice_prefix',   'HD',                                      'Tiền tố mã hóa đơn');
 
 -- Thành phần thuốc mẫu (phục vụ cảnh báo dị ứng)
 INSERT INTO MedicineIngredient (medicine_id, ingredient_name) VALUES
