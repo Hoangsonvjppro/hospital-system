@@ -229,12 +229,14 @@ public class MedicineDAO implements BaseDAO<Medicine> {
     private Medicine mapResultSet(ResultSet rs) throws SQLException {
         Medicine thuoc = new Medicine();
         thuoc.setId(rs.getInt("medicine_id"));
+        thuoc.setMedicineCode(rs.getString("medicine_code"));
         thuoc.setMedicineName(rs.getString("medicine_name"));
         thuoc.setUnit(rs.getString("unit"));
         thuoc.setCostPrice(rs.getDouble("cost_price"));
         thuoc.setSellPrice(rs.getDouble("sell_price"));
         thuoc.setStockQty(rs.getInt("stock_qty"));
         thuoc.setMinThreshold(rs.getInt("min_threshold"));
+        thuoc.setManufacturer(rs.getString("manufacturer"));
         if (rs.getDate("expiry_date") != null) {
             thuoc.setExpiryDate(rs.getDate("expiry_date").toLocalDate());
         }

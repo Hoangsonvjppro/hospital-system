@@ -2,7 +2,8 @@ package com.hospital.model;
 
 import java.time.LocalDate;
 
-public class Medicine extends BaseModel{
+public class Medicine extends BaseModel {
+    private String medicineCode;
     private String medicineName;
     private String unit;
     private double costPrice;
@@ -14,7 +15,8 @@ public class Medicine extends BaseModel{
     private String description;
     private boolean isActive;
 
-    public Medicine(String medicineName, String unit, double costPrice, double sellPrice, int stockQty, int minThreshold, String manufacturer, LocalDate expiryDate, String description, boolean isActive) {
+    public Medicine(String medicineCode, String medicineName, String unit, double costPrice, double sellPrice, int stockQty, int minThreshold, String manufacturer, LocalDate expiryDate, String description, boolean isActive) {
+        this.medicineCode = medicineCode;
         this.medicineName = medicineName;
         this.unit = unit;
         this.costPrice = costPrice;
@@ -27,6 +29,14 @@ public class Medicine extends BaseModel{
         this.isActive = isActive;
     }
 
+    public String getMedicineCode() {
+        return medicineCode;
+    }
+
+    public void setMedicineCode(String medicineCode) {
+        this.medicineCode = medicineCode;
+    }
+
     public String getManufacturer() {
         return manufacturer;
     }
@@ -36,7 +46,7 @@ public class Medicine extends BaseModel{
     }
 
     public Medicine() {
-        this.isActive=true;
+        this.isActive = true;
     }
 
     public String getMedicineName() {
@@ -115,6 +125,7 @@ public class Medicine extends BaseModel{
     public String toString() {
         return "Medicine{" +
                 "id=" + id +
+                ", medicineCode='" + medicineCode + '\'' +
                 ", medicineName='" + medicineName + '\'' +
                 ", unit='" + unit + '\'' +
                 ", costPrice=" + costPrice +
