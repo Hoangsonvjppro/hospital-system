@@ -9,21 +9,32 @@ public class Medicine extends BaseModel{
     private double sellPrice;
     private int stockQty;
     private int minThreshold;
+    private String manufacturer;
     private LocalDate expiryDate;
     private String description;
     private boolean isActive;
 
-    public Medicine(String medicineName, String unit, double costPrice, double sellPrice, int stockQty, int minThreshold, LocalDate expiryDate, String description, boolean isActive) {
+    public Medicine(String medicineName, String unit, double costPrice, double sellPrice, int stockQty, int minThreshold, String manufacturer, LocalDate expiryDate, String description, boolean isActive) {
         this.medicineName = medicineName;
         this.unit = unit;
         this.costPrice = costPrice;
         this.sellPrice = sellPrice;
         this.stockQty = stockQty;
         this.minThreshold = minThreshold;
+        this.manufacturer = manufacturer;
         this.expiryDate = expiryDate;
         this.description = description;
         this.isActive = isActive;
     }
+
+    public String getManufacturer() {
+        return manufacturer;
+    }
+
+    public void setManufacturer(String manufacturer) {
+        this.manufacturer = manufacturer;
+    }
+
     public Medicine() {
         this.isActive=true;
     }
@@ -110,6 +121,7 @@ public class Medicine extends BaseModel{
                 ", sellPrice=" + sellPrice +
                 ", stockQty=" + stockQty +
                 ", minThreshold=" + minThreshold +
+                ", manufactor=" + manufacturer +
                 ", expiryDate=" + expiryDate +
                 ", description='" + description + '\'' +
                 ", isActive=" + isActive +
