@@ -184,16 +184,59 @@ public class MedicineDAO implements BaseDAO<Medicine> {
             closeIfOwned(conn);
         }
     }
+    private List<Medicine> getLowStockMedicines(){
+        List<Medicine> arr=new ArrayList<>();
+        String sql="Select * from Medicine where is_active=true and stock_qty<=min_threshold";
+        Connection conn=null;
+        try {
+            conn=getConnection();
+            try(Statement stm=conn.createStatement()) {
+                ResultSet rs=stm.executeQuery(sql);
+                while(rs.next()){
+                    arr.add(mapResultSet(rs));
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi truy vấn thuốc", e);
+            throw new DataAccessException("Lỗi truy vấn thuốc",e);
+        }finally {
+            closeIfOwned(conn);
+        }
+        return arr;
+    }
+    private List<Medicine> getExpiryDateMedicines(){
+        List<Medicine> arr=new ArrayList<>();
+        String sql="Select * from Medicine where is_active=true and expiry_date is not null " +
+                "and expiry_date between curdate() and date_add(curdate(),interval 30 day)";
+        Connection con=null;
+        try {
+            con=getConnection();
+            try(Statement stm=con.createStatement()) {
+                ResultSet rs= stm.executeQuery(sql);
+                while (rs.next()){
+                    arr.add(mapResultSet(rs));
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi truy vấn thuốc", e);
+            throw new DataAccessException("Lỗi truy vấn thuốc",e);
+        }finally {
+            closeIfOwned(con);
+        }
+        return arr;
+    }
 
     private Medicine mapResultSet(ResultSet rs) throws SQLException {
         Medicine thuoc = new Medicine();
         thuoc.setId(rs.getInt("medicine_id"));
+        thuoc.setMedicineCode(rs.getString("medicine_code"));
         thuoc.setMedicineName(rs.getString("medicine_name"));
         thuoc.setUnit(rs.getString("unit"));
         thuoc.setCostPrice(rs.getDouble("cost_price"));
         thuoc.setSellPrice(rs.getDouble("sell_price"));
         thuoc.setStockQty(rs.getInt("stock_qty"));
         thuoc.setMinThreshold(rs.getInt("min_threshold"));
+        thuoc.setManufacturer(rs.getString("manufacturer"));
         if (rs.getDate("expiry_date") != null) {
             thuoc.setExpiryDate(rs.getDate("expiry_date").toLocalDate());
         }

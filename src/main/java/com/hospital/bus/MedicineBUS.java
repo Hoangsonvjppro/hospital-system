@@ -24,6 +24,9 @@ public class MedicineBUS extends BaseBUS<Medicine> {
         if (AppUtils.isNullOrEmpty(entity.getMedicineName())) {
             throw new BusinessException("Tên thuốc không được để trống.");
         }
+        if(AppUtils.isNullOrEmpty(entity.getManufacturer())){
+            throw new BusinessException("Nhà cung cấp không được để trống.");
+        }
         if (AppUtils.isNullOrEmpty(entity.getUnit())) {
             throw new BusinessException("Đơn vị tính không được để trống.");
         }
