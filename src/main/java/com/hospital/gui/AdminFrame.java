@@ -1,13 +1,13 @@
 package com.hospital.gui;
 
-import com.hospital.gui.panels.DashboardPanel;
-import com.hospital.gui.panels.MedicinePanel;
+import com.hospital.gui.panels.*;
 import com.hospital.model.Account;
 
 import javax.swing.*;
 
 /**
  * Frame chính dành cho Admin — kế thừa BaseFrame.
+ * Admin có quyền truy cập TẤT CẢ chức năng + Quản lý tài khoản, Báo cáo, Cấu hình.
  */
 public class AdminFrame extends BaseFrame {
 
@@ -20,14 +20,35 @@ public class AdminFrame extends BaseFrame {
         addMenuItem("📊", "Tổng quan",
                 () -> showPanel(new DashboardPanel(account.getFullName())));
 
-        addMenuItem("💊", "Kho thuốc",
-                () -> showPanel(new MedicinePanel()));
+        addSeparator();
+        addSectionLabel("Tiếp nhận");
+
+        addMenuItem("📋", "Tiếp nhận BN",
+                () -> showPanel(new ReceptionPanel()));
+        addMenuItem("🕐", "Hàng đợi",
+                () -> showPanel(new DoctorDashboardPanel()));
 
         addSeparator();
-        addSectionLabel("Sắp ra mắt");
+        addSectionLabel("Khám bệnh");
 
-        addDisabledMenuItem("👥", "Bệnh nhân");
-        addDisabledMenuItem("🩺", "Phòng khám BS");
+        addMenuItem("🩺", "Khám bệnh",
+                () -> showPanel(new DoctorWorkstationPanel()));
+
+        addSeparator();
+        addSectionLabel("Dược & Tài chính");
+
+        addMenuItem("💊", "Kho thuốc",
+                () -> showPanel(new MedicinePanel()));
+        addMenuItem("💰", "Thanh toán",
+                () -> showPanel(new PaymentPanel()));
+
+        addSeparator();
+        addSectionLabel("Hệ thống");
+
+        addDisabledMenuItem("👤", "Quản lý tài khoản");
+        addDisabledMenuItem("📈", "Báo cáo");
+        addMenuItem("⚙️", "Cấu hình",
+                () -> showPanel(new SystemPanel()));
     }
 
     @Override

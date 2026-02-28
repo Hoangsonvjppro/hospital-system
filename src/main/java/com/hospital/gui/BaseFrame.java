@@ -1,6 +1,7 @@
 package com.hospital.gui;
 
 import com.hospital.model.Account;
+import com.hospital.util.SessionManager;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -178,6 +179,7 @@ public abstract class BaseFrame extends JFrame {
             }
         });
         btnLogout.addActionListener(e -> {
+            SessionManager.getInstance().logout();
             dispose();
             SwingUtilities.invokeLater(() -> new LoginFrame().setVisible(true));
         });

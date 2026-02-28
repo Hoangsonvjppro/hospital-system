@@ -4,6 +4,8 @@ import com.hospital.bus.AccountBUS;
 import com.hospital.gui.components.RoundedBorder;
 import com.hospital.gui.components.RoundedPanel;
 import com.hospital.model.Account;
+import com.hospital.model.Role;
+import com.hospital.util.SessionManager;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -447,26 +449,33 @@ public class LoginFrame extends JFrame {
                 try {
                     Account account = get();
                     if (account != null) {
+                        // Lưu phiên đăng nhập vào SessionManager
+                        SessionManager.getInstance().login(account);
+
                         // Đăng nhập thành công → mở frame theo vai trò
                         dispose();
                         SwingUtilities.invokeLater(() -> {
                             JFrame frame;
-                            long roleId = account.getRoleId();
-                            if (roleId == 1) {
-                                // ADMIN
-                                frame = new AdminFrame(account);
-                            } else if (roleId == 2) {
-                                // DOCTOR
-                                frame = new DoctorFrame(account);
-                            } else if (roleId == 4) {
-                                // RECEPTIONIST
-                                frame = new ReceptionistFrame(account);
-                            } else if (roleId == 5) {
-                                // ACCOUNTANT
-                                frame = new AccountantFrame(account);
-                            } else {
-                                // Các role khác → MainFrame mặc định
-                                frame = new MainFrame();
+                            Role role = account.getRole();
+                            switch (role) {
+                                case ADMIN:
+                                    frame = new AdminFrame(account);
+                                    break;
+                                case DOCTOR:
+                                    frame = new DoctorFrame(account);
+                                    break;
+                                case RECEPTIONIST:
+                                    frame = new ReceptionistFrame(account);
+                                    break;
+                                case ACCOUNTANT:
+                                    frame = new AccountantFrame(account);
+                                    break;
+                                case PHARMACIST:
+                                    frame = new PharmacistFrame(account);
+                                    break;
+                                default:
+                                    frame = new MainFrame();
+                                    break;
                             }
                             frame.setVisible(true);
                         });

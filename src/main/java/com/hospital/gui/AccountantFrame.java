@@ -1,12 +1,13 @@
 package com.hospital.gui;
 
-import com.hospital.gui.panels.MedicinePanel;
+import com.hospital.gui.panels.PaymentPanel;
 import com.hospital.model.Account;
 
 import javax.swing.*;
 
 /**
  * Frame chính dành cho Kế toán — kế thừa BaseFrame.
+ * Menu: Thanh toán, Hóa đơn.
  */
 public class AccountantFrame extends BaseFrame {
 
@@ -16,12 +17,15 @@ public class AccountantFrame extends BaseFrame {
 
     @Override
     protected void registerMenuItems() {
-        addMenuItem("💊", "Kho thuốc",
-                () -> showPanel(new MedicinePanel()));
+        addMenuItem("💰", "Thanh toán",
+                () -> showPanel(new PaymentPanel()));
+
+        addDisabledMenuItem("📄", "Hóa đơn");
+        addDisabledMenuItem("📈", "Báo cáo");
     }
 
     @Override
     protected JPanel createDefaultPanel() {
-        return new MedicinePanel();
+        return new PaymentPanel();
     }
 }

@@ -93,6 +93,19 @@ public class Account extends BaseModel {
         isActive = active;
     }
 
+    // ── Role helper ───────────────────────────────────────────
+
+    /**
+     * Trả về Role enum tương ứng với roleId.
+     * Tiện lợi để dùng switch/if thay vì so sánh magic number.
+     *
+     * @return Role enum
+     * @throws IllegalArgumentException nếu roleId không hợp lệ
+     */
+    public Role getRole() {
+        return Role.fromId(roleId);
+    }
+
     // ── toString ──────────────────────────────────────────────
 
     @Override
