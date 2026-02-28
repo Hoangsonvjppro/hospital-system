@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="UTF-8"?>
+﻿<?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
@@ -28,18 +28,25 @@
             <version>${mysql.version}</version>
         </dependency>
 
-        <!-- jBCrypt — Hash & verify password -->
+        <!-- jBCrypt â€” Hash & verify password -->
         <dependency>
             <groupId>org.mindrot</groupId>
             <artifactId>jbcrypt</artifactId>
             <version>0.4</version>
         </dependency>
 
-        <!-- FlatLaf — Modern Flat Look and Feel -->
+        <!-- FlatLaf â€” Modern Flat Look and Feel -->
         <dependency>
             <groupId>com.formdev</groupId>
             <artifactId>flatlaf</artifactId>
             <version>3.6</version>
+        </dependency>
+    
+        <!-- iText PDF - Xuat hoa don PDF -->
+        <dependency>
+            <groupId>com.itextpdf</groupId>
+            <artifactId>itextpdf</artifactId>
+            <version>5.5.13.3</version>
         </dependency>
     </dependencies>
 
@@ -57,7 +64,7 @@
                 </configuration>
             </plugin>
 
-            <!-- Chạy ứng dụng: mvn exec:java -->
+            <!-- Cháº¡y á»©ng dá»¥ng: mvn exec:java -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
@@ -67,7 +74,7 @@
                 </configuration>
             </plugin>
 
-            <!-- Đóng gói JAR có thể chạy được -->
+            <!-- ÄÃ³ng gÃ³i JAR cÃ³ thá»ƒ cháº¡y Ä‘Æ°á»£c -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
@@ -85,3 +92,4 @@
         </plugins>
     </build>
 </project>
+
