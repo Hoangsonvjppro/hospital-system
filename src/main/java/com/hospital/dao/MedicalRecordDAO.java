@@ -220,4 +220,65 @@ public class MedicalRecordDAO {
             closeIfOwned(conn);
         }
     }
+
+    public boolean updateTemperature(long recordId, Double temperature) {
+
+        String sql = """
+            UPDATE MedicalRecord
+               SET temperature = ?
+             WHERE record_id = ?
+        """;
+
+        Connection conn = null;
+
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+
+                if (temperature != null) {
+                    ps.setDouble(1, temperature);
+                } else {
+                    ps.setNull(1, Types.DOUBLE);
+                }
+
+                ps.setLong(2, recordId);
+
+                return ps.executeUpdate() > 0;
+            }
+        } catch (SQLException e) {
+            throw new DataAccessException("Không thể cập nhật nhiệt độ", e);
+        } finally {
+            closeIfOwned(conn);
+        }
+    }
+    public boolean updateDoctorNote(long recordId,
+                                String doctorNote,
+                                Date followUpDate) {
+
+       String sql = """
+            UPDATE MedicalRecord
+               SET doctor_note = ?,
+                   follow_up_date = ?
+             WHERE record_id = ?
+        """;
+
+        Connection conn = null;
+
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+
+                ps.setString(1, doctorNote);
+                ps.setDate(2, followUpDate);
+                ps.setLong(3, recordId);
+
+                return ps.executeUpdate() > 0;
+            }
+        } catch (SQLException e) {
+            throw new DataAccessException("Không thể cập nhật ghi chú", e);
+        } finally {
+            closeIfOwned(conn);
+        }
+    }
+    
 }
