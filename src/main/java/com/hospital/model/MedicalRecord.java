@@ -74,6 +74,15 @@ public class MedicalRecord extends BaseModel {
     public String getStatus()                 { return status; }
     public void setStatus(String v)           { this.status = v; }
 
+    public Double getTemperature()            { return temperature; }
+    public void setTemperature(Double v)      { this.temperature = v; }
+
+    public String getDoctorNote()             { return doctorNote; }
+    public void setDoctorNote(String v)       { this.doctorNote = v; }
+
+    public LocalDate getFollowUpDate()        { return followUpDate; }
+    public void setFollowUpDate(LocalDate v)  { this.followUpDate = v; }
+
     @Override
     public String toString() {
         return "MedicalRecord{id=" + id + ", patientId=" + patientId + ", doctorId=" + doctorId + "}";
