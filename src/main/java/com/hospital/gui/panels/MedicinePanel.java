@@ -4,12 +4,12 @@
 //hiện ra để lựa chọn sửa hoặc xoá.
 //để chuột vào tên thuốc sẽ hiện lên mô tả.
 package com.hospital.gui.panels;
-import com.hospital.bus.InvoiceBUS;
-import com.hospital.bus.MedicineBUS;
-import com.hospital.bus.MedicineExportBUS;
+import com.hospital.bus.*;
+import com.hospital.dao.MedicalRecordDAO;
 import com.hospital.exception.BusinessException;
 import com.hospital.exception.DataAccessException;
 import com.hospital.gui.UIConstants;
+import com.hospital.model.Invoice;
 import com.hospital.model.Medicine;
 import com.hospital.model.PrescriptionDetail;
 import com.hospital.util.AppUtils;
@@ -40,6 +40,9 @@ public class MedicinePanel extends JPanel {
     private JLabel lblTongThuoc, lblTongTonKho, lblSapHetHan, lblSapHetHang;
     //
     private final MedicineBUS medicineBUS = new MedicineBUS();
+    private final MedicalRecordBUS medicalRecordBUS = new MedicalRecordBUS();
+    private final PrescriptionBUS prescriptionBUS = new PrescriptionBUS();
+    private final MedicalRecordDAO recordDAO = new MedicalRecordDAO();
     private final MedicineExportBUS medicineExportBUS = new MedicineExportBUS();
     private final InvoiceBUS invoiceBUS = new InvoiceBUS();
     //
@@ -174,6 +177,7 @@ public class MedicinePanel extends JPanel {
         table.getTableHeader().putClientProperty(FlatClientProperties.STYLE, "font: bold; height: 40; background: #ffffff");
 
         table.getColumnModel().getColumn(5).setCellRenderer(new StatusCellRenderer());
+        table.setDefaultRenderer(Object.class,new InventoryCellRenderer());
 
         JScrollPane scroll = new JScrollPane(table);
         scroll.getViewport().setBackground(Color.WHITE);
@@ -367,11 +371,49 @@ public class MedicinePanel extends JPanel {
             int row=tablePendingRecords.getSelectedRow();
             if(row==-1) return;
             long recordId=Long.parseLong(tablePendingRecords.getValueAt(row,0).toString());
-            List<PrescriptionDetail> details;
+            // TODO: Lấy danh sách PrescriptionDetail thực tế từ CSDL
+            // List<PrescriptionDetail> details = prescriptionDAO.findByRecordId(recordId);
+            try {
+                //String msg = medicineExportBUS.processPrescriptionExport(details, currentUserId, true);
+
+                // 2.Chuyển trạng thái hoàn tất
+                recordDAO.updateStatus(recordId, "COMPLETED");
+
+                // 3.Tạo dữ liệu hóa đơn
+                createInvoiceForRecord(recordId);
+                JOptionPane.showMessageDialog(null, "Đã phát thuốc thành công!\nHóa đơn đã được chuyển sang bộ phận Kế toán.", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+
+                loadMedicineData(); // Update tồn kho ở Tab 1
+                loadPendingPrescriptions(); // Cập nhật lại list ở Tab 2
+                modelPrescriptionDetails.setRowCount(0);
+                btnPhatThuoc.setEnabled(false);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Lỗi khi phát thuốc: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
         });
+        }
+
+    private void createInvoiceForRecord(long recordId) {
+        Invoice invoice=new Invoice();
+        //TODO: hoàn thiện sau
+        double totalFee=0;
+        for(int i=0;i<tablePrescriptionDetails.getRowCount();i++){
+            totalFee+=Double.parseDouble(tablePrescriptionDetails.getValueAt(i,4).toString());
+        }
+        //invoice.setRecordId(recordId);
+        invoice.setMedicineFee(totalFee);
+        invoice.setStatus("Chờ thanh toán");
+        invoiceBUS.insert(invoice);
+
+    }
+    private void loadPendingPrescriptions(){
+        modelPrescriptionDetails.setRowCount(0);
+        //TODO: Query MedicalRecordDAO tìm các bệnh án có status = 'PRESCRIBED'
     }
 
     private void loadPrescriptionDetails(long recordId) {
+        modelPrescriptionDetails.setRowCount(0);
+        //TODO: Lấy chi tiết đơn thuốc theo recordId
     }
 
     private void loadMedicineData() {
@@ -409,7 +451,7 @@ public class MedicinePanel extends JPanel {
         lblSapHetHang.setText(String.valueOf(sapHetHang));
     }
 
-    class StatusCellRenderer extends DefaultTableCellRenderer {
+    static class StatusCellRenderer extends DefaultTableCellRenderer {
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
             JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
@@ -422,6 +464,27 @@ public class MedicinePanel extends JPanel {
             }
             wrapper.add(label);
             return wrapper;
+        }
+    }
+    static class InventoryCellRenderer extends DefaultTableCellRenderer {
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            String status = table.getValueAt(row, 5).toString(); // Cột trạng thái
+
+            if (!isSelected) {
+                if (status.contains("Hết hàng") || status.contains("Đã hết hạn")) {
+                    c.setBackground(UIConstants.ERROR_COLOR);
+                    c.setForeground(UIConstants.ERROR_COLOR);
+                } else if (status.contains("Sắp hết hàng") || status.contains("Sắp hết hạn")) {
+                    c.setBackground(UIConstants.PRIMARY_BG_SOFT);
+                    c.setForeground(new Color(150, 100, 0));
+                } else {
+                    c.setBackground(Color.WHITE); // Bình thường
+                    c.setForeground(table.getForeground());
+                }
+            }
+            return c;
         }
     }
 }
