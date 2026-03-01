@@ -184,7 +184,7 @@ public class MedicineDAO implements BaseDAO<Medicine> {
             closeIfOwned(conn);
         }
     }
-    private List<Medicine> getLowStockMedicines(){
+    public List<Medicine> getLowStockMedicines(){
         List<Medicine> arr=new ArrayList<>();
         String sql="Select * from Medicine where is_active=true and stock_qty<=min_threshold";
         Connection conn=null;
@@ -204,7 +204,7 @@ public class MedicineDAO implements BaseDAO<Medicine> {
         }
         return arr;
     }
-    private List<Medicine> getExpiryDateMedicines(){
+    public List<Medicine> getExpiryDateMedicines(){
         List<Medicine> arr=new ArrayList<>();
         String sql="Select * from Medicine where is_active=true and expiry_date is not null " +
                 "and expiry_date between curdate() and date_add(curdate(),interval 30 day)";
@@ -224,6 +224,61 @@ public class MedicineDAO implements BaseDAO<Medicine> {
             closeIfOwned(con);
         }
         return arr;
+    }
+
+    public int getStockQty(int medicineId) {
+
+        String sql = "SELECT stock_qty FROM Medicine WHERE medicine_id = ?";
+
+        Connection conn = null;
+
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+
+                ps.setInt(1, medicineId);
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getInt("stock_qty");
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            throw new DataAccessException("Không thể lấy tồn kho", e);
+        } finally {
+            closeIfOwned(conn);
+        }
+
+        return 0;
+    }
+
+    public boolean reduceStock(int medicineId, int quantity) {
+
+        String sql = """
+            UPDATE Medicine
+               SET stock_qty = stock_qty - ?
+             WHERE medicine_id = ?
+               AND stock_qty >= ?
+        """;
+
+        Connection conn = null;
+
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+
+                ps.setInt(1, quantity);
+                ps.setInt(2, medicineId);
+                ps.setInt(3, quantity);
+
+                return ps.executeUpdate() > 0;
+            }
+        } catch (SQLException e) {
+            throw new DataAccessException("Không thể trừ tồn kho", e);
+        } finally {
+            closeIfOwned(conn);
+        }
     }
 
     private Medicine mapResultSet(ResultSet rs) throws SQLException {
