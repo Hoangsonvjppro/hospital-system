@@ -76,4 +76,10 @@ public class MedicineBUS extends BaseBUS<Medicine> {
     public List<Medicine> findByName(String keyword){
         return medicineDAO.findByName(keyword);
     }
+    public List<Medicine> getExpiredMedicinesList(){
+        return medicineDAO.getExpiryDateMedicines();
+    }
+    public List<Medicine> getLowStockMedicinesList(){
+        return medicineDAO.getLowStockMedicines();
+    }
 }

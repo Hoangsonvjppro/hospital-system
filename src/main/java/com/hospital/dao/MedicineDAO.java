@@ -184,7 +184,7 @@ public class MedicineDAO implements BaseDAO<Medicine> {
             closeIfOwned(conn);
         }
     }
-    private List<Medicine> getLowStockMedicines(){
+    public List<Medicine> getLowStockMedicines(){
         List<Medicine> arr=new ArrayList<>();
         String sql="Select * from Medicine where is_active=true and stock_qty<=min_threshold";
         Connection conn=null;
@@ -204,7 +204,7 @@ public class MedicineDAO implements BaseDAO<Medicine> {
         }
         return arr;
     }
-    private List<Medicine> getExpiryDateMedicines(){
+    public List<Medicine> getExpiryDateMedicines(){
         List<Medicine> arr=new ArrayList<>();
         String sql="Select * from Medicine where is_active=true and expiry_date is not null " +
                 "and expiry_date between curdate() and date_add(curdate(),interval 30 day)";
