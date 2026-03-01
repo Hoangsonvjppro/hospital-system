@@ -15,13 +15,17 @@ public class MedicalRecord extends BaseModel {
     // ── Thông tin khám ───────────────────────────────────────────────────────
     private String symptoms;       // Triệu chứng
     private String diagnosis;      // Chẩn đoán
+    private String doctorNote;
+    private LocalDate followUpDate;
+
 
     // ── Sinh hiệu (Vital Signs) ─────────────────────────────────────────────
     private double weight;         // Cân nặng (kg)
     private double height;         // Chiều cao (cm)
     private String bloodPressure;  // Huyết áp (vd: "120/80")
     private int pulse;             // Mạch (bpm)
-
+    private Double temperature;
+    
     private String status;         // Editing / Completed / Transferred
 
     public MedicalRecord() {}
