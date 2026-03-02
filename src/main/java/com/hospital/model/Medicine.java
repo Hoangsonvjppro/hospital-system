@@ -1,66 +1,118 @@
 package com.hospital.model;
 
-/**
- * Model thuốc / dược phẩm.
- */
-public class Medicine extends BaseModel {
-    private String medicineCode;
-    private String name;
-    private String unit;          // Đơn vị: viên, chai, hộp...
-    private double price;         // Đơn giá
-    private int    quantity;      // Số lượng tồn kho
-    private int    minQuantity;   // Ngưỡng cảnh báo sắp hết
-    private String category;      // Nhóm thuốc
-    private String manufacturer;  // Nhà sản xuất
-    private String expiryDate;    // Hạn sử dụng (dạng string dd/MM/yyyy)
+import java.time.LocalDate;
 
-    public Medicine() {}
+public class Medicine extends BaseModel{
+    private String medicineName;
+    private String unit;
+    private double costPrice;
+    private double sellPrice;
+    private int stockQty;
+    private int minThreshold;
+    private LocalDate expiryDate;
+    private String description;
+    private boolean isActive;
 
-    public Medicine(int id, String medicineCode, String name, String unit,
-                    double price, int quantity, int minQuantity,
-                    String category, String manufacturer, String expiryDate) {
-        super(id);
-        this.medicineCode = medicineCode;
-        this.name         = name;
-        this.unit         = unit;
-        this.price        = price;
-        this.quantity     = quantity;
-        this.minQuantity  = minQuantity;
-        this.category     = category;
-        this.manufacturer = manufacturer;
-        this.expiryDate   = expiryDate;
+    public Medicine(String medicineName, String unit, double costPrice, double sellPrice, int stockQty, int minThreshold, LocalDate expiryDate, String description, boolean isActive) {
+        this.medicineName = medicineName;
+        this.unit = unit;
+        this.costPrice = costPrice;
+        this.sellPrice = sellPrice;
+        this.stockQty = stockQty;
+        this.minThreshold = minThreshold;
+        this.expiryDate = expiryDate;
+        this.description = description;
+        this.isActive = isActive;
+    }
+    public Medicine() {
+        this.isActive=true;
     }
 
-    public boolean isLowStock() { return quantity <= minQuantity; }
+    public String getMedicineName() {
+        return medicineName;
+    }
 
-    // ── Getters & Setters ────────────────────────────────────────────────────
-    public String getMedicineCode()  { return medicineCode; }
-    public void setMedicineCode(String v) { this.medicineCode = v; }
+    public void setMedicineName(String medicineName) {
+        this.medicineName = medicineName;
+    }
 
-    public String getName()          { return name; }
-    public void setName(String v)    { this.name = v; }
+    public String getUnit() {
+        return unit;
+    }
 
-    public String getUnit()          { return unit; }
-    public void setUnit(String v)    { this.unit = v; }
+    public void setUnit(String unit) {
+        this.unit = unit;
+    }
 
-    public double getPrice()         { return price; }
-    public void setPrice(double v)   { this.price = v; }
+    public double getCostPrice() {
+        return costPrice;
+    }
 
-    public int getQuantity()         { return quantity; }
-    public void setQuantity(int v)   { this.quantity = v; }
+    public void setCostPrice(double costPrice) {
+        this.costPrice = costPrice;
+    }
 
-    public int getMinQuantity()      { return minQuantity; }
-    public void setMinQuantity(int v){ this.minQuantity = v; }
+    public double getSellPrice() {
+        return sellPrice;
+    }
 
-    public String getCategory()      { return category; }
-    public void setCategory(String v){ this.category = v; }
+    public void setSellPrice(double sellPrice) {
+        this.sellPrice = sellPrice;
+    }
 
-    public String getManufacturer()  { return manufacturer; }
-    public void setManufacturer(String v) { this.manufacturer = v; }
+    public int getStockQty() {
+        return stockQty;
+    }
 
-    public String getExpiryDate()    { return expiryDate; }
-    public void setExpiryDate(String v) { this.expiryDate = v; }
+    public void setStockQty(int stockQty) {
+        this.stockQty = stockQty;
+    }
+
+    public int getMinThreshold() {
+        return minThreshold;
+    }
+
+    public void setMinThreshold(int minThreshold) {
+        this.minThreshold = minThreshold;
+    }
+
+    public LocalDate getExpiryDate() {
+        return expiryDate;
+    }
+
+    public void setExpiryDate(LocalDate expiryDate) {
+        this.expiryDate = expiryDate;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public boolean isActive() {
+        return isActive;
+    }
+
+    public void setActive(boolean active) {
+        isActive = active;
+    }
 
     @Override
-    public String toString() { return medicineCode + " - " + name; }
+    public String toString() {
+        return "Medicine{" +
+                "id=" + id +
+                ", medicineName='" + medicineName + '\'' +
+                ", unit='" + unit + '\'' +
+                ", costPrice=" + costPrice +
+                ", sellPrice=" + sellPrice +
+                ", stockQty=" + stockQty +
+                ", minThreshold=" + minThreshold +
+                ", expiryDate=" + expiryDate +
+                ", description='" + description + '\'' +
+                ", isActive=" + isActive +
+                '}';
+    }
 }
