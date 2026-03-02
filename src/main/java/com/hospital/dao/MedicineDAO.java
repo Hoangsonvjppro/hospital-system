@@ -1,84 +1,348 @@
 package com.hospital.dao;
 
-import com.hospital.model.Medicine;
-
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
-/**
- * DAO thuốc – dùng mock data.
- */
+import com.hospital.config.DatabaseConfig;
+import com.hospital.exception.DataAccessException;
+import com.hospital.model.Medicine;
+
 public class MedicineDAO implements BaseDAO<Medicine> {
 
-    private static final List<Medicine> DATA = new ArrayList<>();
-    private static int nextId = 11;
+    private static final Logger LOGGER = Logger.getLogger(MedicineDAO.class.getName());
 
-    static {
-        DATA.add(new Medicine(1, "TH001", "Paracetamol 500mg", "Viên",
-                500, 200, 20, "Hạ sốt – Giảm đau",
-                "Pymepharco", "31/12/2026"));
-        DATA.add(new Medicine(2, "TH002", "Amoxicillin 500mg", "Viên",
-                1200, 150, 30, "Kháng sinh",
-                "Stada", "30/06/2026"));
-        DATA.add(new Medicine(3, "TH003", "Vitamin C 1000mg", "Viên",
-                800, 8, 10, "Vitamin",
-                "DHG Pharma", "31/03/2027"));
-        DATA.add(new Medicine(4, "TH004", "Omeprazole 20mg", "Viên",
-                900, 5, 10, "Dạ dày",
-                "Traphaco", "28/02/2026"));
-        DATA.add(new Medicine(5, "TH005", "Cetirizine 10mg", "Viên",
-                700, 3, 10, "Dị ứng",
-                "Pymepharco", "31/01/2027"));
-        DATA.add(new Medicine(6, "TH006", "Metformin 500mg", "Viên",
-                600, 100, 20, "Tiểu đường",
-                "Stada", "30/09/2026"));
-        DATA.add(new Medicine(7, "TH007", "Atorvastatin 20mg", "Viên",
-                1500, 80, 15, "Tim mạch",
-                "Pfizer", "31/07/2026"));
-        DATA.add(new Medicine(8, "TH008", "Dung dịch muối 0.9%", "Chai",
-                8000, 50, 10, "Dịch truyền",
-                "B.Braun", "31/12/2025"));
-        DATA.add(new Medicine(9, "TH009", "Ibuprofen 400mg", "Viên",
-                600, 120, 20, "Giảm đau – Kháng viêm",
-                "DHG Pharma", "30/11/2026"));
-        DATA.add(new Medicine(10, "TH010", "Azithromycin 250mg", "Viên",
-                2500, 60, 15, "Kháng sinh",
-                "Traphaco", "28/02/2027"));
+    private Connection externalConnection;
+
+    public MedicineDAO() {}
+
+    public MedicineDAO(Connection connection) {
+        this.externalConnection = connection;
     }
+
+    private Connection getConnection() throws SQLException {
+        if (externalConnection != null) {
+            return externalConnection;
+        }
+        return DatabaseConfig.getInstance().getConnection();
+    }
+
+    private void closeIfOwned(Connection conn) {
+        if (externalConnection == null && conn != null) {
+            try { conn.close(); } catch (SQLException ignored) {}
+        }
+    }
+
+    // =====================================================
+    // 🔹 THÊM: LẤY TỒN KHO THEO ID (CHO KÊ ĐƠN)
+    // =====================================================
+    public int getStockById(int id) {
+        String sql = "SELECT stock_qty FROM Medicine WHERE medicine_id=? AND is_active=true";
+        Connection conn = null;
+
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setInt(1, id);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getInt("stock_qty");
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi lấy tồn kho thuốc ID=" + id, e);
+            throw new DataAccessException("Lỗi lấy tồn kho thuốc ID=" + id, e);
+        } finally {
+            closeIfOwned(conn);
+        }
+
+        return 0;
+    }
+
+    // =====================================================
+    // 🔹 THÊM: TRỪ TỒN KHO (KHI PHÁT THUỐC)
+    // =====================================================
+    public boolean decreaseStock(int id, int quantity) {
+
+        String sql = """
+            UPDATE Medicine
+            SET stock_qty = stock_qty - ?
+            WHERE medicine_id = ?
+            AND stock_qty >= ?
+        """;
+
+        Connection conn = null;
+
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setInt(1, quantity);
+                ps.setInt(2, id);
+                ps.setInt(3, quantity);
+
+                return ps.executeUpdate() > 0;
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Không thể trừ tồn kho thuốc ID=" + id, e);
+            throw new DataAccessException("Không thể trừ tồn kho thuốc ID=" + id, e);
+        } finally {
+            closeIfOwned(conn);
+        }
+    }
+
+    // =====================================================
+    // 🔹 THÊM: KIỂM TRA THUỐC CÒN HOẠT ĐỘNG
+    // =====================================================
+    public boolean existsAndActive(int id) {
+
+        String sql = "SELECT 1 FROM Medicine WHERE medicine_id=? AND is_active=true";
+
+        Connection conn = null;
+
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setInt(1, id);
+                try (ResultSet rs = ps.executeQuery()) {
+                    return rs.next();
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi kiểm tra thuốc ID=" + id, e);
+            throw new DataAccessException("Lỗi kiểm tra thuốc ID=" + id, e);
+        } finally {
+            closeIfOwned(conn);
+        }
+    }
+
+    // =====================================================
+    // 🔹 THÊM: TÌM THUỐC CÒN HÀNG
+    // =====================================================
+    public List<Medicine> findAvailableByName(String keyword) {
+
+        List<Medicine> arr = new ArrayList<>();
+
+        String sql = """
+            SELECT * FROM Medicine
+            WHERE is_active=true
+            AND stock_qty > 0
+            AND medicine_name LIKE ?
+        """;
+
+        Connection conn = null;
+
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+
+                ps.setString(1, "%" + keyword + "%");
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        arr.add(mapResultSet(rs));
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Không thể tìm thuốc còn hàng", e);
+            throw new DataAccessException("Không thể tìm thuốc còn hàng", e);
+        } finally {
+            closeIfOwned(conn);
+        }
+
+        return arr;
+    }
+
 
     @Override
     public Medicine findById(int id) {
-        return DATA.stream().filter(m -> m.getId() == id).findFirst().orElse(null);
+        String sql = "Select * from Medicine where medicine_id=?";
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setInt(1, id);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return mapResultSet(rs);
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi truy vấn thuốc ID=" + id, e);
+            throw new DataAccessException("Lỗi truy vấn thuốc ID=" + id, e);
+        } finally {
+            closeIfOwned(conn);
+        }
+        return null;
     }
 
     @Override
-    public List<Medicine> findAll() { return new ArrayList<>(DATA); }
-
-    public List<Medicine> findLowStock() {
-        return DATA.stream().filter(Medicine::isLowStock).collect(Collectors.toList());
+    public List<Medicine> findAll() {
+        List<Medicine> arr = new ArrayList<>();
+        String sql = "SELECT * FROM Medicine WHERE is_active = true";
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (Statement stm = conn.createStatement();
+                 ResultSet rs = stm.executeQuery(sql)) {
+                while (rs.next()) {
+                    arr.add(mapResultSet(rs));
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi truy vấn danh sách thuốc", e);
+            throw new DataAccessException("Lỗi truy vấn danh sách thuốc", e);
+        } finally {
+            closeIfOwned(conn);
+        }
+        return arr;
     }
 
     @Override
-    public boolean insert(Medicine m) {
-        m.setId(nextId++);
-        DATA.add(m);
-        return true;
+    public boolean insert(Medicine entity) {
+        String sql = "INSERT INTO Medicine (medicine_name, unit, cost_price, sell_price, stock_qty, min_threshold, expiry_date, description, is_active) VALUES (?,?,?,?,?,?,?,?,?)";
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, entity.getMedicineName());
+                ps.setString(2, entity.getUnit());
+                ps.setDouble(3, entity.getCostPrice());
+                ps.setDouble(4, entity.getSellPrice());
+                ps.setInt(5, entity.getStockQty());
+                ps.setInt(6, entity.getMinThreshold());
+                if (entity.getExpiryDate() != null)
+                    ps.setDate(7, java.sql.Date.valueOf(entity.getExpiryDate()));
+                else
+                    ps.setNull(7, Types.DATE);
+                ps.setString(8, entity.getDescription());
+                ps.setBoolean(9, entity.isActive());
+                return ps.executeUpdate() > 0;
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Không thể thêm thuốc", e);
+            throw new DataAccessException("Không thể thêm thuốc", e);
+        } finally {
+            closeIfOwned(conn);
+        }
     }
 
     @Override
-    public boolean update(Medicine m) {
-        for (int i = 0; i < DATA.size(); i++) {
-            if (DATA.get(i).getId() == m.getId()) {
-                DATA.set(i, m);
-                return true;
+    public boolean update(Medicine entity) {
+        String sql = "UPDATE Medicine SET medicine_name=?, unit=?, cost_price=?, sell_price=?, stock_qty=?, min_threshold=?, expiry_date=?, description=?, is_active=? WHERE medicine_id=?";
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, entity.getMedicineName());
+                ps.setString(2, entity.getUnit());
+                ps.setDouble(3, entity.getCostPrice());
+                ps.setDouble(4, entity.getSellPrice());
+                ps.setInt(5, entity.getStockQty());
+                ps.setInt(6, entity.getMinThreshold());
+                if (entity.getExpiryDate() != null)
+                    ps.setDate(7, java.sql.Date.valueOf(entity.getExpiryDate()));
+                else
+                    ps.setNull(7, Types.DATE);
+                ps.setString(8, entity.getDescription());
+                ps.setBoolean(9, entity.isActive());
+                ps.setInt(10, entity.getId());
+                return ps.executeUpdate() > 0;
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Không thể cập nhật thuốc ID=" + entity.getId(), e);
+            throw new DataAccessException("Không thể cập nhật thuốc ID=" + entity.getId(), e);
+        } finally {
+            closeIfOwned(conn);
+        }
+    }
+
+    @Override
+    public boolean delete(int id) {
+        String sql = "UPDATE Medicine SET is_active = false WHERE medicine_id = ?";
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setInt(1, id);
+                return ps.executeUpdate() > 0;
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Không thể xoá thuốc ID=" + id, e);
+            throw new DataAccessException("Không thể xoá thuốc ID=" + id, e);
+        } finally {
+            closeIfOwned(conn);
+        }
+    }
+
+    public boolean reduceStock(int medicineId, int quantity) {
+        String sql = "UPDATE Medicine SET stock_qty = stock_qty - ? WHERE medicine_id = ? AND stock_qty >= ?";
+        Connection conn = null;
+        try {
+           conn = getConnection();
+           try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setInt(1, quantity);
+                ps.setInt(2, medicineId);
+                ps.setInt(3, quantity);
+                return ps.executeUpdate() > 0;
+            }
+        } catch (SQLException e) {
+            throw new DataAccessException("Lỗi giảm tồn kho", e);
+        } finally {
+            closeIfOwned(conn);
+        }
+    }
+
+    private Medicine mapResultSet(ResultSet rs) throws SQLException {
+        Medicine thuoc = new Medicine();
+        thuoc.setId(rs.getInt("medicine_id"));
+        thuoc.setMedicineName(rs.getString("medicine_name"));
+        thuoc.setUnit(rs.getString("unit"));
+        thuoc.setCostPrice(rs.getDouble("cost_price"));
+        thuoc.setSellPrice(rs.getDouble("sell_price"));
+        thuoc.setStockQty(rs.getInt("stock_qty"));
+        thuoc.setMinThreshold(rs.getInt("min_threshold"));
+        if (rs.getDate("expiry_date") != null)
+            thuoc.setExpiryDate(rs.getDate("expiry_date").toLocalDate());
+        thuoc.setDescription(rs.getString("description"));
+        thuoc.setActive(rs.getBoolean("is_active"));
+        return thuoc;
+    }
+
+    public List<Medicine> findByName(String keyword) {
+
+    String sql = "SELECT * FROM Medicine WHERE medicine_name LIKE ? AND is_active = true";
+
+    List<Medicine> list = new ArrayList<>();
+    Connection conn = null;
+
+    try {
+        conn = getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, "%" + keyword + "%");
+
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapResultSet(rs));   
+                }
             }
         }
-        return false;
+    } catch (SQLException e) {
+        throw new DataAccessException("Lỗi tìm thuốc theo tên", e);
+    } finally {
+        closeIfOwned(conn);
     }
 
-    @Override
-    public boolean delete(int id) { return DATA.removeIf(m -> m.getId() == id); }
-
-    public int countLowStock() { return (int) DATA.stream().filter(Medicine::isLowStock).count(); }
+    return list;
+}
 }
