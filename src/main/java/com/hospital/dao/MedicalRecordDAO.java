@@ -225,6 +225,32 @@ public class MedicalRecordDAO {
         return null;
     }
 
+    /**
+     * List all medical records for a patient (history), ordered by visit_date desc.
+     */
+    public java.util.List<com.hospital.model.MedicalRecord> listByPatient(long patientId) {
+        java.util.List<com.hospital.model.MedicalRecord> list = new java.util.ArrayList<>();
+        String sql = "SELECT * FROM MedicalRecord WHERE patient_id = ? ORDER BY visit_date DESC";
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setLong(1, patientId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        list.add(mapResultSet(rs));
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi lấy lịch sử khám cho patientId=" + patientId, e);
+            throw new DataAccessException("Không thể lấy lịch sử khám", e);
+        } finally {
+            closeIfOwned(conn);
+        }
+        return list;
+    }
+
     private com.hospital.model.MedicalRecord mapResultSet(ResultSet rs) throws SQLException {
         com.hospital.model.MedicalRecord r = new com.hospital.model.MedicalRecord();
         r.setId(rs.getInt("record_id"));

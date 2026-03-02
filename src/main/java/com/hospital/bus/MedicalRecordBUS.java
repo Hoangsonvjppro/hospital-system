@@ -126,6 +126,14 @@ public class MedicalRecordBUS {
     }
 
     /**
+     * Get history (all medical records) for a patient.
+     */
+    public java.util.List<com.hospital.model.MedicalRecord> getHistoryByPatient(long patientId) {
+        MedicalRecordDAO dao = new MedicalRecordDAO();
+        return dao.listByPatient(patientId);
+    }
+
+    /**
      * Lấy MedicalRecord theo ID (wrapper cho DAO) để UI có thể đọc queue_number/priority...
      */
     public com.hospital.model.MedicalRecord findById(long recordId) {

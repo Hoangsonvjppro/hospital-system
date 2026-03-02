@@ -275,6 +275,49 @@ public class PatientPanel extends JPanel {
         JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         actions.setOpaque(false);
         RoundedButton btnDeletePatient = new RoundedButton("Xóa bệnh nhân");
+        RoundedButton btnHistory = new RoundedButton("Lịch sử khám");
+        btnHistory.addActionListener(e -> {
+            int sel = table.getSelectedRow();
+            if (sel < 0) {
+                JOptionPane.showMessageDialog(this, "Vui lòng chọn bệnh nhân để xem lịch sử.", "Chú ý", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            int pid = (int) tableModel.getValueAt(sel, 0);
+            try {
+                java.util.List<com.hospital.model.MedicalRecord> hist = medicalRecordBUS.getHistoryByPatient(pid);
+                if (hist == null || hist.isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "Không tìm thấy lịch sử khám cho bệnh nhân này.", "Thông tin", JOptionPane.INFORMATION_MESSAGE);
+                    return;
+                }
+
+                // Build a table to show date, doctor, diagnosis, symptoms
+                DefaultTableModel hm = new DefaultTableModel(new String[]{"Ngày giờ","Bác sĩ","Chẩn đoán","Triệu chứng","STT"}, 0) {
+                    @Override public boolean isCellEditable(int r, int c) { return false; }
+                };
+
+                com.hospital.dao.DoctorDAO doctorDAO = new com.hospital.dao.DoctorDAO();
+                for (com.hospital.model.MedicalRecord r : hist) {
+                    String date = r.getVisitDate() != null ? r.getVisitDate().toString() : "";
+                    String docName = "-";
+                    try {
+                        com.hospital.model.Doctor d = doctorDAO.findById((int) r.getDoctorId());
+                        if (d != null) docName = d.getFullName();
+                    } catch (Exception ignored) {}
+                    String diag = r.getDiagnosis() != null ? r.getDiagnosis() : "";
+                    String sym = r.getSymptoms() != null ? r.getSymptoms() : "";
+                    String q = r.getQueueNumber() != null ? String.valueOf(r.getQueueNumber()) : "";
+                    hm.addRow(new Object[]{date, docName, diag, sym, q});
+                }
+
+                JTable jt = new JTable(hm);
+                jt.setRowHeight(28);
+                JScrollPane sp = new JScrollPane(jt);
+                sp.setPreferredSize(new Dimension(760, 320));
+                JOptionPane.showMessageDialog(this, sp, "Lịch sử khám - Bệnh nhân ID=" + pid, JOptionPane.INFORMATION_MESSAGE);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Không thể lấy lịch sử: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
+        });
         btnDeletePatient.addActionListener(e -> {
             int sel = table.getSelectedRow();
             if (sel < 0) {
@@ -295,6 +338,7 @@ public class PatientPanel extends JPanel {
             }
         });
         actions.add(btnDeletePatient);
+    actions.add(btnHistory);
         titleRow.add(actions, BorderLayout.EAST);
 
     // NOTE: 'Thêm bệnh nhân' button removed — registration is done via the "Đăng ký khám" button in the tab
