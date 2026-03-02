@@ -21,6 +21,11 @@ public class MedicalRecord extends BaseModel {
     private double height;         // Chiều cao (cm)
     private String bloodPressure;  // Huyết áp (vd: "120/80")
     private int pulse;             // Mạch (bpm)
+    private double temperature;    // Nhiệt độ (°C)
+    private int spo2;              // SpO2 (%)
+
+    private String diagnosisCode;  // Mã ICD-10
+    private String notes;          // Doctor notes
 
     private String status;         // Editing / Completed / Transferred
 
@@ -95,6 +100,18 @@ public class MedicalRecord extends BaseModel {
 
     public int getPulse()                     { return pulse; }
     public void setPulse(int v)               { this.pulse = v; }
+
+    public double getTemperature()            { return temperature; }
+    public void setTemperature(double v)      { this.temperature = v; }
+
+    public int getSpo2()                      { return spo2; }
+    public void setSpo2(int v)                { this.spo2 = v; }
+
+    public String getDiagnosisCode()          { return diagnosisCode; }
+    public void setDiagnosisCode(String v)    { this.diagnosisCode = v; }
+
+    public String getNotes()                  { return notes; }
+    public void setNotes(String v)            { this.notes = v; }
 
     public String getStatus()                 { return status; }
     public void setStatus(String v)           { this.status = v; }

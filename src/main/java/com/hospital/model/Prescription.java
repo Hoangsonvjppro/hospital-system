@@ -4,16 +4,24 @@ import java.time.LocalDateTime;
 
 public class Prescription extends BaseModel {
 
+    public static final String STATUS_DRAFT     = "DRAFT";
+    public static final String STATUS_CONFIRMED = "CONFIRMED";
+    public static final String STATUS_DISPENSED  = "DISPENSED";
+    public static final String STATUS_CANCELLED  = "CANCELLED";
+    // Legacy alias — PrescriptionBUS used PENDING which maps to CONFIRMED
+    public static final String STATUS_PENDING    = "CONFIRMED";
+
     private long medicalRecordId;
     private LocalDateTime createdAt;
-    private String status; // PENDING / DISPENSED
+    private String status; // DRAFT / CONFIRMED / DISPENSED / CANCELLED
+    private double totalAmount;
 
     public Prescription() {}
 
     public Prescription(long medicalRecordId) {
         this.medicalRecordId = medicalRecordId;
         this.createdAt = LocalDateTime.now();
-        this.status = "PENDING";
+        this.status = STATUS_CONFIRMED;
     }
 
     public long getMedicalRecordId() {
@@ -38,6 +46,14 @@ public class Prescription extends BaseModel {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public double getTotalAmount() {
+        return totalAmount;
+    }
+
+    public void setTotalAmount(double totalAmount) {
+        this.totalAmount = totalAmount;
     }
 
     @Override

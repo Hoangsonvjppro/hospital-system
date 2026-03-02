@@ -1,12 +1,14 @@
 package com.hospital.gui.panels;
 
 import com.hospital.bus.PatientBUS;
+import com.hospital.bus.DoctorBUS;
 import com.hospital.bus.MedicalRecordBUS;
 import com.hospital.exception.BusinessException;
 import com.hospital.exception.DataAccessException;
 import com.hospital.gui.UIConstants;
 import com.hospital.gui.components.RoundedButton;
 import com.hospital.gui.components.RoundedPanel;
+import com.hospital.model.Doctor;
 import com.hospital.model.Patient;
 
 import javax.swing.*;
@@ -41,6 +43,9 @@ public class PatientPanel extends JPanel {
     private javax.swing.Timer queueRefreshTimer;
     private final PatientBUS patientBUS = new PatientBUS();
     private final MedicalRecordBUS medicalRecordBUS = new MedicalRecordBUS();
+    private final DoctorBUS doctorBUS = new DoctorBUS();
+    private JComboBox<String> cmbDoctor;
+    private final java.util.Map<String, Long> doctorMap = new java.util.LinkedHashMap<>();
     private final DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     public PatientPanel() {
@@ -154,8 +159,8 @@ public class PatientPanel extends JPanel {
                     loadData();
                 }
 
-                // ASSUMPTION: receptionist assigns to default doctorId = 1. Can be changed to a selectable dropdown later.
-                long doctorId = 1L;
+                // ASSUMPTION: receptionist assigns to selected doctor from dropdown.
+                long doctorId = getSelectedDoctorId();
                 boolean isEmergency = chkEmergency.isSelected();
                 String examType = "Kham tong quat";
 
@@ -350,6 +355,23 @@ public class PatientPanel extends JPanel {
 
         header.add(titleRow, BorderLayout.NORTH);
 
+        // Doctor selector row
+        JPanel doctorRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 4));
+        doctorRow.setOpaque(false);
+        JLabel lblDoctor = new JLabel("B\u00E1c s\u0129 kh\u00E1m:");
+        lblDoctor.setFont(UIConstants.FONT_BOLD);
+        lblDoctor.setForeground(UIConstants.TEXT_PRIMARY);
+        doctorRow.add(lblDoctor);
+        cmbDoctor = new JComboBox<>();
+        cmbDoctor.setFont(UIConstants.FONT_BODY);
+        cmbDoctor.setPreferredSize(new Dimension(250, 34));
+        loadDoctorCombo();
+        cmbDoctor.addActionListener(e -> { refreshQueue(); refreshFollowUps(); });
+        doctorRow.add(cmbDoctor);
+        JPanel centerWrapper = new JPanel(new BorderLayout());
+        centerWrapper.setOpaque(false);
+        centerWrapper.add(doctorRow, BorderLayout.NORTH);
+
         // Search bar
         txtSearch = new JTextField();
         txtSearch.putClientProperty("JTextField.placeholderText", "Tìm theo tên hoặc SĐT...");
@@ -365,6 +387,7 @@ public class PatientPanel extends JPanel {
             }
         });
 
+        header.add(centerWrapper, BorderLayout.CENTER);
         header.add(txtSearch, BorderLayout.SOUTH);
         return header;
     }
@@ -551,7 +574,7 @@ public class PatientPanel extends JPanel {
         if (queueTableModel == null) return;
         queueTableModel.setRowCount(0);
         queueRecordIds.clear();
-        long doctorId = 1L; // TODO: make selectable
+        long doctorId = getSelectedDoctorId(); // Doctor selector dropdown
         java.util.List<com.hospital.model.MedicalRecord> list = medicalRecordBUS.getTodayQueue(doctorId);
         int idx = 0;
         for (com.hospital.model.MedicalRecord r : list) {
@@ -604,7 +627,7 @@ public class PatientPanel extends JPanel {
         if (followUpTableModel == null) return;
         followUpTableModel.setRowCount(0);
         followUpRecordIds.clear();
-        long doctorId = 1L; // TODO: make selectable
+        long doctorId = getSelectedDoctorId(); // Doctor selector dropdown
         java.util.List<com.hospital.model.MedicalRecord> list = medicalRecordBUS.getFollowUpsToday(doctorId);
         for (com.hospital.model.MedicalRecord r : list) {
             followUpRecordIds.add((long) r.getId());
@@ -650,5 +673,27 @@ public class PatientPanel extends JPanel {
         card.add(actions, BorderLayout.SOUTH);
 
         return card;
+    }
+
+    private void loadDoctorCombo() {
+        cmbDoctor.removeAllItems();
+        doctorMap.clear();
+        try {
+            List<com.hospital.model.Doctor> doctors = doctorBUS.getOnlineDoctors();
+            for (com.hospital.model.Doctor d : doctors) {
+                String display = d.getFullName() + " (" + d.getSpecialty() + ")";
+                doctorMap.put(display, (long) d.getId());
+                cmbDoctor.addItem(display);
+            }
+        } catch (Exception e) {
+            cmbDoctor.addItem("BS M\u1EB7c \u0111\u1ECBnh (ID=1)");
+            doctorMap.put("BS M\u1EB7c \u0111\u1ECBnh (ID=1)", 1L);
+        }
+    }
+
+    private long getSelectedDoctorId() {
+        if (cmbDoctor == null || cmbDoctor.getSelectedItem() == null) return 1L;
+        String selected = cmbDoctor.getSelectedItem().toString();
+        return doctorMap.getOrDefault(selected, 1L);
     }
 }

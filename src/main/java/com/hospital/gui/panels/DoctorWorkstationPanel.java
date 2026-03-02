@@ -1,37 +1,53 @@
 package com.hospital.gui.panels;
 
 import com.hospital.bus.MedicalRecordBUS;
+import com.hospital.bus.MedicineBUS;
+import com.hospital.bus.PrescriptionBUS;
 import com.hospital.bus.QueueBUS;
 import com.hospital.exception.BusinessException;
 import com.hospital.exception.DataAccessException;
 import com.hospital.gui.UIConstants;
 import com.hospital.gui.components.RoundedButton;
 import com.hospital.gui.components.RoundedPanel;
+import com.hospital.model.Medicine;
+import com.hospital.model.MedicalRecord;
 import com.hospital.model.Patient;
+import com.hospital.model.PrescriptionDetail;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
+import java.awt.event.*;
 import java.awt.geom.Ellipse2D;
 import java.awt.geom.RoundRectangle2D;
+import java.text.DecimalFormat;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Doctor Workstation Panel
+ * Doctor Workstation Panel - Giao dien kham benh cho bac si.
+ *
+ * Ben trai: Danh sach benh nhan cho + nut "Goi kham"
+ * Ben phai:
+ *   Tab 0: Thong tin & Sinh hieu (weight, height, BP, pulse, temperature, SpO2)
+ *   Tab 1: Kham benh (trieu chung, chan doan, ICD-10, ghi chu BS, ngay tai kham)
+ *   Tab 2: Ke don thuoc (tim thuoc, them vao don, canh bao di ung)
+ *   Tab 3: Lich su kham (xem benh an cu)
  */
 public class DoctorWorkstationPanel extends JPanel {
 
-    // Tất cả màu/font dùng UIConstants — KHÔNG khai báo cục bộ.
-
     private static final String[] TAB_NAMES = {
-        "Thông tin & Sinh hiệu", "Khám bệnh", "Chỉ định Dịch vụ", "Kê đơn thuốc"
+        "Th\u00F4ng tin & Sinh hi\u1EC7u", "Kh\u00E1m b\u1EC7nh", "K\u00EA \u0111\u01A1n thu\u1ED1c", "L\u1ECBch s\u1EED kh\u00E1m"
     };
 
     private final QueueBUS queueBUS = new QueueBUS();
     private final MedicalRecordBUS medicalRecordBUS = new MedicalRecordBUS();
+    private final PrescriptionBUS prescriptionBUS = new PrescriptionBUS();
+    private final MedicineBUS medicineBUS = new MedicineBUS();
+    private final DecimalFormat moneyFmt = new DecimalFormat("#,###");
 
     private JPanel patientListPanel;
     private JPanel rightContentPanel;
@@ -40,16 +56,24 @@ public class DoctorWorkstationPanel extends JPanel {
     private long selectedRecordId = -1;
     private int selectedIndex = -1;
 
-    private JTextField txtWeight;
-    private JTextField txtHeight;
-    private JTextField txtBloodPressure;
-    private JTextField txtPulse;
+    // Tab 0 - Vital Signs
+    private JTextField txtWeight, txtHeight, txtBloodPressure, txtPulse, txtTemperature, txtSpo2;
 
-    private JTextArea txtSymptoms;
-    private JTextArea txtDiagnosis;
+    // Tab 1 - Examination
+    private JTextArea txtSymptoms, txtDiagnosis;
+    private JTextField txtDiagnosisCode, txtDoctorNotes;
+    private JTextField txtFollowUpDate;
 
-    private static final String SYMPTOMS_PLACEHOLDER = "Nhập triệu chứng của bệnh nhân...";
-    private static final String DIAGNOSIS_PLACEHOLDER = "Nhập chẩn đoán...";
+    private static final String SYMPTOMS_PLACEHOLDER = "Nh\u1EADp tri\u1EC7u ch\u1EE9ng c\u1EE7a b\u1EC7nh nh\u00E2n...";
+    private static final String DIAGNOSIS_PLACEHOLDER = "Nh\u1EADp ch\u1EA9n \u0111o\u00E1n...";
+
+    // Tab 2 - Prescription
+    private JTextField txtMedicineSearch;
+    private JTable tableMedicineSearch;
+    private DefaultTableModel modelMedicineSearch;
+    private JTable tablePrescription;
+    private DefaultTableModel modelPrescription;
+    private final List<PrescriptionDetail> prescriptionItems = new ArrayList<>();
 
     private int activeTab = 0;
     private JPanel tabBar;
@@ -77,23 +101,27 @@ public class DoctorWorkstationPanel extends JPanel {
         add(mainPanel, BorderLayout.CENTER);
     }
 
-    // LEFT PANEL
+    // ==========================================================================
+    //  LEFT PANEL - Patient Queue + "Goi kham" button
+    // ==========================================================================
+
     private JPanel createLeftPanel() {
         JPanel left = new JPanel(new BorderLayout(0, 0));
-        left.setPreferredSize(new Dimension(260, 0));
+        left.setPreferredSize(new Dimension(270, 0));
         left.setBackground(UIConstants.CARD_BG);
         left.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, UIConstants.BORDER_COLOR));
 
+        // Header
         JPanel header = new JPanel(new BorderLayout());
         header.setBackground(UIConstants.CARD_BG);
-        header.setBorder(new EmptyBorder(20, 18, 16, 18));
+        header.setBorder(new EmptyBorder(20, 18, 10, 18));
 
-        JLabel lblTitle = new JLabel("DANH SÁCH CHỜ");
+        JLabel lblTitle = new JLabel("DANH S\u00C1CH CH\u1ECC");
         lblTitle.setFont(UIConstants.FONT_SMALL);
         lblTitle.setForeground(UIConstants.TEXT_SECONDARY);
 
         List<Patient> waiting = queueBUS.getWaitingPatients();
-        lblPatientCount = new JLabel(waiting.size() + " Bệnh nhân");
+        lblPatientCount = new JLabel(waiting.size() + " B\u1EC7nh nh\u00E2n");
         lblPatientCount.setFont(UIConstants.FONT_HEADER);
         lblPatientCount.setForeground(UIConstants.TEXT_PRIMARY);
 
@@ -125,8 +153,23 @@ public class DoctorWorkstationPanel extends JPanel {
         headerContent.add(lblTitle, BorderLayout.NORTH);
         headerContent.add(countRow, BorderLayout.CENTER);
         header.add(headerContent, BorderLayout.CENTER);
-        left.add(header, BorderLayout.NORTH);
 
+        // "Goi kham" button
+        RoundedButton btnCallPatient = new RoundedButton("G\u1ECDi kh\u00E1m", UIConstants.ACCENT_BLUE, UIConstants.ACCENT_BLUE_DARK, 8);
+        btnCallPatient.setPreferredSize(new Dimension(100, 34));
+        btnCallPatient.addActionListener(e -> onCallPatient());
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 4));
+        btnPanel.setOpaque(false);
+        btnPanel.setBorder(new EmptyBorder(4, 18, 8, 18));
+        btnPanel.add(btnCallPatient);
+
+        JPanel topSection = new JPanel(new BorderLayout());
+        topSection.setOpaque(false);
+        topSection.add(header, BorderLayout.NORTH);
+        topSection.add(btnPanel, BorderLayout.SOUTH);
+        left.add(topSection, BorderLayout.NORTH);
+
+        // Patient list
         patientListPanel = new JPanel();
         patientListPanel.setLayout(new BoxLayout(patientListPanel, BoxLayout.Y_AXIS));
         patientListPanel.setBackground(UIConstants.CARD_BG);
@@ -143,10 +186,38 @@ public class DoctorWorkstationPanel extends JPanel {
         return left;
     }
 
+    /** Goi benh nhan dang cho vao phong kham (WAITING -> EXAMINING) */
+    private void onCallPatient() {
+        if (selectedPatient == null || selectedRecordId <= 0) {
+            // Auto-select first WAITING patient
+            List<Patient> waitingOnly = queueBUS.getPatientsByStatus("WAITING");
+            if (waitingOnly.isEmpty()) {
+                JOptionPane.showMessageDialog(this, "Kh\u00F4ng c\u00F3 b\u1EC7nh nh\u00E2n n\u00E0o \u0111ang ch\u1EDD.", "Th\u00F4ng b\u00E1o", JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+            selectedPatient = waitingOnly.get(0);
+            selectedRecordId = selectedPatient.getCurrentRecordId();
+            selectedIndex = 0;
+        }
+
+        if ("WAITING".equals(selectedPatient.getStatus())) {
+            queueBUS.updateQueueStatus(selectedRecordId, "EXAMINING");
+            JOptionPane.showMessageDialog(this,
+                    "\u0110\u00E3 g\u1ECDi b\u1EC7nh nh\u00E2n: " + selectedPatient.getFullName() + " v\u00E0o ph\u00F2ng kh\u00E1m.",
+                    "G\u1ECDi kh\u00E1m", JOptionPane.INFORMATION_MESSAGE);
+            loadPatientList();
+            updateRightPanel();
+        } else if ("EXAMINING".equals(selectedPatient.getStatus())) {
+            JOptionPane.showMessageDialog(this,
+                    "B\u1EC7nh nh\u00E2n " + selectedPatient.getFullName() + " \u0111ang \u0111\u01B0\u1EE3c kh\u00E1m.",
+                    "Th\u00F4ng b\u00E1o", JOptionPane.INFORMATION_MESSAGE);
+        }
+    }
+
     private void loadPatientList() {
         patientListPanel.removeAll();
         List<Patient> waiting = queueBUS.getWaitingPatients();
-        lblPatientCount.setText(waiting.size() + " Bệnh nhân");
+        lblPatientCount.setText(waiting.size() + " B\u1EC7nh nh\u00E2n");
 
         for (int i = 0; i < waiting.size(); i++) {
             patientListPanel.add(createPatientCard(waiting.get(i), i));
@@ -224,11 +295,14 @@ public class DoctorWorkstationPanel extends JPanel {
         info.add(detailLabel);
         info.add(Box.createVerticalStrut(4));
 
-        JLabel timeLabel = new JLabel(patient.getArrivalTime());
-        timeLabel.setFont(UIConstants.FONT_SMALL);
-        timeLabel.setForeground(UIConstants.TEXT_MUTED);
-        timeLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
-        info.add(timeLabel);
+        // Show status badge
+        String statusText = "EXAMINING".equals(patient.getStatus()) ? "\u0110ang kh\u00E1m" : "Ch\u1EDD kh\u00E1m";
+        Color statusColor = "EXAMINING".equals(patient.getStatus()) ? UIConstants.STATUS_EXAMINING : UIConstants.STATUS_WAITING;
+        JLabel statusLabel = new JLabel(statusText + "  |  " + (patient.getArrivalTime() != null ? patient.getArrivalTime() : ""));
+        statusLabel.setFont(UIConstants.FONT_SMALL);
+        statusLabel.setForeground(statusColor);
+        statusLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
+        info.add(statusLabel);
 
         card.add(info, BorderLayout.CENTER);
 
@@ -256,10 +330,7 @@ public class DoctorWorkstationPanel extends JPanel {
                 selectedIndex = index;
                 selectedPatient = patient;
                 selectedRecordId = patient.getCurrentRecordId();
-                // Cập nhật trạng thái: WAITING → EXAMINING
-                if ("WAITING".equals(patient.getStatus())) {
-                    queueBUS.updateQueueStatus(selectedRecordId, "EXAMINING");
-                }
+                prescriptionItems.clear();
                 loadPatientList();
                 updateRightPanel();
             }
@@ -268,7 +339,10 @@ public class DoctorWorkstationPanel extends JPanel {
         return card;
     }
 
-    // RIGHT PANEL
+    // ==========================================================================
+    //  RIGHT PANEL - Tabs + Content + Bottom bar
+    // ==========================================================================
+
     private JPanel createRightPanel() {
         JPanel right = new JPanel(new BorderLayout(0, 0));
         right.setBackground(UIConstants.CONTENT_BG);
@@ -278,7 +352,7 @@ public class DoctorWorkstationPanel extends JPanel {
 
         rightContentPanel = new JPanel(new BorderLayout());
         rightContentPanel.setOpaque(false);
-        rightContentPanel.setBorder(new EmptyBorder(24, 32, 24, 32));
+        rightContentPanel.setBorder(new EmptyBorder(20, 28, 20, 28));
         right.add(rightContentPanel, BorderLayout.CENTER);
 
         right.add(createBottomBar(), BorderLayout.SOUTH);
@@ -319,7 +393,7 @@ public class DoctorWorkstationPanel extends JPanel {
             tab.setFont(UIConstants.FONT_BOLD);
             tab.setForeground(idx == activeTab ? UIConstants.ACCENT_BLUE : UIConstants.TEXT_SECONDARY);
             tab.setHorizontalAlignment(SwingConstants.CENTER);
-            tab.setBorder(new EmptyBorder(14, 24, 14, 24));
+            tab.setBorder(new EmptyBorder(14, 20, 14, 20));
             tab.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             tab.setOpaque(false);
 
@@ -363,7 +437,7 @@ public class DoctorWorkstationPanel extends JPanel {
             tab.setFont(UIConstants.FONT_BOLD);
             tab.setForeground(idx == activeTab ? UIConstants.ACCENT_BLUE : UIConstants.TEXT_SECONDARY);
             tab.setHorizontalAlignment(SwingConstants.CENTER);
-            tab.setBorder(new EmptyBorder(14, 24, 14, 24));
+            tab.setBorder(new EmptyBorder(14, 20, 14, 20));
             tab.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
             tab.setOpaque(false);
             tab.addMouseListener(new MouseAdapter() {
@@ -388,8 +462,8 @@ public class DoctorWorkstationPanel extends JPanel {
             switch (activeTab) {
                 case 0 -> rightContentPanel.add(createInfoAndVitalsContent(), BorderLayout.CENTER);
                 case 1 -> rightContentPanel.add(createExaminationContent(), BorderLayout.CENTER);
-                case 2 -> rightContentPanel.add(createPlaceholderTab("Chỉ định Dịch vụ"), BorderLayout.CENTER);
-                case 3 -> rightContentPanel.add(createPlaceholderTab("Kê đơn thuốc"), BorderLayout.CENTER);
+                case 2 -> rightContentPanel.add(createPrescriptionContent(), BorderLayout.CENTER);
+                case 3 -> rightContentPanel.add(createHistoryContent(), BorderLayout.CENTER);
             }
         }
         rightContentPanel.revalidate();
@@ -397,21 +471,35 @@ public class DoctorWorkstationPanel extends JPanel {
     }
 
     private void showEmptyState() {
-        JLabel empty = new JLabel("Chưa có bệnh nhân trong danh sách chờ", SwingConstants.CENTER);
+        JLabel empty = new JLabel("Ch\u01B0a c\u00F3 b\u1EC7nh nh\u00E2n trong danh s\u00E1ch ch\u1EDD", SwingConstants.CENTER);
         empty.setFont(UIConstants.FONT_SUBTITLE);
         empty.setForeground(UIConstants.TEXT_MUTED);
         rightContentPanel.add(empty, BorderLayout.CENTER);
     }
 
-    // TAB 0 - Thong tin & Sinh hieu
+    // ==========================================================================
+    //  TAB 0 - Thong tin & Sinh hieu
+    // ==========================================================================
+
     private JPanel createInfoAndVitalsContent() {
         JPanel content = new JPanel();
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setOpaque(false);
+
         content.add(createPatientInfoCard());
         content.add(Box.createVerticalStrut(24));
         content.add(createVitalSignsSection());
-        return content;
+
+        JScrollPane scroll = new JScrollPane(content);
+        scroll.setBorder(null);
+        scroll.setOpaque(false);
+        scroll.getViewport().setOpaque(false);
+        scroll.getVerticalScrollBar().setUnitIncrement(16);
+
+        JPanel wrapper = new JPanel(new BorderLayout());
+        wrapper.setOpaque(false);
+        wrapper.add(scroll, BorderLayout.CENTER);
+        return wrapper;
     }
 
     private JPanel createPatientInfoCard() {
@@ -419,7 +507,7 @@ public class DoctorWorkstationPanel extends JPanel {
         card.setBackground(UIConstants.CARD_BG);
         card.setLayout(new GridBagLayout());
         card.setBorder(new EmptyBorder(24, 28, 24, 28));
-        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 140));
+        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 160));
 
         GridBagConstraints gbc = new GridBagConstraints();
 
@@ -437,14 +525,11 @@ public class DoctorWorkstationPanel extends JPanel {
                 g2.fillRoundRect(10, 38, 40, 24, 18, 18);
                 g2.dispose();
             }
-            @Override
-            public Dimension getPreferredSize() { return new Dimension(60, 60); }
-            @Override
-            public Dimension getMinimumSize() { return getPreferredSize(); }
+            @Override public Dimension getPreferredSize() { return new Dimension(60, 60); }
+            @Override public Dimension getMinimumSize() { return getPreferredSize(); }
         };
         avatar.setOpaque(false);
-
-        gbc.gridx = 0; gbc.gridy = 0; gbc.gridheight = 3;
+        gbc.gridx = 0; gbc.gridy = 0; gbc.gridheight = 4;
         gbc.insets = new Insets(0, 0, 0, 20);
         gbc.anchor = GridBagConstraints.NORTHWEST;
         card.add(avatar, gbc);
@@ -454,86 +539,83 @@ public class DoctorWorkstationPanel extends JPanel {
         name.setFont(UIConstants.FONT_TITLE);
         name.setForeground(UIConstants.TEXT_PRIMARY);
         gbc = new GridBagConstraints();
-        gbc.gridx = 1; gbc.gridy = 0; gbc.weightx = 1;
-        gbc.anchor = GridBagConstraints.WEST;
+        gbc.gridx = 1; gbc.gridy = 0; gbc.weightx = 1; gbc.anchor = GridBagConstraints.WEST;
         gbc.insets = new Insets(0, 0, 4, 0);
         card.add(name, gbc);
 
         // Detail row
         DateTimeFormatter fmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-        String dobStr = selectedPatient.getDateOfBirth() != null
-                ? selectedPatient.getDateOfBirth().format(fmt) : "N/A";
+        String dobStr = selectedPatient.getDateOfBirth() != null ? selectedPatient.getDateOfBirth().format(fmt) : "N/A";
         int age = selectedPatient.getAge();
-        String detailText = dobStr + " (" + age + " tuoi)   |   "
-                + selectedPatient.getGender() + "   |   " + selectedPatient.getPhone();
+        String detailText = dobStr + " (" + age + " tu\u1ED5i)   |   " + selectedPatient.getGender() + "   |   " + selectedPatient.getPhone();
         JLabel detail = new JLabel(detailText);
         detail.setFont(UIConstants.FONT_LABEL);
         detail.setForeground(UIConstants.TEXT_SECONDARY);
         gbc = new GridBagConstraints();
-        gbc.gridx = 1; gbc.gridy = 1; gbc.weightx = 1;
-        gbc.anchor = GridBagConstraints.WEST;
+        gbc.gridx = 1; gbc.gridy = 1; gbc.weightx = 1; gbc.anchor = GridBagConstraints.WEST;
         gbc.insets = new Insets(0, 0, 4, 0);
         card.add(detail, gbc);
 
         // Address
-        JLabel address = new JLabel("Địa chỉ: " + selectedPatient.getAddress());
+        JLabel address = new JLabel("\u0110\u1ECBa ch\u1EC9: " + (selectedPatient.getAddress() != null ? selectedPatient.getAddress() : "N/A"));
         address.setFont(UIConstants.FONT_LABEL);
         address.setForeground(UIConstants.TEXT_SECONDARY);
         gbc = new GridBagConstraints();
-        gbc.gridx = 1; gbc.gridy = 2; gbc.weightx = 1;
-        gbc.anchor = GridBagConstraints.WEST;
+        gbc.gridx = 1; gbc.gridy = 2; gbc.weightx = 1; gbc.anchor = GridBagConstraints.WEST;
+        gbc.insets = new Insets(0, 0, 4, 0);
         card.add(address, gbc);
 
-        // Edit button
-        JLabel editBtn = new JLabel("Chỉnh sửa");
-        editBtn.setFont(UIConstants.FONT_LABEL);
-        editBtn.setForeground(UIConstants.ACCENT_BLUE);
-        editBtn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        editBtn.addMouseListener(new MouseAdapter() {
-            @Override
-            public void mousePressed(MouseEvent e) {
-                JOptionPane.showMessageDialog(DoctorWorkstationPanel.this,
-                        "Chức năng chỉnh sửa thông tin bệnh nhân.", "Chỉnh sửa",
-                        JOptionPane.INFORMATION_MESSAGE);
-            }
-        });
-        gbc = new GridBagConstraints();
-        gbc.gridx = 2; gbc.gridy = 0; gbc.gridheight = 3;
-        gbc.anchor = GridBagConstraints.NORTHEAST;
-        gbc.insets = new Insets(0, 20, 0, 0);
-        card.add(editBtn, gbc);
+        // Allergy warning
+        String allergyText = selectedPatient.getAllergyHistory();
+        if (allergyText != null && !allergyText.trim().isEmpty()) {
+            JLabel allergyLabel = new JLabel("\u26A0 D\u1ECB \u1EE9ng: " + allergyText);
+            allergyLabel.setFont(UIConstants.FONT_BOLD);
+            allergyLabel.setForeground(UIConstants.ERROR_COLOR);
+            gbc = new GridBagConstraints();
+            gbc.gridx = 1; gbc.gridy = 3; gbc.weightx = 1; gbc.anchor = GridBagConstraints.WEST;
+            card.add(allergyLabel, gbc);
+        }
 
         return card;
     }
 
-    // Vital Signs
+    // Vital Signs - 6 fields
     private JPanel createVitalSignsSection() {
         JPanel section = new JPanel();
         section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
         section.setOpaque(false);
         section.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel title = new JLabel("Sinh hiệu");
+        JLabel title = new JLabel("Sinh hi\u1EC7u");
         title.setFont(UIConstants.FONT_SECTION);
         title.setForeground(UIConstants.TEXT_PRIMARY);
         title.setAlignmentX(Component.LEFT_ALIGNMENT);
         section.add(title);
         section.add(Box.createVerticalStrut(16));
 
-        JPanel grid = new JPanel(new GridLayout(1, 4, 16, 0));
+        MedicalRecord rec = null;
+        if (selectedRecordId > 0) {
+            try { rec = medicalRecordBUS.findById(selectedRecordId); } catch (Exception ignored) {}
+        }
+
+        JPanel grid = new JPanel(new GridLayout(2, 3, 16, 16));
         grid.setOpaque(false);
         grid.setAlignmentX(Component.LEFT_ALIGNMENT);
-        grid.setMaximumSize(new Dimension(Integer.MAX_VALUE, 140));
+        grid.setMaximumSize(new Dimension(Integer.MAX_VALUE, 290));
 
-        txtWeight = new JTextField("70");
-        txtHeight = new JTextField("175");
-        txtBloodPressure = new JTextField("120/80");
-        txtPulse = new JTextField("80");
+        txtWeight = new JTextField(rec != null && rec.getWeight() > 0 ? String.valueOf(rec.getWeight()) : "");
+        txtHeight = new JTextField(rec != null && rec.getHeight() > 0 ? String.valueOf(rec.getHeight()) : "");
+        txtBloodPressure = new JTextField(rec != null && rec.getBloodPressure() != null ? rec.getBloodPressure() : "");
+        txtPulse = new JTextField(rec != null && rec.getPulse() > 0 ? String.valueOf(rec.getPulse()) : "");
+        txtTemperature = new JTextField(rec != null && rec.getTemperature() > 0 ? String.valueOf(rec.getTemperature()) : "");
+        txtSpo2 = new JTextField(rec != null && rec.getSpo2() > 0 ? String.valueOf(rec.getSpo2()) : "");
 
-        grid.add(createVitalCard("CÂN NẶNG", txtWeight, "kg"));
-        grid.add(createVitalCard("CHIỀU CAO", txtHeight, "cm"));
-        grid.add(createVitalCard("HUYẾT ÁP", txtBloodPressure, "mmHg"));
-        grid.add(createVitalCard("MẠCH", txtPulse, "bpm"));
+        grid.add(createVitalCard("C\u00C2N N\u1EB6NG", txtWeight, "kg"));
+        grid.add(createVitalCard("CHI\u1EC0U CAO", txtHeight, "cm"));
+        grid.add(createVitalCard("HUY\u1EBET \u00C1P", txtBloodPressure, "mmHg"));
+        grid.add(createVitalCard("M\u1EA0CH", txtPulse, "bpm"));
+        grid.add(createVitalCard("NHI\u1EC6T \u0110\u1ED8", txtTemperature, "\u00B0C"));
+        grid.add(createVitalCard("SpO2", txtSpo2, "%"));
 
         section.add(grid);
         return section;
@@ -552,7 +634,6 @@ public class DoctorWorkstationPanel extends JPanel {
 
         JPanel valuePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
         valuePanel.setOpaque(false);
-
         field.setFont(UIConstants.FONT_NUMBER_BIG);
         field.setForeground(UIConstants.TEXT_PRIMARY);
         field.setBorder(null);
@@ -565,27 +646,85 @@ public class DoctorWorkstationPanel extends JPanel {
         unitLabel.setFont(UIConstants.FONT_BODY);
         unitLabel.setForeground(UIConstants.TEXT_MUTED);
         valuePanel.add(unitLabel);
-
         card.add(valuePanel, BorderLayout.CENTER);
 
         return card;
     }
 
-    // TAB 1 - Kham benh
+    // ==========================================================================
+    //  TAB 1 - Kham benh
+    // ==========================================================================
+
     private JPanel createExaminationContent() {
         JPanel content = new JPanel();
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
         content.setOpaque(false);
 
+        MedicalRecord rec = null;
+        if (selectedRecordId > 0) {
+            try { rec = medicalRecordBUS.findById(selectedRecordId); } catch (Exception ignored) {}
+        }
+
         // Symptoms
-        txtSymptoms = new JTextArea(5, 0);
-        content.add(createTextSection("Triệu chứng (Symptoms)", SYMPTOMS_PLACEHOLDER, txtSymptoms));
-        content.add(Box.createVerticalStrut(20));
+        txtSymptoms = new JTextArea(4, 0);
+        if (rec != null && rec.getSymptoms() != null && !rec.getSymptoms().isEmpty()) {
+            txtSymptoms.setText(rec.getSymptoms());
+            txtSymptoms.setForeground(UIConstants.TEXT_PRIMARY);
+        }
+        content.add(createTextSection("Tri\u1EC7u ch\u1EE9ng (Symptoms)", SYMPTOMS_PLACEHOLDER, txtSymptoms));
+        content.add(Box.createVerticalStrut(16));
 
         // Diagnosis
-        txtDiagnosis = new JTextArea(5, 0);
-        content.add(createTextSection("Chẩn đoán (Diagnosis)", DIAGNOSIS_PLACEHOLDER, txtDiagnosis));
-        return content;
+        txtDiagnosis = new JTextArea(4, 0);
+        if (rec != null && rec.getDiagnosis() != null && !rec.getDiagnosis().isEmpty()) {
+            txtDiagnosis.setText(rec.getDiagnosis());
+            txtDiagnosis.setForeground(UIConstants.TEXT_PRIMARY);
+        }
+        content.add(createTextSection("Ch\u1EA9n \u0111o\u00E1n (Diagnosis)", DIAGNOSIS_PLACEHOLDER, txtDiagnosis));
+        content.add(Box.createVerticalStrut(16));
+
+        // ICD-10 + Doctor Notes + Follow-up
+        JPanel fieldsRow = new JPanel(new GridLayout(1, 3, 16, 0));
+        fieldsRow.setOpaque(false);
+        fieldsRow.setAlignmentX(Component.LEFT_ALIGNMENT);
+        fieldsRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 80));
+
+        txtDiagnosisCode = new JTextField(rec != null && rec.getDiagnosisCode() != null ? rec.getDiagnosisCode() : "");
+        txtDoctorNotes = new JTextField(rec != null && rec.getNotes() != null ? rec.getNotes() : "");
+        txtFollowUpDate = new JTextField(rec != null && rec.getFollowUpDate() != null
+                ? rec.getFollowUpDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) : "");
+
+        fieldsRow.add(createLabeledField("M\u00E3 ICD-10", txtDiagnosisCode));
+        fieldsRow.add(createLabeledField("Ghi ch\u00FA b\u00E1c s\u0129", txtDoctorNotes));
+        fieldsRow.add(createLabeledField("Ng\u00E0y t\u00E1i kh\u00E1m (dd/MM/yyyy)", txtFollowUpDate));
+
+        content.add(fieldsRow);
+
+        JScrollPane scrollContent = new JScrollPane(content);
+        scrollContent.setBorder(null);
+        scrollContent.setOpaque(false);
+        scrollContent.getViewport().setOpaque(false);
+        scrollContent.getVerticalScrollBar().setUnitIncrement(16);
+
+        JPanel wrapper = new JPanel(new BorderLayout());
+        wrapper.setOpaque(false);
+        wrapper.add(scrollContent, BorderLayout.CENTER);
+        return wrapper;
+    }
+
+    private JPanel createLabeledField(String label, JTextField field) {
+        JPanel panel = new JPanel(new BorderLayout(0, 6));
+        panel.setOpaque(false);
+        JLabel lbl = new JLabel(label);
+        lbl.setFont(UIConstants.FONT_OVERLINE);
+        lbl.setForeground(UIConstants.TEXT_SECONDARY);
+        panel.add(lbl, BorderLayout.NORTH);
+        field.setFont(UIConstants.FONT_BODY);
+        field.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(UIConstants.BORDER_COLOR, 1, true),
+                new EmptyBorder(8, 10, 8, 10)));
+        panel.add(field, BorderLayout.CENTER);
+        return panel;
     }
 
     private JPanel createTextSection(String title, String placeholder, JTextArea area) {
@@ -599,7 +738,7 @@ public class DoctorWorkstationPanel extends JPanel {
         lbl.setForeground(UIConstants.TEXT_PRIMARY);
         lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
         section.add(lbl);
-        section.add(Box.createVerticalStrut(10));
+        section.add(Box.createVerticalStrut(8));
 
         area.setFont(UIConstants.FONT_LABEL);
         area.setLineWrap(true);
@@ -607,46 +746,252 @@ public class DoctorWorkstationPanel extends JPanel {
         area.setCaretColor(UIConstants.ACCENT_BLUE);
         area.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(UIConstants.BORDER_COLOR, 1, true),
-                new EmptyBorder(12, 14, 12, 14)));
-        area.setText(placeholder);
-        area.setForeground(UIConstants.TEXT_MUTED);
-        area.addFocusListener(new java.awt.event.FocusAdapter() {
-            @Override
-            public void focusGained(java.awt.event.FocusEvent e) {
-                if (area.getText().equals(placeholder)) {
-                    area.setText("");
-                    area.setForeground(UIConstants.TEXT_PRIMARY);
-                }
+                new EmptyBorder(10, 12, 10, 12)));
+        if (area.getText() == null || area.getText().isEmpty()) {
+            area.setText(placeholder);
+            area.setForeground(UIConstants.TEXT_MUTED);
+        }
+        area.addFocusListener(new FocusAdapter() {
+            @Override public void focusGained(FocusEvent e) {
+                if (area.getText().equals(placeholder)) { area.setText(""); area.setForeground(UIConstants.TEXT_PRIMARY); }
             }
-            @Override
-            public void focusLost(java.awt.event.FocusEvent e) {
-                if (area.getText().isEmpty()) {
-                    area.setText(placeholder);
-                    area.setForeground(UIConstants.TEXT_MUTED);
-                }
+            @Override public void focusLost(FocusEvent e) {
+                if (area.getText().isEmpty()) { area.setText(placeholder); area.setForeground(UIConstants.TEXT_MUTED); }
             }
         });
 
         JScrollPane scroll = new JScrollPane(area);
         scroll.setBorder(null);
         scroll.setAlignmentX(Component.LEFT_ALIGNMENT);
-        scroll.setMaximumSize(new Dimension(Integer.MAX_VALUE, 160));
+        scroll.setMaximumSize(new Dimension(Integer.MAX_VALUE, 130));
         section.add(scroll);
         return section;
     }
 
-    // PLACEHOLDER TAB
-    private JPanel createPlaceholderTab(String tabName) {
-        JPanel panel = new JPanel(new GridBagLayout());
-        panel.setOpaque(false);
-        JLabel lbl = new JLabel(tabName + " -- Dang phat trien");
-        lbl.setFont(UIConstants.FONT_SUBTITLE);
-        lbl.setForeground(UIConstants.TEXT_MUTED);
-        panel.add(lbl);
-        return panel;
+    // ==========================================================================
+    //  TAB 2 - Ke don thuoc
+    // ==========================================================================
+
+    private JPanel createPrescriptionContent() {
+        JPanel content = new JPanel(new BorderLayout(0, 12));
+        content.setOpaque(false);
+
+        // Search
+        JPanel searchPanel = new JPanel(new BorderLayout(10, 0));
+        searchPanel.setOpaque(false);
+        searchPanel.setBorder(new EmptyBorder(0, 0, 8, 0));
+        JLabel lblSearch = new JLabel("T\u00ECm thu\u1ED1c:");
+        lblSearch.setFont(UIConstants.FONT_BOLD);
+        lblSearch.setForeground(UIConstants.TEXT_PRIMARY);
+        searchPanel.add(lblSearch, BorderLayout.WEST);
+        txtMedicineSearch = new JTextField();
+        txtMedicineSearch.setFont(UIConstants.FONT_BODY);
+        txtMedicineSearch.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(UIConstants.BORDER_COLOR, 1, true),
+                new EmptyBorder(6, 10, 6, 10)));
+        txtMedicineSearch.addKeyListener(new KeyAdapter() {
+            @Override public void keyReleased(KeyEvent e) { searchMedicines(txtMedicineSearch.getText().trim()); }
+        });
+        searchPanel.add(txtMedicineSearch, BorderLayout.CENTER);
+        content.add(searchPanel, BorderLayout.NORTH);
+
+        // Split pane
+        JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT);
+        splitPane.setDividerLocation(200);
+        splitPane.setOpaque(false);
+        splitPane.setBorder(null);
+
+        // Search result table
+        String[] searchCols = {"ID", "T\u00EAn thu\u1ED1c", "\u0110\u01A1n v\u1ECB", "Gi\u00E1 b\u00E1n", "T\u1ED3n kho"};
+        modelMedicineSearch = new DefaultTableModel(searchCols, 0) {
+            @Override public boolean isCellEditable(int r, int c) { return false; }
+        };
+        tableMedicineSearch = new JTable(modelMedicineSearch);
+        tableMedicineSearch.setRowHeight(32);
+        tableMedicineSearch.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        tableMedicineSearch.getTableHeader().setFont(UIConstants.FONT_BOLD);
+        tableMedicineSearch.setFont(UIConstants.FONT_LABEL);
+        tableMedicineSearch.getColumnModel().getColumn(0).setMinWidth(0);
+        tableMedicineSearch.getColumnModel().getColumn(0).setMaxWidth(0);
+        tableMedicineSearch.getColumnModel().getColumn(0).setWidth(0);
+        tableMedicineSearch.addMouseListener(new MouseAdapter() {
+            @Override public void mouseClicked(MouseEvent e) {
+                if (e.getClickCount() == 2 && tableMedicineSearch.getSelectedRow() >= 0) addMedicineToPrescription();
+            }
+        });
+
+        JPanel searchResultPanel = new JPanel(new BorderLayout());
+        searchResultPanel.setBorder(BorderFactory.createTitledBorder("K\u1EBFt qu\u1EA3 t\u00ECm ki\u1EBFm (nh\u1EA5p \u0111\u00FAp \u0111\u1EC3 th\u00EAm)"));
+        searchResultPanel.add(new JScrollPane(tableMedicineSearch), BorderLayout.CENTER);
+        RoundedButton btnAdd = new RoundedButton("+ Th\u00EAm v\u00E0o \u0111\u01A1n", UIConstants.ACCENT_BLUE, UIConstants.ACCENT_BLUE_DARK, 6);
+        btnAdd.setPreferredSize(new Dimension(140, 30));
+        btnAdd.addActionListener(e -> addMedicineToPrescription());
+        JPanel addBtnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        addBtnPanel.setOpaque(false);
+        addBtnPanel.add(btnAdd);
+        searchResultPanel.add(addBtnPanel, BorderLayout.SOUTH);
+        splitPane.setTopComponent(searchResultPanel);
+
+        // Prescription table
+        String[] prescCols = {"T\u00EAn thu\u1ED1c", "\u0110\u01A1n v\u1ECB", "S\u1ED1 l\u01B0\u1EE3ng", "Li\u1EC1u d\u00F9ng", "H\u01B0\u1EDBng d\u1EABn", "\u0110\u01A1n gi\u00E1", "Th\u00E0nh ti\u1EC1n"};
+        modelPrescription = new DefaultTableModel(prescCols, 0) {
+            @Override public boolean isCellEditable(int r, int c) { return c == 2 || c == 3 || c == 4; }
+        };
+        tablePrescription = new JTable(modelPrescription);
+        tablePrescription.setRowHeight(32);
+        tablePrescription.getTableHeader().setFont(UIConstants.FONT_BOLD);
+        tablePrescription.setFont(UIConstants.FONT_LABEL);
+        modelPrescription.addTableModelListener(e -> {
+            if (e.getType() == javax.swing.event.TableModelEvent.UPDATE) {
+                int row = e.getFirstRow(); int col = e.getColumn();
+                if (row >= 0 && row < prescriptionItems.size()) {
+                    PrescriptionDetail item = prescriptionItems.get(row);
+                    try {
+                        if (col == 2) { item.setQuantity(Integer.parseInt(modelPrescription.getValueAt(row, 2).toString()));
+                            modelPrescription.setValueAt(moneyFmt.format(item.getLineTotal()) + " \u0111", row, 6); }
+                        else if (col == 3) item.setDosage(modelPrescription.getValueAt(row, 3).toString());
+                        else if (col == 4) item.setInstruction(modelPrescription.getValueAt(row, 4).toString());
+                    } catch (NumberFormatException ignored) {}
+                }
+            }
+        });
+
+        JPanel prescPanel = new JPanel(new BorderLayout());
+        prescPanel.setBorder(BorderFactory.createTitledBorder("\u0110\u01A1n thu\u1ED1c"));
+        prescPanel.add(new JScrollPane(tablePrescription), BorderLayout.CENTER);
+        RoundedButton btnRemove = new RoundedButton("X\u00F3a d\u00F2ng", UIConstants.ERROR_COLOR, UIConstants.PRIMARY_DARK, 6);
+        btnRemove.setPreferredSize(new Dimension(100, 30));
+        btnRemove.addActionListener(e -> removePrescriptionItem());
+        JPanel removeBtnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        removeBtnPanel.setOpaque(false);
+        removeBtnPanel.add(btnRemove);
+        prescPanel.add(removeBtnPanel, BorderLayout.SOUTH);
+        splitPane.setBottomComponent(prescPanel);
+        content.add(splitPane, BorderLayout.CENTER);
+
+        loadExistingPrescription();
+        searchMedicines("");
+        return content;
     }
 
-    // BOTTOM BAR
+    private void searchMedicines(String keyword) {
+        modelMedicineSearch.setRowCount(0);
+        List<Medicine> medicines = (keyword == null || keyword.isEmpty()) ? medicineBUS.findAll() : medicineBUS.findByName(keyword);
+        for (Medicine m : medicines) {
+            modelMedicineSearch.addRow(new Object[]{ m.getId(), m.getMedicineName(), m.getUnit(), moneyFmt.format(m.getSellPrice()) + " \u0111", m.getStockQty() });
+        }
+    }
+
+    private void addMedicineToPrescription() {
+        int row = tableMedicineSearch.getSelectedRow();
+        if (row < 0) { JOptionPane.showMessageDialog(this, "Vui l\u00F2ng ch\u1ECDn thu\u1ED1c.", "Th\u00F4ng b\u00E1o", JOptionPane.WARNING_MESSAGE); return; }
+
+        int medicineId = (int) modelMedicineSearch.getValueAt(row, 0);
+        String medicineName = modelMedicineSearch.getValueAt(row, 1).toString();
+        String unit = modelMedicineSearch.getValueAt(row, 2).toString();
+
+        for (PrescriptionDetail d : prescriptionItems) {
+            if (d.getMedicineId() == medicineId) { JOptionPane.showMessageDialog(this, "Thu\u1ED1c n\u00E0y \u0111\u00E3 c\u00F3 trong \u0111\u01A1n.", "Th\u00F4ng b\u00E1o", JOptionPane.WARNING_MESSAGE); return; }
+        }
+
+        Medicine med = medicineBUS.findAll().stream().filter(m -> m.getId() == medicineId).findFirst().orElse(null);
+        double unitPrice = med != null ? med.getSellPrice() : 0;
+
+        // Check allergy
+        if (selectedPatient != null) {
+            List<String> allergyWarnings = prescriptionBUS.checkAllergies(selectedPatient.getId(), List.of(medicineId));
+            if (!allergyWarnings.isEmpty()) {
+                int choice = JOptionPane.showConfirmDialog(this,
+                        String.join("\n", allergyWarnings) + "\n\nB\u1EA1n c\u00F3 mu\u1ED1n ti\u1EBFp t\u1EE5c th\u00EAm thu\u1ED1c?",
+                        "C\u1EA2NH B\u00C1O D\u1ECAM \u1EAENG", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+                if (choice != JOptionPane.YES_OPTION) return;
+            }
+        }
+
+        String qtyStr = JOptionPane.showInputDialog(this, "S\u1ED1 l\u01B0\u1EE3ng cho '" + medicineName + "':", "1");
+        if (qtyStr == null || qtyStr.trim().isEmpty()) return;
+        int qty;
+        try { qty = Integer.parseInt(qtyStr.trim()); if (qty <= 0) throw new NumberFormatException(); }
+        catch (NumberFormatException e) { JOptionPane.showMessageDialog(this, "S\u1ED1 l\u01B0\u1EE3ng kh\u00F4ng h\u1EE3p l\u1EC7.", "L\u1ED7i", JOptionPane.ERROR_MESSAGE); return; }
+
+        PrescriptionDetail detail = new PrescriptionDetail(medicineId, qty, "2 vi\u00EAn x 3 l\u1EA7n/ng\u00E0y", "U\u1ED1ng sau \u0103n", unitPrice);
+        detail.setMedicineName(medicineName);
+        prescriptionItems.add(detail);
+        modelPrescription.addRow(new Object[]{ medicineName, unit, qty, detail.getDosage(), detail.getInstruction(),
+                moneyFmt.format(unitPrice) + " \u0111", moneyFmt.format(detail.getLineTotal()) + " \u0111" });
+    }
+
+    private void removePrescriptionItem() {
+        int row = tablePrescription.getSelectedRow();
+        if (row < 0) return;
+        prescriptionItems.remove(row);
+        modelPrescription.removeRow(row);
+    }
+
+    private void loadExistingPrescription() {
+        if (selectedRecordId <= 0) return;
+        try {
+            var prescriptions = prescriptionBUS.getByMedicalRecordId(selectedRecordId);
+            for (var p : prescriptions) {
+                var details = prescriptionBUS.getDetails(p.getId());
+                for (var d : details) {
+                    prescriptionItems.add(d);
+                    modelPrescription.addRow(new Object[]{
+                            d.getMedicineName() != null ? d.getMedicineName() : "Thu\u1ED1c #" + d.getMedicineId(),
+                            "", d.getQuantity(), d.getDosage(), d.getInstruction(),
+                            moneyFmt.format(d.getUnitPrice()) + " \u0111", moneyFmt.format(d.getLineTotal()) + " \u0111" });
+                }
+            }
+        } catch (Exception ignored) {}
+    }
+
+    // ==========================================================================
+    //  TAB 3 - Lich su kham
+    // ==========================================================================
+
+    private JPanel createHistoryContent() {
+        JPanel content = new JPanel(new BorderLayout(0, 12));
+        content.setOpaque(false);
+
+        JLabel title = new JLabel("L\u1ECBch s\u1EED kh\u00E1m b\u1EC7nh \u2014 " + selectedPatient.getFullName());
+        title.setFont(UIConstants.FONT_SECTION);
+        title.setForeground(UIConstants.TEXT_PRIMARY);
+        content.add(title, BorderLayout.NORTH);
+
+        String[] cols = {"Ng\u00E0y kh\u00E1m", "Tri\u1EC7u ch\u1EE9ng", "Ch\u1EA9n \u0111o\u00E1n", "M\u00E3 ICD-10", "Tr\u1EA1ng th\u00E1i"};
+        DefaultTableModel historyModel = new DefaultTableModel(cols, 0) {
+            @Override public boolean isCellEditable(int r, int c) { return false; }
+        };
+        JTable historyTable = new JTable(historyModel);
+        historyTable.setRowHeight(36);
+        historyTable.getTableHeader().setFont(UIConstants.FONT_BOLD);
+        historyTable.setFont(UIConstants.FONT_LABEL);
+
+        try {
+            List<MedicalRecord> records = medicalRecordBUS.getHistoryByPatient(selectedPatient.getId());
+            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+            for (MedicalRecord r : records) {
+                historyModel.addRow(new Object[]{
+                        r.getVisitDate() != null ? r.getVisitDate().format(dtf) : "N/A",
+                        r.getSymptoms() != null ? (r.getSymptoms().length() > 60 ? r.getSymptoms().substring(0, 60) + "..." : r.getSymptoms()) : "",
+                        r.getDiagnosis() != null ? r.getDiagnosis() : "",
+                        r.getDiagnosisCode() != null ? r.getDiagnosisCode() : "",
+                        r.getStatus() != null ? r.getStatus() : "" });
+            }
+        } catch (Exception e) {
+            historyModel.addRow(new Object[]{"L\u1ED7i t\u1EA3i d\u1EEF li\u1EC7u", e.getMessage(), "", "", ""});
+        }
+
+        JScrollPane scroll = new JScrollPane(historyTable);
+        scroll.setBorder(BorderFactory.createLineBorder(UIConstants.BORDER_COLOR));
+        content.add(scroll, BorderLayout.CENTER);
+        return content;
+    }
+
+    // ==========================================================================
+    //  BOTTOM BAR
+    // ==========================================================================
+
     private JPanel createBottomBar() {
         JPanel bar = new JPanel(new BorderLayout());
         bar.setBackground(UIConstants.CARD_BG);
@@ -654,115 +999,133 @@ public class DoctorWorkstationPanel extends JPanel {
                 BorderFactory.createMatteBorder(1, 0, 0, 0, UIConstants.BORDER_COLOR),
                 new EmptyBorder(14, 24, 14, 24)));
 
-        JLabel status = new JLabel("Trạng thái: Đang chỉnh sửa...");
+        JLabel status = new JLabel("Tr\u1EA1ng th\u00E1i: \u0110ang kh\u00E1m...");
         status.setFont(UIConstants.FONT_ITALIC);
-        status.setForeground(UIConstants.STATUS_WAITING);
+        status.setForeground(UIConstants.STATUS_EXAMINING);
         bar.add(status, BorderLayout.WEST);
 
         JPanel btns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
         btns.setOpaque(false);
 
-        RoundedButton btnSave = new RoundedButton("Lưu & Hoàn tất", UIConstants.SUCCESS_GREEN, UIConstants.SUCCESS_GREEN_DARK, 8);
+        RoundedButton btnSaveVitals = new RoundedButton("L\u01B0u sinh hi\u1EC7u", UIConstants.ACCENT_BLUE, UIConstants.ACCENT_BLUE_DARK, 8);
+        btnSaveVitals.setPreferredSize(new Dimension(140, 40));
+        btnSaveVitals.addActionListener(e -> onSaveVitals());
+
+        RoundedButton btnSave = new RoundedButton("Ho\u00E0n t\u1EA5t kh\u00E1m", UIConstants.SUCCESS_GREEN, UIConstants.SUCCESS_GREEN_DARK, 8);
         btnSave.setPreferredSize(new Dimension(160, 40));
         btnSave.addActionListener(e -> onSaveAndComplete());
 
-        RoundedButton btnTransfer = new RoundedButton("Chuyển thanh toán", UIConstants.ACCENT_BLUE, UIConstants.ACCENT_BLUE_DARK, 8);
-        btnTransfer.setPreferredSize(new Dimension(180, 40));
-        btnTransfer.addActionListener(e -> onTransferPayment());
-
+        btns.add(btnSaveVitals);
         btns.add(btnSave);
-        btns.add(btnTransfer);
         bar.add(btns, BorderLayout.EAST);
-
         return bar;
     }
 
-    // ACTIONS
-    private void onSaveAndComplete() {
+    // ==========================================================================
+    //  ACTIONS
+    // ==========================================================================
+
+    private void onSaveVitals() {
         if (selectedPatient == null || selectedRecordId <= 0) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn bệnh nhân.", "Thông báo", JOptionPane.WARNING_MESSAGE);
-            return;
+            JOptionPane.showMessageDialog(this, "Vui l\u00F2ng ch\u1ECDn b\u1EC7nh nh\u00E2n.", "Th\u00F4ng b\u00E1o", JOptionPane.WARNING_MESSAGE); return;
         }
         try {
-            // Luu sinh hieu (vital signs)
-            double weight = Double.parseDouble(txtWeight.getText().trim());
-            double height = Double.parseDouble(txtHeight.getText().trim());
+            double weight = parseDouble(txtWeight, "C\u00E2n n\u1EB7ng");
+            double height = parseDouble(txtHeight, "Chi\u1EC1u cao");
             String bp = txtBloodPressure.getText().trim();
-            int pulse = Integer.parseInt(txtPulse.getText().trim());
-
-            medicalRecordBUS.updateVitalSigns(selectedRecordId, weight, height, bp, pulse);
-
-            // Luu trieu chung + chan doan (neu da nhap)
-            String symptoms = getTextAreaValue(txtSymptoms, SYMPTOMS_PLACEHOLDER);
-            String diagnosis = getTextAreaValue(txtDiagnosis, DIAGNOSIS_PLACEHOLDER);
-
-            if (symptoms != null && diagnosis != null) {
-                medicalRecordBUS.updateDiagnosisAndSymptoms(selectedRecordId, diagnosis, symptoms);
-            } else if (symptoms != null) {
-                medicalRecordBUS.updateSymptoms(selectedRecordId, symptoms);
-            } else if (diagnosis != null) {
-                medicalRecordBUS.updateDiagnosis(selectedRecordId, diagnosis);
-            }
-
-            // Chuyen trang thai hang doi
-            queueBUS.updateQueueStatus(selectedRecordId, "COMPLETED");
-
-            JOptionPane.showMessageDialog(this,
-                    "Đã lưu và hoàn tất khám cho bệnh nhân: " + selectedPatient.getFullName(),
-                    "Thành công", JOptionPane.INFORMATION_MESSAGE);
-            refreshAfterAction();
+            int pulse = parseInt(txtPulse, "M\u1EA1ch");
+            double temp = parseDoubleOrZero(txtTemperature);
+            int spo2Val = parseIntOrZero(txtSpo2);
+            medicalRecordBUS.updateVitalSigns(selectedRecordId, weight, height, bp, pulse, temp, spo2Val);
+            JOptionPane.showMessageDialog(this, "\u0110\u00E3 l\u01B0u sinh hi\u1EC7u cho: " + selectedPatient.getFullName(), "Th\u00E0nh c\u00F4ng", JOptionPane.INFORMATION_MESSAGE);
         } catch (BusinessException e) {
-            JOptionPane.showMessageDialog(this, e.getMessage(), "Lỗi nghiệp vụ", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, e.getMessage(), "L\u1ED7i nghi\u1EC7p v\u1EE5", JOptionPane.ERROR_MESSAGE);
         } catch (DataAccessException e) {
-            JOptionPane.showMessageDialog(this, "Lỗi hệ thống: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "L\u1ED7i h\u1EC7 th\u1ED1ng: " + e.getMessage(), "L\u1ED7i", JOptionPane.ERROR_MESSAGE);
         } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "Sinh hiệu phải là số hợp lệ.", "Lỗi", JOptionPane.ERROR_MESSAGE);
-        }
-    }
-
-    private void onTransferPayment() {
-        if (selectedPatient == null || selectedRecordId <= 0) {
-            JOptionPane.showMessageDialog(this, "Vui lòng chọn bệnh nhân.", "Thông báo", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-        try {
-            // Luu sinh hieu truoc khi chuyen
-            double weight = Double.parseDouble(txtWeight.getText().trim());
-            double height = Double.parseDouble(txtHeight.getText().trim());
-            String bp = txtBloodPressure.getText().trim();
-            int pulse = Integer.parseInt(txtPulse.getText().trim());
-
-            medicalRecordBUS.updateVitalSigns(selectedRecordId, weight, height, bp, pulse);
-
-            // Luu trieu chung + chan doan (neu da nhap)
-            String symptoms = getTextAreaValue(txtSymptoms, SYMPTOMS_PLACEHOLDER);
-            String diagnosis = getTextAreaValue(txtDiagnosis, DIAGNOSIS_PLACEHOLDER);
-
-            if (symptoms != null && diagnosis != null) {
-                medicalRecordBUS.updateDiagnosisAndSymptoms(selectedRecordId, diagnosis, symptoms);
-            } else if (symptoms != null) {
-                medicalRecordBUS.updateSymptoms(selectedRecordId, symptoms);
-            } else if (diagnosis != null) {
-                medicalRecordBUS.updateDiagnosis(selectedRecordId, diagnosis);
-            }
-
-            queueBUS.updateQueueStatus(selectedRecordId, "TRANSFERRED");
-            JOptionPane.showMessageDialog(this,
-                    "Đã chuyển bệnh nhân " + selectedPatient.getFullName() + " sang thanh toán.",
-                    "Chuyển thanh toán", JOptionPane.INFORMATION_MESSAGE);
-            refreshAfterAction();
-        } catch (BusinessException e) {
-            JOptionPane.showMessageDialog(this, e.getMessage(), "Lỗi nghiệp vụ", JOptionPane.ERROR_MESSAGE);
-        } catch (DataAccessException e) {
-            JOptionPane.showMessageDialog(this, "Lỗi hệ thống: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
-        } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "Sinh hiệu phải là số hợp lệ.", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, "Sinh hi\u1EC7u ph\u1EA3i l\u00E0 s\u1ED1 h\u1EE3p l\u1EC7.", "L\u1ED7i", JOptionPane.ERROR_MESSAGE);
         }
     }
 
     /**
-     * Lay gia tri tu JTextArea, tra ve null neu van la placeholder.
+     * Hoan tat kham:
+     * 1. Luu sinh hieu
+     * 2. Luu trieu chung + chan doan + ICD-10 + ghi chu + ngay tai kham
+     * 3. Tao don thuoc neu co
+     * 4. Chuyen trang thai -> PRESCRIBED (neu co don thuoc) hoac COMPLETED (neu khong)
      */
+    private void onSaveAndComplete() {
+        if (selectedPatient == null || selectedRecordId <= 0) {
+            JOptionPane.showMessageDialog(this, "Vui l\u00F2ng ch\u1ECDn b\u1EC7nh nh\u00E2n.", "Th\u00F4ng b\u00E1o", JOptionPane.WARNING_MESSAGE); return;
+        }
+        try {
+            // 1. Save vitals
+            double weight = parseDouble(txtWeight, "C\u00E2n n\u1EB7ng");
+            double height = parseDouble(txtHeight, "Chi\u1EC1u cao");
+            String bp = txtBloodPressure.getText().trim();
+            int pulse = parseInt(txtPulse, "M\u1EA1ch");
+            double temp = parseDoubleOrZero(txtTemperature);
+            int spo2Val = parseIntOrZero(txtSpo2);
+            medicalRecordBUS.updateVitalSigns(selectedRecordId, weight, height, bp, pulse, temp, spo2Val);
+
+            // 2. Save examination
+            String symptoms = getTextAreaValue(txtSymptoms, SYMPTOMS_PLACEHOLDER);
+            String diagnosis = getTextAreaValue(txtDiagnosis, DIAGNOSIS_PLACEHOLDER);
+            String diagnosisCode = txtDiagnosisCode != null ? txtDiagnosisCode.getText().trim() : "";
+            String doctorNotes = txtDoctorNotes != null ? txtDoctorNotes.getText().trim() : "";
+            String followUpStr = txtFollowUpDate != null ? txtFollowUpDate.getText().trim() : "";
+
+            LocalDate followUpDate = null;
+            if (!followUpStr.isEmpty()) {
+                try { followUpDate = LocalDate.parse(followUpStr, DateTimeFormatter.ofPattern("dd/MM/yyyy")); }
+                catch (Exception ex) {
+                    JOptionPane.showMessageDialog(this, "Ng\u00E0y t\u00E1i kh\u00E1m kh\u00F4ng h\u1EE3p l\u1EC7. S\u1EED d\u1EE5ng dd/MM/yyyy", "L\u1ED7i", JOptionPane.ERROR_MESSAGE); return;
+                }
+            }
+
+            if (symptoms != null || diagnosis != null) {
+                medicalRecordBUS.updateFullExamination(selectedRecordId,
+                        diagnosis != null ? diagnosis : "", symptoms != null ? symptoms : "",
+                        diagnosisCode.isEmpty() ? null : diagnosisCode, doctorNotes.isEmpty() ? null : doctorNotes, followUpDate);
+            }
+
+            // 3. Create prescription if items exist
+            boolean hasPrescription = !prescriptionItems.isEmpty();
+            if (hasPrescription) {
+                List<Integer> medIds = prescriptionItems.stream().map(PrescriptionDetail::getMedicineId).toList();
+                List<String> allergyWarnings = prescriptionBUS.checkAllergies(selectedPatient.getId(), medIds);
+                if (!allergyWarnings.isEmpty()) {
+                    int choice = JOptionPane.showConfirmDialog(this,
+                            "C\u1EA2NH B\u00C1O D\u1ECAM \u1EAENG:\n" + String.join("\n", allergyWarnings) + "\n\nTi\u1EBFp t\u1EE5c l\u01B0u \u0111\u01A1n thu\u1ED1c?",
+                            "C\u1EA2NH B\u00C1O D\u1ECAM \u1EAENG", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+                    if (choice != JOptionPane.YES_OPTION) return;
+                }
+                prescriptionBUS.createPrescription(selectedRecordId, prescriptionItems);
+            }
+
+            // 4. Status: PRESCRIBED if has prescription, else COMPLETED
+            String newStatus = hasPrescription ? MedicalRecord.STATUS_PRESCRIBED : MedicalRecord.STATUS_COMPLETED;
+            queueBUS.updateQueueStatus(selectedRecordId, newStatus);
+
+            String msg = hasPrescription
+                    ? "\u0110\u00E3 ho\u00E0n t\u1EA5t kh\u00E1m v\u00E0 k\u00EA \u0111\u01A1n cho: " + selectedPatient.getFullName() + "\nTr\u1EA1ng th\u00E1i: CH\u1ECC PH\u00C1T THU\u1ED0C"
+                    : "\u0110\u00E3 ho\u00E0n t\u1EA5t kh\u00E1m cho: " + selectedPatient.getFullName();
+            JOptionPane.showMessageDialog(this, msg, "Th\u00E0nh c\u00F4ng", JOptionPane.INFORMATION_MESSAGE);
+            refreshAfterAction();
+
+        } catch (BusinessException e) {
+            JOptionPane.showMessageDialog(this, e.getMessage(), "L\u1ED7i nghi\u1EC7p v\u1EE5", JOptionPane.ERROR_MESSAGE);
+        } catch (DataAccessException e) {
+            JOptionPane.showMessageDialog(this, "L\u1ED7i h\u1EC7 th\u1ED1ng: " + e.getMessage(), "L\u1ED7i", JOptionPane.ERROR_MESSAGE);
+        } catch (NumberFormatException e) {
+            JOptionPane.showMessageDialog(this, "Sinh hi\u1EC7u ph\u1EA3i l\u00E0 s\u1ED1 h\u1EE3p l\u1EC7.", "L\u1ED7i", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    // ==========================================================================
+    //  HELPERS
+    // ==========================================================================
+
     private String getTextAreaValue(JTextArea area, String placeholder) {
         if (area == null) return null;
         String text = area.getText().trim();
@@ -770,10 +1133,37 @@ public class DoctorWorkstationPanel extends JPanel {
         return text;
     }
 
+    private double parseDouble(JTextField field, String name) {
+        String text = field.getText().trim();
+        if (text.isEmpty()) throw new NumberFormatException(name + " empty");
+        return Double.parseDouble(text);
+    }
+
+    private int parseInt(JTextField field, String name) {
+        String text = field.getText().trim();
+        if (text.isEmpty()) throw new NumberFormatException(name + " empty");
+        return Integer.parseInt(text);
+    }
+
+    private double parseDoubleOrZero(JTextField field) {
+        if (field == null) return 0;
+        String text = field.getText().trim();
+        if (text.isEmpty()) return 0;
+        try { return Double.parseDouble(text); } catch (NumberFormatException e) { return 0; }
+    }
+
+    private int parseIntOrZero(JTextField field) {
+        if (field == null) return 0;
+        String text = field.getText().trim();
+        if (text.isEmpty()) return 0;
+        try { return Integer.parseInt(text); } catch (NumberFormatException e) { return 0; }
+    }
+
     private void refreshAfterAction() {
         selectedIndex = -1;
         selectedPatient = null;
         selectedRecordId = -1;
+        prescriptionItems.clear();
         List<Patient> waiting = queueBUS.getWaitingPatients();
         if (!waiting.isEmpty()) {
             selectedIndex = 0;

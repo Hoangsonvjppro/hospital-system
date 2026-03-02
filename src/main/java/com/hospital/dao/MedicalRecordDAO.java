@@ -264,6 +264,10 @@ public class MedicalRecordDAO {
         r.setHeight(rs.getDouble("height"));
         r.setBloodPressure(rs.getString("blood_pressure"));
         r.setPulse(rs.getInt("heart_rate"));
+        try { r.setTemperature(rs.getDouble("temperature")); } catch (SQLException ignored) {}
+        try { r.setSpo2(rs.getInt("spo2")); } catch (SQLException ignored) {}
+        try { r.setDiagnosisCode(rs.getString("diagnosis_code")); } catch (SQLException ignored) {}
+        try { r.setNotes(rs.getString("notes")); } catch (SQLException ignored) {}
         r.setStatus(rs.getString("queue_status"));
         try { r.setPriority(rs.getString("priority")); } catch (SQLException ignored) {}
         try { r.setQueueNumber(rs.getObject("queue_number") == null ? null : rs.getInt("queue_number")); } catch (SQLException ignored) {}
@@ -383,7 +387,8 @@ public class MedicalRecordDAO {
 
     // ── Cập nhật sinh hiệu (vital signs) ───────────────────────────────────
     public boolean updateVitalSigns(long recordId, double weight, double height,
-                                     String bloodPressure, int pulse) {
+                                     String bloodPressure, int pulse,
+                                     double temperature, int spo2) {
 
         String sql = """
             UPDATE MedicalRecord
@@ -391,6 +396,8 @@ public class MedicalRecordDAO {
                    height         = ?,
                    blood_pressure = ?,
                    heart_rate     = ?,
+                   temperature    = ?,
+                   spo2           = ?,
                    updated_at     = NOW()
              WHERE record_id      = ?
         """;
@@ -403,12 +410,62 @@ public class MedicalRecordDAO {
                 ps.setDouble(2, height);
                 ps.setString(3, bloodPressure);
                 ps.setInt(4, pulse);
-                ps.setLong(5, recordId);
+                ps.setDouble(5, temperature);
+                ps.setInt(6, spo2);
+                ps.setLong(7, recordId);
                 return ps.executeUpdate() > 0;
             }
         } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "L\u1ed7i c\u1eadp nh\u1eadt sinh hi\u1ec7u recordId=" + recordId, e);
-            throw new DataAccessException("Kh\u00f4ng th\u1ec3 c\u1eadp nh\u1eadt sinh hi\u1ec7u", e);
+            LOGGER.log(Level.SEVERE, "Lỗi cập nhật sinh hiệu recordId=" + recordId, e);
+            throw new DataAccessException("Không thể cập nhật sinh hiệu", e);
+        } finally {
+            closeIfOwned(conn);
+        }
+    }
+
+    /**
+     * Backward-compatible overload (without temperature/spo2).
+     */
+    public boolean updateVitalSigns(long recordId, double weight, double height,
+                                     String bloodPressure, int pulse) {
+        return updateVitalSigns(recordId, weight, height, bloodPressure, pulse, 0, 0);
+    }
+
+    /**
+     * Cập nhật chẩn đoán, triệu chứng, mã ICD-10, ghi chú bác sĩ, và ngày tái khám.
+     */
+    public boolean updateFullExamination(long recordId, String diagnosis, String symptoms,
+                                          String diagnosisCode, String notes,
+                                          java.sql.Date followUpDate) {
+        String sql = """
+            UPDATE MedicalRecord
+               SET diagnosis      = ?,
+                   symptoms       = ?,
+                   diagnosis_code = ?,
+                   notes          = ?,
+                   follow_up_date = ?,
+                   updated_at     = NOW()
+             WHERE record_id      = ?
+        """;
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, diagnosis);
+                ps.setString(2, symptoms);
+                ps.setString(3, diagnosisCode);
+                ps.setString(4, notes);
+                if (followUpDate != null) {
+                    ps.setDate(5, followUpDate);
+                } else {
+                    ps.setNull(5, Types.DATE);
+                }
+                ps.setLong(6, recordId);
+                return ps.executeUpdate() > 0;
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi cập nhật khám bệnh recordId=" + recordId, e);
+            throw new DataAccessException("Không thể cập nhật khám bệnh", e);
         } finally {
             closeIfOwned(conn);
         }

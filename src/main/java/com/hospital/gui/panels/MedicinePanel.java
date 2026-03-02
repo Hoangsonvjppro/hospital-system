@@ -10,7 +10,9 @@ import com.hospital.exception.BusinessException;
 import com.hospital.exception.DataAccessException;
 import com.hospital.gui.UIConstants;
 import com.hospital.model.Invoice;
+import com.hospital.model.MedicalRecord;
 import com.hospital.model.Medicine;
+import com.hospital.model.Prescription;
 import com.hospital.model.PrescriptionDetail;
 import com.hospital.util.AppUtils;
 import com.formdev.flatlaf.FlatClientProperties;
@@ -426,49 +428,91 @@ public class MedicinePanel extends JPanel {
             int row=tablePendingRecords.getSelectedRow();
             if(row==-1) return;
             long recordId=Long.parseLong(tablePendingRecords.getValueAt(row,0).toString());
-            // TODO: Lấy danh sách PrescriptionDetail thực tế từ CSDL
-            // List<PrescriptionDetail> details = prescriptionDAO.findByRecordId(recordId);
             try {
-                //String msg = medicineExportBUS.processPrescriptionExport(details, currentUserId, true);
+                // 1. Lấy đơn thuốc + chi tiết từ DB
+                List<Prescription> prescriptions = prescriptionBUS.getByMedicalRecordId(recordId);
+                List<PrescriptionDetail> allDetails = new ArrayList<>();
+                for (Prescription p : prescriptions) {
+                    if ("CONFIRMED".equals(p.getStatus())) {
+                        allDetails.addAll(prescriptionBUS.getDetails(p.getId()));
+                    }
+                }
+                if (allDetails.isEmpty()) {
+                    JOptionPane.showMessageDialog(this, "Không có chi tiết đơn thuốc nào để phát.", "Thông báo", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
 
-                // 2.Chuyển trạng thái hoàn tất
+                // 2. Xuất kho thuốc
+                String msg = medicineExportBUS.processPrescriptionExport(allDetails, 1, true);
+                System.out.println(msg);
+
+                // 3. Cập nhật trạng thái đơn thuốc → DISPENSED
+                for (Prescription p : prescriptions) {
+                    if ("CONFIRMED".equals(p.getStatus())) {
+                        prescriptionBUS.updateStatus(p.getId(), Prescription.STATUS_DISPENSED);
+                    }
+                }
+
+                // 4. Chuyển trạng thái bệnh án → COMPLETED
                 recordDAO.updateStatus(recordId, "COMPLETED");
 
-                // 3.Tạo dữ liệu hóa đơn
-                createInvoiceForRecord(recordId);
-                JOptionPane.showMessageDialog(null, "Đã phát thuốc thành công!\nHóa đơn đã được chuyển sang bộ phận Kế toán.", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+                // 5. Tạo hóa đơn
+                Invoice invoice = invoiceBUS.createInvoiceFromMedicalRecord(recordId);
+                String invoiceMsg = invoice != null ? "\nMã hóa đơn: " + invoice.getId() : "";
+                JOptionPane.showMessageDialog(null, "Đã phát thuốc thành công!" + invoiceMsg + "\nHóa đơn đã được chuyển sang bộ phận Kế toán.", "Thành công", JOptionPane.INFORMATION_MESSAGE);
 
                 loadMedicineData(); // Update tồn kho ở Tab 1
                 loadPendingPrescriptions(); // Cập nhật lại list ở Tab 2
                 modelPrescriptionDetails.setRowCount(0);
                 btnPhatThuoc.setEnabled(false);
+            } catch (BusinessException ex) {
+                JOptionPane.showMessageDialog(this, ex.getMessage(), "Lỗi nghiệp vụ", JOptionPane.ERROR_MESSAGE);
             } catch (Exception ex) {
                 JOptionPane.showMessageDialog(this, "Lỗi khi phát thuốc: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
         });
         }
 
-    private void createInvoiceForRecord(long recordId) {
-        Invoice invoice=new Invoice();
-        //TODO: hoàn thiện sau
-        double totalFee=0;
-        for(int i=0;i<tablePrescriptionDetails.getRowCount();i++){
-            totalFee+=Double.parseDouble(tablePrescriptionDetails.getValueAt(i,4).toString());
-        }
-        //invoice.setRecordId(recordId);
-        invoice.setMedicineFee(totalFee);
-        invoice.setStatus("Chờ thanh toán");
-        invoiceBUS.insert(invoice);
-
-    }
     private void loadPendingPrescriptions(){
-        modelPrescriptionDetails.setRowCount(0);
-        //TODO: Query MedicalRecordDAO tìm các bệnh án có status = 'PRESCRIBED'
+        modelPendingRecords.setRowCount(0);
+        try {
+            List<Prescription> pending = prescriptionBUS.getPendingPrescriptions();
+            for (Prescription p : pending) {
+                long recordId = p.getMedicalRecordId();
+                MedicalRecord rec = medicalRecordBUS.findById(recordId);
+                String patientName = "BN #" + (rec != null ? rec.getPatientId() : "?");
+                String doctorName = "BS #" + (rec != null ? rec.getDoctorId() : "?");
+                String visitDate = "";
+                if (rec != null && rec.getVisitDate() != null) {
+                    visitDate = rec.getVisitDate().format(dateFormatter);
+                }
+                modelPendingRecords.addRow(new Object[]{
+                    String.valueOf(recordId), patientName, doctorName, visitDate
+                });
+            }
+        } catch (Exception e) {
+            System.err.println("Lỗi tải danh sách chờ phát thuốc: " + e.getMessage());
+        }
     }
 
     private void loadPrescriptionDetails(long recordId) {
         modelPrescriptionDetails.setRowCount(0);
-        //TODO: Lấy chi tiết đơn thuốc theo recordId
+        try {
+            List<Prescription> prescriptions = prescriptionBUS.getByMedicalRecordId(recordId);
+            for (Prescription p : prescriptions) {
+                List<PrescriptionDetail> details = prescriptionBUS.getDetails(p.getId());
+                for (PrescriptionDetail d : details) {
+                    String medName = d.getMedicineName() != null ? d.getMedicineName() : "Thuốc #" + d.getMedicineId();
+                    double lineTotal = d.getLineTotal();
+                    modelPrescriptionDetails.addRow(new Object[]{
+                        medName, "", d.getQuantity(), formatter.format(d.getUnitPrice()), formatter.format(lineTotal),
+                        d.getInstruction() != null ? d.getInstruction() : d.getDosage()
+                    });
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Lỗi tải chi tiết đơn thuốc: " + e.getMessage());
+        }
     }
 
     private void loadMedicineData() {

@@ -32,8 +32,8 @@ public class PrescriptionDAO {
 
     public long insertPrescription(Prescription p) {
         String sql = """
-            INSERT INTO Prescription (medical_record_id, created_at, status)
-            VALUES (?, NOW(), ?)
+            INSERT INTO Prescription (record_id, created_at, status, total_amount)
+            VALUES (?, NOW(), ?, ?)
         """;
         Connection conn = null;
         try {
@@ -41,6 +41,7 @@ public class PrescriptionDAO {
             try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
                 ps.setLong(1, p.getMedicalRecordId());
                 ps.setString(2, p.getStatus());
+                ps.setDouble(3, p.getTotalAmount());
                 ps.executeUpdate();
                 try (ResultSet rs = ps.getGeneratedKeys()) {
                     if (rs.next()) {
@@ -59,8 +60,8 @@ public class PrescriptionDAO {
     public boolean insertDetail(PrescriptionDetail d) {
         String sql = """
             INSERT INTO PrescriptionDetail
-            (prescription_id, medicine_id, quantity, dosage)
-            VALUES (?, ?, ?, ?)
+            (prescription_id, medicine_id, quantity, dosage, instruction, unit_price)
+            VALUES (?, ?, ?, ?, ?, ?)
         """;
         Connection conn = null;
         try {
@@ -70,6 +71,8 @@ public class PrescriptionDAO {
                 ps.setInt(2, d.getMedicineId());
                 ps.setInt(3, d.getQuantity());
                 ps.setString(4, d.getDosage());
+                ps.setString(5, d.getInstruction());
+                ps.setDouble(6, d.getUnitPrice());
                 return ps.executeUpdate() > 0;
             }
         } catch (SQLException e) {
@@ -84,7 +87,12 @@ public class PrescriptionDAO {
      */
     public List<PrescriptionDetail> findDetailsByPrescriptionId(long prescriptionId) {
         List<PrescriptionDetail> result = new ArrayList<>();
-        String sql = "SELECT * FROM PrescriptionDetail WHERE prescription_id = ?";
+        String sql = """
+            SELECT pd.*, m.medicine_name, m.unit, m.sell_price
+            FROM PrescriptionDetail pd
+            JOIN Medicine m ON pd.medicine_id = m.medicine_id
+            WHERE pd.prescription_id = ?
+            """;
         Connection conn = null;
         try {
             conn = getConnection();
@@ -93,10 +101,14 @@ public class PrescriptionDAO {
                 try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
                         PrescriptionDetail d = new PrescriptionDetail();
+                        d.setId(rs.getLong("detail_id"));
                         d.setPrescriptionId(rs.getLong("prescription_id"));
                         d.setMedicineId(rs.getInt("medicine_id"));
                         d.setQuantity(rs.getInt("quantity"));
                         d.setDosage(rs.getString("dosage"));
+                        try { d.setInstruction(rs.getString("instruction")); } catch (SQLException ignored) {}
+                        try { d.setUnitPrice(rs.getDouble("unit_price")); } catch (SQLException ignored) {}
+                        try { d.setMedicineName(rs.getString("medicine_name")); } catch (SQLException ignored) {}
                         result.add(d);
                     }
                 }
@@ -114,7 +126,7 @@ public class PrescriptionDAO {
      */
     public List<Prescription> findByMedicalRecordId(long medicalRecordId) {
         List<Prescription> result = new ArrayList<>();
-        String sql = "SELECT * FROM Prescription WHERE medical_record_id = ?";
+        String sql = "SELECT * FROM Prescription WHERE record_id = ?";
         Connection conn = null;
         try {
             conn = getConnection();
@@ -122,14 +134,7 @@ public class PrescriptionDAO {
                 ps.setLong(1, medicalRecordId);
                 try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
-                        Prescription p = new Prescription();
-                        p.setId(rs.getInt("prescription_id"));
-                        p.setMedicalRecordId(rs.getLong("medical_record_id"));
-                        p.setStatus(rs.getString("status"));
-                        if (rs.getTimestamp("created_at") != null) {
-                            p.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
-                        }
-                        result.add(p);
+                        result.add(mapPrescription(rs));
                     }
                 }
             }
@@ -142,25 +147,18 @@ public class PrescriptionDAO {
     }
 
     /**
-     * Lấy danh sách đơn thuốc chờ phát (status = PENDING)
+     * Lấy danh sách đơn thuốc chờ phát (status = CONFIRMED)
      */
     public List<Prescription> findPendingPrescriptions() {
         List<Prescription> result = new ArrayList<>();
-        String sql = "SELECT * FROM Prescription WHERE status = 'PENDING' ORDER BY created_at ASC";
+        String sql = "SELECT * FROM Prescription WHERE status = 'CONFIRMED' ORDER BY created_at ASC";
         Connection conn = null;
         try {
             conn = getConnection();
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
                 try (ResultSet rs = ps.executeQuery()) {
                     while (rs.next()) {
-                        Prescription p = new Prescription();
-                        p.setId(rs.getInt("prescription_id"));
-                        p.setMedicalRecordId(rs.getLong("medical_record_id"));
-                        p.setStatus(rs.getString("status"));
-                        if (rs.getTimestamp("created_at") != null) {
-                            p.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
-                        }
-                        result.add(p);
+                        result.add(mapPrescription(rs));
                     }
                 }
             }
@@ -170,5 +168,37 @@ public class PrescriptionDAO {
             closeIfOwned(conn);
         }
         return result;
+    }
+
+    /**
+     * Cập nhật trạng thái đơn thuốc.
+     */
+    public boolean updateStatus(long prescriptionId, String newStatus) {
+        String sql = "UPDATE Prescription SET status = ?, updated_at = NOW() WHERE prescription_id = ?";
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, newStatus);
+                ps.setLong(2, prescriptionId);
+                return ps.executeUpdate() > 0;
+            }
+        } catch (SQLException e) {
+            throw new DataAccessException("Không thể cập nhật trạng thái đơn thuốc", e);
+        } finally {
+            closeIfOwned(conn);
+        }
+    }
+
+    private Prescription mapPrescription(ResultSet rs) throws SQLException {
+        Prescription p = new Prescription();
+        p.setId(rs.getInt("prescription_id"));
+        p.setMedicalRecordId(rs.getLong("record_id"));
+        p.setStatus(rs.getString("status"));
+        try { p.setTotalAmount(rs.getDouble("total_amount")); } catch (SQLException ignored) {}
+        if (rs.getTimestamp("created_at") != null) {
+            p.setCreatedAt(rs.getTimestamp("created_at").toLocalDateTime());
+        }
+        return p;
     }
 }

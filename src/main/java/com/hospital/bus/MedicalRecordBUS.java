@@ -183,6 +183,12 @@ public class MedicalRecordBUS {
 
     public boolean updateVitalSigns(long recordId, double weight, double height,
                                      String bloodPressure, int pulse) {
+        return updateVitalSigns(recordId, weight, height, bloodPressure, pulse, 0, 0);
+    }
+
+    public boolean updateVitalSigns(long recordId, double weight, double height,
+                                     String bloodPressure, int pulse,
+                                     double temperature, int spo2) {
         if (recordId <= 0) {
             throw new BusinessException("Record ID không hợp lệ");
         }
@@ -195,7 +201,43 @@ public class MedicalRecordBUS {
         if (pulse <= 0) {
             throw new BusinessException("Mạch phải lớn hơn 0");
         }
-        return dao.updateVitalSigns(recordId, weight, height, bloodPressure, pulse);
+        // Validate blood pressure format "systolic/diastolic"
+        if (bloodPressure != null && !bloodPressure.trim().isEmpty()) {
+            String bp = bloodPressure.trim();
+            if (!bp.matches("\\d{2,3}/\\d{2,3}")) {
+                throw new BusinessException("Huyết áp phải có dạng 'tâm thu/tâm trương' (VD: 120/80)");
+            }
+        }
+        // Validate pulse range
+        if (pulse < 30 || pulse > 250) {
+            throw new BusinessException("Nhịp tim phải trong khoảng 30-250 bpm");
+        }
+        // Validate temperature if provided
+        if (temperature > 0 && (temperature < 35.0 || temperature > 42.0)) {
+            throw new BusinessException("Nhiệt độ phải trong khoảng 35.0 - 42.0 °C");
+        }
+        // Validate SpO2 if provided
+        if (spo2 > 0 && (spo2 < 50 || spo2 > 100)) {
+            throw new BusinessException("SpO2 phải trong khoảng 50 - 100%");
+        }
+        return dao.updateVitalSigns(recordId, weight, height, bloodPressure, pulse, temperature, spo2);
+    }
+
+    /**
+     * Cập nhật toàn bộ thông tin khám bệnh (chẩn đoán, triệu chứng, mã ICD-10, ghi chú BS, ngày tái khám).
+     */
+    public boolean updateFullExamination(long recordId, String diagnosis, String symptoms,
+                                          String diagnosisCode, String notes,
+                                          java.time.LocalDate followUpDate) {
+        if (recordId <= 0) throw new BusinessException("Record ID không hợp lệ");
+        if (diagnosis == null || diagnosis.trim().isEmpty()) throw new BusinessException("Chẩn đoán không được để trống");
+        if (symptoms == null || symptoms.trim().isEmpty()) throw new BusinessException("Triệu chứng không được để trống");
+
+        java.sql.Date sqlDate = followUpDate != null ? java.sql.Date.valueOf(followUpDate) : null;
+        return dao.updateFullExamination(recordId, diagnosis.trim(), symptoms.trim(),
+                diagnosisCode != null ? diagnosisCode.trim() : null,
+                notes != null ? notes.trim() : null,
+                sqlDate);
     }
 
     public boolean updateStatus(long recordId, String status) {

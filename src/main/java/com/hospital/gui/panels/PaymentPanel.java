@@ -1,6 +1,7 @@
 package com.hospital.gui.panels;
 
 import com.hospital.bus.InvoiceBUS;
+import com.hospital.dao.MedicalRecordDAO;
 import com.hospital.gui.UIConstants;
 import com.hospital.gui.components.RoundedButton;
 import com.hospital.gui.components.RoundedPanel;
@@ -621,6 +622,14 @@ public class PaymentPanel extends JPanel {
 
         boolean ok = bus.markAsPaid(selectedInvoice.getId(), method, paid, change);
         if (ok) {
+            // Cập nhật trạng thái bệnh án → PAID
+            if (selectedInvoice.getRecordId() != null && selectedInvoice.getRecordId() > 0) {
+                try {
+                    new MedicalRecordDAO().updateStatus(selectedInvoice.getRecordId(), "PAID");
+                } catch (Exception ex) {
+                    System.err.println("Không thể cập nhật trạng thái bệnh án: " + ex.getMessage());
+                }
+            }
             JOptionPane.showMessageDialog(this,
                     "Thanh toán thành công!\nTiền thừa: " + moneyFmt.format(change) + " đ",
                     "Hoàn tất", JOptionPane.INFORMATION_MESSAGE);

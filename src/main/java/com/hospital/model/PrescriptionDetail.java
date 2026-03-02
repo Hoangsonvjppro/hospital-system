@@ -6,7 +6,10 @@ public class PrescriptionDetail {
     private long prescriptionId;
     private int medicineId;
     private int quantity;
-    private String dosage; // cách dùng
+    private String dosage;       // "2 viên x 3 lần/ngày"
+    private String instruction;  // "Uống sau ăn"
+    private double unitPrice;    // Đơn giá tại thời điểm kê
+    private String medicineName; // Transient — for display
 
     public PrescriptionDetail() {}
 
@@ -14,6 +17,14 @@ public class PrescriptionDetail {
         this.medicineId = medicineId;
         this.quantity = quantity;
         this.dosage = dosage;
+    }
+
+    public PrescriptionDetail(int medicineId, int quantity, String dosage, String instruction, double unitPrice) {
+        this.medicineId = medicineId;
+        this.quantity = quantity;
+        this.dosage = dosage;
+        this.instruction = instruction;
+        this.unitPrice = unitPrice;
     }
 
     public long getId() {
@@ -54,5 +65,33 @@ public class PrescriptionDetail {
 
     public void setDosage(String dosage) {
         this.dosage = dosage;
+    }
+
+    public String getInstruction() {
+        return instruction;
+    }
+
+    public void setInstruction(String instruction) {
+        this.instruction = instruction;
+    }
+
+    public double getUnitPrice() {
+        return unitPrice;
+    }
+
+    public void setUnitPrice(double unitPrice) {
+        this.unitPrice = unitPrice;
+    }
+
+    public double getLineTotal() {
+        return quantity * unitPrice;
+    }
+
+    public String getMedicineName() {
+        return medicineName;
+    }
+
+    public void setMedicineName(String medicineName) {
+        this.medicineName = medicineName;
     }
 }
