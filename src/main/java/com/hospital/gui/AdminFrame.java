@@ -43,12 +43,17 @@ public class AdminFrame extends BaseFrame {
                 () -> showPanel(new PaymentPanel()));
 
         addSeparator();
+        addSectionLabel("Báo cáo");
+
+        addMenuItem("📈", "Doanh thu",
+                () -> showPanel(new AdminReportPanel()));
+
+        addSeparator();
         addSectionLabel("Hệ thống");
 
         addDisabledMenuItem("👤", "Quản lý tài khoản");
-        addDisabledMenuItem("📈", "Báo cáo");
-        addMenuItem("⚙️", "Cấu hình",
-                () -> showPanel(new SystemPanel()));
+        addMenuItem("⚙️", "Cấu hình phòng khám",
+                () -> showPanel(new ClinicConfigPanel()));
     }
 
     @Override

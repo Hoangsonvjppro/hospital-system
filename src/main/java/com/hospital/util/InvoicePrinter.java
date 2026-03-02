@@ -1,5 +1,7 @@
 package com.hospital.util;
 
+import com.hospital.bus.ClinicConfigBUS;
+import com.hospital.model.ClinicConfig;
 import com.hospital.model.Invoice;
 import com.hospital.model.InvoiceMedicineDetail;
 import com.hospital.model.InvoiceServiceDetail;
@@ -56,9 +58,14 @@ public class InvoicePrinter {
         PdfWriter.getInstance(doc, new FileOutputStream(destPath));
         doc.open();
 
-        // ── 1. HEADER — Tên phòng khám ──────────────────────
-        addCentered(doc, "PHÒNG MẠCH TƯ", fHeader);
-        addCentered(doc, "123 Nguyễn Văn Cừ, Quận 5, TP.HCM  •  ĐT: 028 1234 5678", fSmall);
+        // ── 1. HEADER — Tên phòng khám (từ ClinicConfig) ────
+        ClinicConfig cfg = new ClinicConfigBUS().getConfig();
+        addCentered(doc, cfg.getClinicName().toUpperCase(), fHeader);
+        String subHeader = safe(cfg.getClinicAddress());
+        if (!cfg.getClinicPhone().isEmpty()) {
+            subHeader += "  •  ĐT: " + cfg.getClinicPhone();
+        }
+        addCentered(doc, subHeader, fSmall);
         doc.add(Chunk.NEWLINE);
 
         // ── 2. TITLE ─────────────────────────────────────────

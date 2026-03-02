@@ -3,6 +3,7 @@ package com.hospital.bus;
 import com.hospital.config.DatabaseConfig;
 import com.hospital.dao.InvoiceDAO;
 import com.hospital.exception.BusinessException;
+import com.hospital.model.ClinicConfig;
 import com.hospital.model.Invoice;
 import com.hospital.model.InvoiceMedicineDetail;
 import com.hospital.model.InvoiceServiceDetail;
@@ -132,16 +133,8 @@ public class InvoiceBUS extends BaseBUS<Invoice> {
                 }
             }
 
-            // 2. Phí khám mặc định từ ClinicConfig
-            double examFee = 150_000; // fallback
-            try (PreparedStatement ps = conn.prepareStatement(
-                    "SELECT config_value FROM ClinicConfig WHERE config_key = 'default_exam_fee'")) {
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) {
-                        examFee = Double.parseDouble(rs.getString("config_value"));
-                    }
-                }
-            }
+            // 2. Phí khám mặc định từ ClinicConfig (qua ClinicConfigBUS)
+            double examFee = new ClinicConfigBUS().getDefaultExamFee();
 
             // 3. Dịch vụ chỉ định (ServiceOrder JOIN Service)
             List<InvoiceServiceDetail> serviceDetails = new ArrayList<>();
