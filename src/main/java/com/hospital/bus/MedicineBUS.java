@@ -1,45 +1,72 @@
 package com.hospital.bus;
 
 import com.hospital.dao.MedicineDAO;
+import com.hospital.exception.BusinessException;
 import com.hospital.model.Medicine;
+import com.hospital.util.AppUtils;
 
+import java.time.LocalDate;
 import java.util.List;
 
-/**
- * Business logic layer cho kho thuốc.
- */
 public class MedicineBUS extends BaseBUS<Medicine> {
 
     private final MedicineDAO medicineDAO;
 
     public MedicineBUS() {
         super(new MedicineDAO());
-        this.medicineDAO = (MedicineDAO) dao;
+        this.medicineDAO = (MedicineDAO) this.dao;
     }
 
     @Override
-    protected boolean validate(Medicine m) {
-        if (m == null) return false;
-        if (m.getName() == null || m.getName().trim().isEmpty()) return false;
-        if (m.getPrice() < 0) return false;
-        if (m.getQuantity() < 0) return false;
+    protected boolean validate(Medicine entity) {
+
+        if (AppUtils.isNullOrEmpty(entity.getMedicineName()))
+            throw new BusinessException("Tên thuốc không được để trống.");
+
+        if (AppUtils.isNullOrEmpty(entity.getUnit()))
+            throw new BusinessException("Đơn vị tính không được để trống.");
+
+        if (entity.getCostPrice() < 0 || entity.getSellPrice() < 0)
+            throw new BusinessException("Giá không được âm.");
+
+        if (entity.getCostPrice() > entity.getSellPrice())
+            throw new BusinessException("Giá bán đang thấp hơn giá vốn.");
+
+        LocalDate expiryDate = entity.getExpiryDate();
+        if (expiryDate != null && !expiryDate.isAfter(LocalDate.now()))
+            throw new BusinessException("Ngày hết hạn phải sau hôm nay.");
+
         return true;
     }
 
-    public List<Medicine> getLowStockMedicines() {
-        return medicineDAO.findLowStock();
+    @Override
+    public boolean insert(Medicine entity) {
+        validate(entity);
+        return medicineDAO.insert(entity);
     }
 
-    public int countLowStock() {
-        return medicineDAO.countLowStock();
+    @Override
+    public boolean update(Medicine entity) {
+        validate(entity);
+        return medicineDAO.update(entity);
     }
 
-    public boolean adjustStock(int medicineId, int delta) {
-        Medicine m = medicineDAO.findById(medicineId);
-        if (m == null) return false;
-        int newQty = m.getQuantity() + delta;
-        if (newQty < 0) return false;
-        m.setQuantity(newQty);
-        return medicineDAO.update(m);
+    @Override
+    public boolean delete(int id) {
+        return medicineDAO.delete(id);
+    }
+
+    @Override
+    public List<Medicine> findAll() {
+        return medicineDAO.findAll();
+    }
+
+    @Override
+    public Medicine findById(int id) {
+        return medicineDAO.findById(id);
+    }
+
+    public List<Medicine> findByName(String keyword) {
+        return medicineDAO.findByName(keyword);
     }
 }
