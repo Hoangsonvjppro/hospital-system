@@ -19,6 +19,9 @@ public class Patient extends BaseModel {
     private String address;
     private Long userId;
     private boolean isActive;
+    private String cccd;           // So chung minh / CCCD
+    private String allergyHistory; // Tien su di ung
+    private String notes;          // Ghi chu bo sung
 
     // -- Truong workflow (transient, phuc vu hang doi kham) --
     private String patientCode;   // Ma BN hien thi (vd: "BN001")
@@ -106,6 +109,30 @@ public class Patient extends BaseModel {
 
     public void setAddress(String address) {
         this.address = address;
+    }
+
+    public String getCccd() {
+        return cccd;
+    }
+
+    public void setCccd(String cccd) {
+        this.cccd = cccd;
+    }
+
+    public String getAllergyHistory() {
+        return allergyHistory;
+    }
+
+    public void setAllergyHistory(String allergyHistory) {
+        this.allergyHistory = allergyHistory;
+    }
+
+    public String getNotes() {
+        return notes;
+    }
+
+    public void setNotes(String notes) {
+        this.notes = notes;
     }
 
     public Long getUserId() {

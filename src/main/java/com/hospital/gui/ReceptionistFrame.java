@@ -1,5 +1,6 @@
 package com.hospital.gui;
 
+import com.hospital.gui.panels.PatientPanel;
 import com.hospital.gui.panels.ReceptionPanel;
 import com.hospital.model.Account;
 
@@ -18,11 +19,11 @@ public class ReceptionistFrame extends BaseFrame {
     @Override
     protected void registerMenuItems() {
         addMenuItem("📋", "Tiếp nhận",
-                () -> showPanel(new ReceptionPanel()));
+                () -> showPanel(new PatientPanel()));
     }
 
     @Override
     protected JPanel createDefaultPanel() {
-        return new ReceptionPanel();
+        return new PatientPanel();
     }
 }

@@ -237,7 +237,7 @@ CREATE TABLE MedicalRecord (
     diagnosis_code VARCHAR(10),                        -- Mã ICD-10 (nếu có)
     notes          TEXT,
     -- Hàng đợi khám bệnh (queue) — luồng trạng thái chính
-    queue_status   ENUM('WAITING','EXAMINING','PRESCRIBED','DISPENSED','COMPLETED','TRANSFERRED','CANCELLED')
+    queue_status   ENUM('WAITING','EXAMINING','IN_PROGRESS','PRESCRIBED','DISPENSED','COMPLETED','PAID','TRANSFERRED','CANCELLED')
                    DEFAULT NULL,
     priority       ENUM('NORMAL','ELDERLY','EMERGENCY') DEFAULT 'NORMAL',
     queue_number   INT,                                -- Số thứ tự hàng đợi hôm đó

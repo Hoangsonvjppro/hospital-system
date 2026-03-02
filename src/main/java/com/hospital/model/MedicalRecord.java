@@ -24,6 +24,19 @@ public class MedicalRecord extends BaseModel {
 
     private String status;         // Editing / Completed / Transferred
 
+    // Workflow statuses (mở rộng)
+    public static final String STATUS_WAITING     = "WAITING";
+    public static final String STATUS_IN_PROGRESS = "IN_PROGRESS"; // tương đương EXAMINING
+    public static final String STATUS_PRESCRIBED  = "PRESCRIBED";
+    public static final String STATUS_COMPLETED   = "COMPLETED";
+    public static final String STATUS_PAID        = "PAID";
+
+    // Queue related fields (synchronised with DB columns queue_status, priority, queue_number, arrival_time, exam_type)
+    private String priority;       // NORMAL / ELDERLY / EMERGENCY
+    private Integer queueNumber;   // Số thứ tự hôm nay
+    private java.time.LocalTime arrivalTime; // Giờ đến
+    private String examTypeField;   // Loại khám (vd: "Kham tong quat")
+
     public MedicalRecord() {}
 
     public MedicalRecord(int id, long patientId, long doctorId, Long appointmentId) {
@@ -32,7 +45,7 @@ public class MedicalRecord extends BaseModel {
         this.doctorId = doctorId;
         this.appointmentId = appointmentId;
         this.visitDate = LocalDateTime.now();
-        this.status = "Editing";
+        this.status = STATUS_WAITING;
     }
 
     // ── Getters & Setters ────────────────────────────────────────────────────
@@ -54,6 +67,18 @@ public class MedicalRecord extends BaseModel {
 
     public String getDiagnosis()              { return diagnosis; }
     public void setDiagnosis(String v)        { this.diagnosis = v; }
+
+    public String getPriority()               { return priority; }
+    public void setPriority(String v)         { this.priority = v; }
+
+    public Integer getQueueNumber()           { return queueNumber; }
+    public void setQueueNumber(Integer v)     { this.queueNumber = v; }
+
+    public java.time.LocalTime getArrivalTime() { return arrivalTime; }
+    public void setArrivalTime(java.time.LocalTime v) { this.arrivalTime = v; }
+
+    public String getExamTypeField()          { return examTypeField; }
+    public void setExamTypeField(String v)    { this.examTypeField = v; }
 
     public double getWeight()                 { return weight; }
     public void setWeight(double v)           { this.weight = v; }
