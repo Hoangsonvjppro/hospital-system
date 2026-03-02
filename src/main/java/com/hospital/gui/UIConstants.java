@@ -97,6 +97,15 @@ public class UIConstants {
     public static final Color WARNING_ORANGE    = new Color(230, 126, 34);
 
     // ═══════════════════════════════════════════════════════════════════════════
+    //  CẢNH BÁO DASHBOARD (Alert cards)
+    // ═══════════════════════════════════════════════════════════════════════════
+    public static final Color ALERT_RED_BG      = new Color(254, 242, 242);  // #FEF2F2
+    public static final Color ALERT_RED_BORDER  = new Color(252, 165, 165);  // #FCA5A5
+    public static final Color ALERT_AMBER_BG    = new Color(255, 251, 235);  // #FFFBEB
+    public static final Color ALERT_AMBER_BORDER= new Color(252, 211, 77);   // #FCD34D
+    public static final Color REVENUE_PURPLE    = new Color(124, 58,  237);  // #7C3AED
+
+    // ═══════════════════════════════════════════════════════════════════════════
     //  FONT
     // ═══════════════════════════════════════════════════════════════════════════
     public static final String FONT_NAME            = "Segoe UI";
