@@ -3,6 +3,7 @@
 ## Cấu trúc thư mục / Folder Structure
 
 ```
+
 jv-hs/
 ├── src/main/java/com/hospital/
 │   ├── Main.java                  # Điểm khởi đầu ứng dụng
