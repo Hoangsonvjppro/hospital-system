@@ -4,11 +4,14 @@
 //hiện ra để lựa chọn sửa hoặc xoá.
 //để chuột vào tên thuốc sẽ hiện lên mô tả.
 package com.hospital.gui.panels;
-import com.hospital.bus.MedicineBUS;
+import com.hospital.bus.*;
+import com.hospital.dao.MedicalRecordDAO;
 import com.hospital.exception.BusinessException;
 import com.hospital.exception.DataAccessException;
 import com.hospital.gui.UIConstants;
+import com.hospital.model.Invoice;
 import com.hospital.model.Medicine;
+import com.hospital.model.PrescriptionDetail;
 import com.hospital.util.AppUtils;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.icons.FlatSearchIcon;
@@ -23,32 +26,57 @@ import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
 public class MedicinePanel extends JPanel {
+    private JToggleButton btnTatca, btnHethan, btnHetHang;
     private List<Medicine> currentList;
     private JTable table;
     private DefaultTableModel model;
     private JTextField txtSearch;
     private JButton btnNhapThuocMoi;
-    private MedicineBUS medicineBUS = new MedicineBUS();
+    private JLabel lblTongThuoc, lblTongTonKho, lblSapHetHan, lblSapHetHang;
+    //
+    private final MedicineBUS medicineBUS = new MedicineBUS();
+    private final MedicalRecordBUS medicalRecordBUS = new MedicalRecordBUS();
+    private final PrescriptionBUS prescriptionBUS = new PrescriptionBUS();
+    private final MedicalRecordDAO recordDAO = new MedicalRecordDAO();
+    private final MedicineExportBUS medicineExportBUS = new MedicineExportBUS();
+    private final InvoiceBUS invoiceBUS = new InvoiceBUS();
+    //
     private final DecimalFormat formatter = new DecimalFormat("###,###,###");
     private final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-    private JLabel lblTongThuoc, lblTongTonKho, lblSapHetHan, lblSapHetHang;
+
+
+    //Component tab 2:
+    private JTabbedPane tabbedPane;
+    private DefaultTableModel modelPendingRecords;
+    private JTable tablePendingRecords;
+    private JTable tablePrescriptionDetails;
+    private DefaultTableModel modelPrescriptionDetails;
+    private JButton btnPhatThuoc;
+
 
     public MedicinePanel() {
-        initLayout();
-        loadData();
+        setLayout(new BorderLayout());
+        setBackground(UIConstants.CONTENT_BG);
+        tabbedPane=new JTabbedPane();
+        tabbedPane.setFont(UIConstants.FONT_BOLD);
+        tabbedPane.addTab("Quản lý kho thuốc",createMedicinePanel());
+        tabbedPane.addTab("Phát thuốc",createDispenseMedicinePanel());
+        tabbedPane.addTab("Báo cáo & Thống kê", createReportTab());
+        add(tabbedPane);
+        loadMedicineData();
         addEvents();
     }
 
-    private void initLayout() {
-        setLayout(new BorderLayout(0, 20));
-        setBackground(UIConstants.CONTENT_BG);
-        setBorder(new EmptyBorder(20, 20, 20, 20));
+    private JPanel createMedicinePanel() {
+        JPanel pnl=new JPanel(new BorderLayout(0,20));
+        pnl.setBackground(UIConstants.CONTENT_BG);
+        pnl.setBorder(new EmptyBorder(20, 20, 20, 20));
 
-        // ================= 1. KHU VỰC PHÍA TRÊN (TOP) =================
         JPanel pnlTop = new JPanel();
         pnlTop.setLayout(new BoxLayout(pnlTop, BoxLayout.Y_AXIS));
         pnlTop.setOpaque(false);
@@ -87,8 +115,8 @@ public class MedicinePanel extends JPanel {
         lblSapHetHan = new JLabel("0");
         lblSapHetHang = new JLabel("0");
 
-        pnlCards.add(createKPICard("Tổng danh mục thuốc", lblTongThuoc, "", null, null));
-        pnlCards.add(createKPICard("Tổng tồn kho", lblTongTonKho, "đv", null, null));
+        pnlCards.add(createKPICard("Tổng danh mục thuốc", lblTongThuoc, "", null, UIConstants.ACCENT_BLUE));
+        pnlCards.add(createKPICard("Tổng tồn kho", lblTongTonKho, "đv", null, UIConstants.ACCENT_BLUE));
         pnlCards.add(createKPICard("Sắp hết hạn (30 ngày)", lblSapHetHan, "", "", UIConstants.PRIMARY));
         pnlCards.add(createKPICard("Sắp hết hàng", lblSapHetHang, "", "", UIConstants.WARNING_ORANGE));
 
@@ -98,15 +126,18 @@ public class MedicinePanel extends JPanel {
         JPanel pnlFilterLeft = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         pnlFilterLeft.setOpaque(false);
         ButtonGroup groupFilter = new ButtonGroup();
-        pnlFilterLeft.add(createFilterButton("Tất cả thuốc", true, groupFilter));
-//        pnlFilterLeft.add(createFilterButton("Kháng sinh", false, groupFilter));
+        btnTatca=createFilterButton("Tất cả thuốc",true,groupFilter);
+        btnHethan=createFilterButton("Thuốc hết hạn",false,groupFilter);
+        btnHetHang=createFilterButton("Thuốc hết hàng",false,groupFilter);
+        pnlFilterLeft.add(btnTatca);
+        pnlFilterLeft.add(btnHethan);
+        pnlFilterLeft.add(btnHetHang);
         JPanel pnlFilterRight = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         pnlFilterRight.setOpaque(false);
-        JButton btnBoLoc = new JButton("Bộ lọc nâng cao");
-        JButton btnXuatExcel = new JButton("Xuất Excel");
+        //JButton btnXuatExcel = new JButton("Xuất Excel");
         String btnStyle = "background: #ffffff; arc: 10; borderWidth: 1; borderColor: #dddddd";
-        btnBoLoc.putClientProperty(FlatClientProperties.STYLE, btnStyle);
-        btnXuatExcel.putClientProperty(FlatClientProperties.STYLE, btnStyle);
+        //btnBoLoc.putClientProperty(FlatClientProperties.STYLE, btnStyle);
+        //btnXuatExcel.putClientProperty(FlatClientProperties.STYLE, btnStyle);
 //        pnlFilterRight.add(btnBoLoc);
 //        pnlFilterRight.add(btnXuatExcel);
 
@@ -116,7 +147,7 @@ public class MedicinePanel extends JPanel {
         pnlTop.add(pnlHeader);
         pnlTop.add(pnlCards);
         pnlTop.add(pnlFilter);
-        add(pnlTop, BorderLayout.NORTH);
+        pnl.add(pnlTop, BorderLayout.NORTH);
 
         String[] columns = {"TÊN THUỐC", "ĐƠN VỊ TÍNH", "GIÁ BÁN", "SỐ LƯỢNG TỒN", "HẠN SỬ DỤNG", "TRẠNG THÁI"};
         model = new DefaultTableModel(columns, 0) {
@@ -147,12 +178,79 @@ public class MedicinePanel extends JPanel {
         table.getTableHeader().putClientProperty(FlatClientProperties.STYLE, "font: bold; height: 40; background: #ffffff");
 
         table.getColumnModel().getColumn(5).setCellRenderer(new StatusCellRenderer());
+        table.setDefaultRenderer(Object.class,new InventoryCellRenderer());
 
         JScrollPane scroll = new JScrollPane(table);
         scroll.getViewport().setBackground(Color.WHITE);
         scroll.setBorder(BorderFactory.createEmptyBorder());
-        add(scroll, BorderLayout.CENTER);
+        pnl.add(scroll, BorderLayout.CENTER);
+        return pnl;
     }
+    private JPanel createDispenseMedicinePanel(){
+        JPanel pnl=new JPanel(new BorderLayout(10,10));
+        pnl.setBackground(UIConstants.CONTENT_BG);
+        pnl.setBorder(new EmptyBorder(20, 20, 20, 20));
+
+        JPanel pnlTop=new JPanel(new BorderLayout());
+        pnlTop.setBorder(BorderFactory.createTitledBorder("Danh sách thuốc chờ phát"));
+        String[] colPending = {"ID Bệnh Án", "Tên Bệnh Nhân", "Bác Sĩ Kê Đơn", "Ngày Khám"};
+        modelPendingRecords=new DefaultTableModel(colPending,0);
+        tablePendingRecords=new JTable();
+        tablePendingRecords.setModel(modelPendingRecords);
+        tablePendingRecords.setRowHeight(35);
+        pnlTop.add(new JScrollPane(tablePendingRecords),BorderLayout.CENTER);
+
+        JPanel pnlBottom=new JPanel(new BorderLayout());
+        pnlBottom.setBorder(BorderFactory.createTitledBorder("Chi tiết đơn thuốc"));
+        String[] colDetails = {"Tên Thuốc", "Đơn Vị", "Số Lượng", "Đơn Giá", "Thành Tiền", "Hướng Dẫn"};
+        modelPrescriptionDetails=new DefaultTableModel(colDetails,0);
+        tablePrescriptionDetails=new JTable();
+        tablePrescriptionDetails.setModel(modelPrescriptionDetails);
+        tablePrescriptionDetails.setRowHeight(35);
+        pnlBottom.add(new JScrollPane(tablePrescriptionDetails),BorderLayout.CENTER);
+
+        JPanel pnlAction=new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        btnPhatThuoc=new JButton("Phát thuốc");
+        btnPhatThuoc.setFont(UIConstants.FONT_BOLD);
+        btnPhatThuoc.putClientProperty(FlatClientProperties.STYLE,"background: #198754; foreground: #ffffff; arc: 10; borderWidth: 0");
+        btnPhatThuoc.setEnabled(false);
+        pnlAction.add(btnPhatThuoc);
+        pnlBottom.add(pnlAction,BorderLayout.SOUTH);
+        JSplitPane splitPane = new JSplitPane(JSplitPane.VERTICAL_SPLIT, pnlTop, pnlBottom);
+        splitPane.setDividerLocation(250);
+        pnl.add(splitPane, BorderLayout.CENTER);
+        return pnl;
+    }
+
+    private JPanel createReportTab() {
+        JPanel pnlReport = new JPanel(new GridLayout(1, 2, 20, 0)); // Chia làm 2 cột
+        pnlReport.setBackground(UIConstants.CONTENT_BG);
+        pnlReport.setBorder(new EmptyBorder(20, 20, 20, 20));
+        JPanel pnlExpiring = new JPanel(new BorderLayout());
+        pnlExpiring.setBorder(BorderFactory.createTitledBorder("CẢNH BÁO: Thuốc sắp hết hạn (Dưới 30 ngày)"));
+        String[] colExpiring = {"Tên Thuốc", "Ngày Hết Hạn", "Tồn Kho"};
+        DefaultTableModel modExpiring = new DefaultTableModel(colExpiring, 0);
+        JTable tblExpiring = new JTable(modExpiring);
+        List<Medicine> expiringList = medicineBUS.getExpiredMedicinesList(); // Cần wrap lại qua BUS
+        for (Medicine m : expiringList) {
+            modExpiring.addRow(new Object[]{m.getMedicineName(), m.getExpiryDate().format(dateFormatter), m.getStockQty()});
+        }
+        pnlExpiring.add(new JScrollPane(tblExpiring), BorderLayout.CENTER);
+        JPanel pnlTopExport = new JPanel(new BorderLayout());
+        pnlTopExport.setBorder(BorderFactory.createTitledBorder("Top 10 thuốc xuất kho nhiều nhất"));
+        String[] colTop = {"Tên Thuốc", "Tổng SL Đã Xuất"};
+        DefaultTableModel modTop = new DefaultTableModel(colTop, 0);
+        JTable tblTop = new JTable(modTop);
+        List<Object[]> topList = medicineBUS.getTopExportedMedicinesList();
+        for (Object[] row : topList) {
+            modTop.addRow(row);
+        }
+        pnlTopExport.add(new JScrollPane(tblTop), BorderLayout.CENTER);
+        pnlReport.add(pnlExpiring);
+        pnlReport.add(pnlTopExport);
+        return pnlReport;
+    }
+
 
     private JPanel createKPICard(String title, JLabel lblValue, String unit, String badge, Color leftBorderColor) {
         JPanel card = new JPanel(new BorderLayout());
@@ -207,13 +305,29 @@ public class MedicinePanel extends JPanel {
                 MedicineDialog dialog = new MedicineDialog((Frame) SwingUtilities.getWindowAncestor(this), null);
                 dialog.setVisible(true);
                 if (dialog.isDataChanged()) {
-                    loadData();
+                    loadMedicineData();
                 }
+            });
+            btnTatca.addActionListener(e -> {
+                loadMedicineData();
+            });
+            btnHethan.addActionListener(e -> {
+                List<Medicine> expiredMedicines=new ArrayList<>();
+                expiredMedicines=medicineBUS.getExpiredMedicinesList();
+                renderTable(expiredMedicines);
+            });
+            btnHetHang.addActionListener(e -> {
+                List<Medicine> lowStock=new ArrayList<>();
+                lowStock=medicineBUS.getLowStockMedicinesList();
+                renderTable(lowStock);
             });
 
             JPopupMenu popupMenu = new JPopupMenu();
             JMenuItem itemEdit = new JMenuItem("Sửa thông tin thuốc");
             JMenuItem itemDelete = new JMenuItem("Xóa thuốc này");
+            JMenuItem itemImport=new JMenuItem("Nhập thêm");
+            popupMenu.add(itemImport);
+            popupMenu.addSeparator();
             popupMenu.add(itemEdit);
             popupMenu.addSeparator();
             popupMenu.add(itemDelete);
@@ -229,6 +343,28 @@ public class MedicinePanel extends JPanel {
                     }
                 }
             });
+        itemImport.addActionListener(e -> {
+            int row = table.getSelectedRow();
+            if (row >= 0) {
+                Medicine selectedMedicine = currentList.get(row);
+                String qtyStr = JOptionPane.showInputDialog(this,
+                        "Nhập số lượng nhập kho cho thuốc '" + selectedMedicine.getMedicineName() + "':",
+                        "Nhập kho", JOptionPane.QUESTION_MESSAGE);
+                if (qtyStr != null && !qtyStr.trim().isEmpty()) {
+                    try {
+                        int qty = Integer.parseInt(qtyStr);
+                        // Giả định currentUserId = 1 (hoặc lấy từ phiên đăng nhập thực tế)
+                        medicineBUS.importStock(selectedMedicine.getId(), qty, 1, "Nhập kho bổ sung từ giao diện");
+                        JOptionPane.showMessageDialog(this, "Nhập kho thành công!");
+                        loadMedicineData();
+                    } catch (NumberFormatException ex) {
+                        JOptionPane.showMessageDialog(this, "Vui lòng nhập số nguyên hợp lệ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    } catch (Exception ex) {
+                        JOptionPane.showMessageDialog(this, ex.getMessage(), "Lỗi nhập kho", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            }
+        });
             itemEdit.addActionListener(e -> {
                 int row=table.getSelectedRow();
                 if (row >= 0) {
@@ -238,7 +374,7 @@ public class MedicinePanel extends JPanel {
                     dialog.setVisible(true);
 
                     if (dialog.isDataChanged()) {
-                        loadData();
+                        loadMedicineData();
                     }
                 }
             });
@@ -255,7 +391,7 @@ public class MedicinePanel extends JPanel {
                         try {
                             if (medicineBUS.delete(selectedMedicine.getId())) {
                                 JOptionPane.showMessageDialog(this, "Đã xóa thành công!");
-                                loadData();
+                                loadMedicineData();
                             } else {
                                 JOptionPane.showMessageDialog(this, "Lỗi khi xóa thuốc!", "Lỗi", JOptionPane.ERROR_MESSAGE);
                             }
@@ -273,13 +409,69 @@ public class MedicinePanel extends JPanel {
                     renderTable(medicineBUS.findByName(txtSearch.getText().trim()));
                 }
                 else{
-                    loadData();
+                    loadMedicineData();
                 }
             }
         });
+
+        //tab 2
+        tablePendingRecords.getSelectionModel().addListSelectionListener(e ->{
+           if(!e.getValueIsAdjusting()&&tablePendingRecords.getSelectedRow()!=-1){
+               btnPhatThuoc.setEnabled(true);
+               long recordId=Long.parseLong(tablePendingRecords.getValueAt(tablePendingRecords.getSelectedRow(),0).toString());
+               loadPrescriptionDetails(recordId);
+           }
+        });
+        btnPhatThuoc.addActionListener(e->{
+            int row=tablePendingRecords.getSelectedRow();
+            if(row==-1) return;
+            long recordId=Long.parseLong(tablePendingRecords.getValueAt(row,0).toString());
+            // TODO: Lấy danh sách PrescriptionDetail thực tế từ CSDL
+            // List<PrescriptionDetail> details = prescriptionDAO.findByRecordId(recordId);
+            try {
+                //String msg = medicineExportBUS.processPrescriptionExport(details, currentUserId, true);
+
+                // 2.Chuyển trạng thái hoàn tất
+                recordDAO.updateStatus(recordId, "COMPLETED");
+
+                // 3.Tạo dữ liệu hóa đơn
+                createInvoiceForRecord(recordId);
+                JOptionPane.showMessageDialog(null, "Đã phát thuốc thành công!\nHóa đơn đã được chuyển sang bộ phận Kế toán.", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+
+                loadMedicineData(); // Update tồn kho ở Tab 1
+                loadPendingPrescriptions(); // Cập nhật lại list ở Tab 2
+                modelPrescriptionDetails.setRowCount(0);
+                btnPhatThuoc.setEnabled(false);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Lỗi khi phát thuốc: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+        }
+
+    private void createInvoiceForRecord(long recordId) {
+        Invoice invoice=new Invoice();
+        //TODO: hoàn thiện sau
+        double totalFee=0;
+        for(int i=0;i<tablePrescriptionDetails.getRowCount();i++){
+            totalFee+=Double.parseDouble(tablePrescriptionDetails.getValueAt(i,4).toString());
+        }
+        //invoice.setRecordId(recordId);
+        invoice.setMedicineFee(totalFee);
+        invoice.setStatus("Chờ thanh toán");
+        invoiceBUS.insert(invoice);
+
+    }
+    private void loadPendingPrescriptions(){
+        modelPrescriptionDetails.setRowCount(0);
+        //TODO: Query MedicalRecordDAO tìm các bệnh án có status = 'PRESCRIBED'
     }
 
-    private void loadData() {
+    private void loadPrescriptionDetails(long recordId) {
+        modelPrescriptionDetails.setRowCount(0);
+        //TODO: Lấy chi tiết đơn thuốc theo recordId
+    }
+
+    private void loadMedicineData() {
         currentList=medicineBUS.findAll();
         renderTable(currentList);
 
@@ -299,7 +491,7 @@ public class MedicinePanel extends JPanel {
                 sapHetHang++;
             }
 
-            String tenThuocFormat = "<html><b>" + thuoc.getMedicineName() + "</b><br><span style='color:gray; font-size:9px'>Mã: " + String.format("%03d", thuoc.getId()) + "</span></html>";
+            String tenThuocFormat = "<html><b>" + thuoc.getMedicineName() + "</b><br><span style='color:gray; font-size:9px'>Mã: MED" + String.format("%03d", thuoc.getId()) + "</span></html>";
             model.addRow(new Object[]{
                     tenThuocFormat,
                     thuoc.getUnit(),
@@ -314,7 +506,7 @@ public class MedicinePanel extends JPanel {
         lblSapHetHang.setText(String.valueOf(sapHetHang));
     }
 
-    class StatusCellRenderer extends DefaultTableCellRenderer {
+    static class StatusCellRenderer extends DefaultTableCellRenderer {
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
             JLabel label = (JLabel) super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
@@ -329,6 +521,27 @@ public class MedicinePanel extends JPanel {
             return wrapper;
         }
     }
+    static class InventoryCellRenderer extends DefaultTableCellRenderer {
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+            Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            String status = table.getValueAt(row, 5).toString(); // Cột trạng thái
+
+            if (!isSelected) {
+                if (status.contains("Hết hàng") || status.contains("Đã hết hạn")) {
+                    c.setBackground(UIConstants.ERROR_COLOR);
+                    c.setForeground(UIConstants.ERROR_COLOR);
+                } else if (status.contains("Sắp hết hàng") || status.contains("Sắp hết hạn")) {
+                    c.setBackground(UIConstants.PRIMARY_BG_SOFT);
+                    c.setForeground(new Color(150, 100, 0));
+                } else {
+                    c.setBackground(Color.WHITE); // Bình thường
+                    c.setForeground(table.getForeground());
+                }
+            }
+            return c;
+        }
+    }
 }
 class MedicineDialog extends JDialog {
     private static final DateTimeFormatter dateFormat=DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -337,7 +550,7 @@ class MedicineDialog extends JDialog {
     private boolean isDataChanged=false;
     private MedicineBUS bus = new MedicineBUS();
     private JFormattedTextField txtExpiryDate;
-    private JTextField txtName, txtUnit, txtCostPrice, txtSellPrice, txtStock, txtMinThreshold,txtDescription;
+    private JTextField txtName, txtUnit, txtCostPrice, txtSellPrice, txtStock, txtMinThreshold,txtDescription,txtManufacturer;
     public MedicineDialog(Frame parent, Medicine medicine) {
         super(parent, medicine == null ? "Thêm Thuốc" : "Sửa Thuốc", true);
         this.currentMedicine = medicine;
@@ -345,27 +558,38 @@ class MedicineDialog extends JDialog {
         if (medicine != null) fillData();
     }
     private void initComponents() {
-        setSize(400, 400);
+        setSize(450, 550);
         setLocationRelativeTo(getParent());
         setLayout(new BorderLayout());
-        JPanel pnl = new JPanel(new GridLayout(8, 2, 10, 15));
+        JPanel pnl = new JPanel(new GridLayout(9, 2, 10, 15));
         pnl.setBorder(new EmptyBorder(20, 20, 20, 20));
         pnl.add(new JLabel("Tên thuốc:")); txtName = new JTextField();
+        txtName.putClientProperty(FlatClientProperties.STYLE, "arc: 10; margin:5,10,5,10");
         pnl.add(txtName);
         pnl.add(new JLabel("Đơn vị:")); txtUnit = new JTextField();
+        txtUnit.putClientProperty(FlatClientProperties.STYLE, "arc: 10; margin:5,10,5,10");
         pnl.add(txtUnit);
         pnl.add(new JLabel("Giá nhập:")); txtCostPrice = new JTextField();
+        txtCostPrice.putClientProperty(FlatClientProperties.STYLE, "arc: 10; margin:5,10,5,10");
         pnl.add(txtCostPrice);
         pnl.add(new JLabel("Giá bán:")); txtSellPrice = new JTextField();
+        txtSellPrice.putClientProperty(FlatClientProperties.STYLE, "arc: 10; margin:5,10,5,10");
         pnl.add(txtSellPrice);
         pnl.add(new JLabel("Tồn kho:")); txtStock = new JTextField();
+        txtStock.putClientProperty(FlatClientProperties.STYLE, "arc: 10; margin:5,10,5,10");
         pnl.add(txtStock);
         pnl.add(new JLabel("Mức báo hết:")); txtMinThreshold = new JTextField();
+        txtMinThreshold.putClientProperty(FlatClientProperties.STYLE, "arc: 10; margin:5,10,5,10");
         pnl.add(txtMinThreshold);
+        pnl.add(new JLabel("Nhà cung cấp")); txtManufacturer = new JTextField();
+        txtManufacturer.putClientProperty(FlatClientProperties.STYLE, "arc: 10; margin:5,10,5,10");
+        pnl.add(txtManufacturer);
         pnl.add(new JLabel("Ngày hết hạn:"));
         txtExpiryDate=new JFormattedTextField(simpleDateFormat); txtExpiryDate.setValue(new Date());
+        txtExpiryDate.putClientProperty(FlatClientProperties.STYLE, "arc: 10; margin:5,10,5,10");
         pnl.add(txtExpiryDate);
         pnl.add(new JLabel("Thông tin thuốc:")); txtDescription=new JTextField();
+        txtDescription.putClientProperty(FlatClientProperties.STYLE, "arc: 10; margin:5,10,5,10");
         pnl.add(txtDescription);
         add(pnl, BorderLayout.CENTER);
 
@@ -386,6 +610,7 @@ class MedicineDialog extends JDialog {
         txtSellPrice.setText(String.valueOf(currentMedicine.getSellPrice()));
         txtStock.setText(String.valueOf(currentMedicine.getStockQty()));
         txtMinThreshold.setText(String.valueOf(currentMedicine.getMinThreshold()));
+        txtManufacturer.setText(currentMedicine.getManufacturer());
         if (currentMedicine.getExpiryDate()!=null) {
             txtExpiryDate.setText(currentMedicine.getExpiryDate().format(dateFormat));
         }
@@ -401,6 +626,7 @@ class MedicineDialog extends JDialog {
             currentMedicine.setSellPrice(parseDouble(txtSellPrice, "Giá bán"));
             currentMedicine.setStockQty(parseInt(txtStock, "Số lượng tồn"));
             currentMedicine.setMinThreshold(parseInt(txtMinThreshold, "Mức báo hết"));
+            currentMedicine.setManufacturer(txtManufacturer.getText().trim());
             currentMedicine.setExpiryDate(LocalDate.parse(txtExpiryDate.getText(), dateFormat));
             currentMedicine.setDescription(txtDescription.getText());
             boolean res = (currentMedicine.getId() == 0) ? bus.insert(currentMedicine) : bus.update(currentMedicine);
