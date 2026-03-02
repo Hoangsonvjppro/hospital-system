@@ -168,6 +168,22 @@ public class PatientPanel extends JPanel {
             JOptionPane.showMessageDialog(this, "Đăng ký thành công. ID bản ghi: " + recordId,
                 "Thành công", JOptionPane.INFORMATION_MESSAGE);
         }
+
+                // Clear form fields so receptionist can immediately enter a new patient
+                try {
+                    txtName.setText("");
+                    txtPhone.setText("");
+                    txtAddress.setText("");
+                    txtDob.setText("");
+                    txtCccd.setText("");
+                    txtAllergy.setText("");
+                    txtNotes.setText("");
+                    cmbGender.setSelectedItem(Patient.Gender.MALE);
+                    chkEmergency.setSelected(false);
+                    table.clearSelection();
+                    txtName.requestFocusInWindow();
+                } catch (Exception ignored) {}
+
                 refreshQueue();
             } catch (BusinessException ex) {
                 JOptionPane.showMessageDialog(this, ex.getMessage(), "Lỗi nghiệp vụ", JOptionPane.ERROR_MESSAGE);
