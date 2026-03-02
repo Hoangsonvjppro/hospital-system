@@ -1,144 +1,177 @@
 package com.hospital.dao;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.Date;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.Types;
+import java.util.ArrayList;
+import java.util.List;
 
-/**
- * DAO bệnh án – tương thích cấu trúc của bạn (dùng Connection).
- * Bao gồm: tạo bệnh án trống + cập nhật chẩn đoán, triệu chứng, sinh hiệu.
- */
+import com.hospital.config.DatabaseConfig;
+import com.hospital.model.MedicalRecord;
+
 public class MedicalRecordDAO {
 
-    private Connection connection;
+    // ================= FIND WAITING =================
+    public List<MedicalRecord> findWaitingRecords() {
 
-    public MedicalRecordDAO(Connection connection) {
-        this.connection = connection;
-    }
+        List<MedicalRecord> list = new ArrayList<>();
 
-    // ── Tạo bệnh án trống và trả về record_id ──────────────────────────────
-    public long createEmptyRecord(long patientId, long doctorId, Long appointmentId) throws SQLException {
+        String sql = "SELECT * FROM medical_record WHERE status = 'WAITING' ORDER BY id ASC";
 
-        String sql = """
-            INSERT INTO MedicalRecord (
-                patient_id,
-                doctor_id,
-                appointment_id,
-                visit_date
-            ) VALUES (?, ?, ?, NOW())
-        """;
+        try (Connection conn = DatabaseConfig.getInstance().getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
 
-        try (PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-
-            ps.setLong(1, patientId);
-            ps.setLong(2, doctorId);
-
-            if (appointmentId != null) {
-                ps.setLong(3, appointmentId);
-            } else {
-                ps.setNull(3, Types.BIGINT);
+            while (rs.next()) {
+                list.add(map(rs));
             }
 
-            ps.executeUpdate();
-
-            ResultSet rs = ps.getGeneratedKeys();
-            if (rs.next()) {
-                return rs.getLong(1);
-            }
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi lấy danh sách hồ sơ chờ khám", e);
         }
 
-        throw new SQLException("Không thể tạo Medical Record");
+        return list;
     }
 
-    // ── Cập nhật chẩn đoán ──────────────────────────────────────────────────
-    public boolean updateDiagnosis(long recordId, String diagnosis) throws SQLException {
+    // ================= UPDATE FULL EXAMINATION =================
+    public boolean updateExamination(MedicalRecord record) {
 
         String sql = """
-            UPDATE MedicalRecord
-               SET diagnosis  = ?,
-                   updated_at = NOW()
-             WHERE record_id  = ?
+            UPDATE medical_record
+            SET symptoms = ?,
+                diagnosis = ?,
+                diagnosis_code = ?,
+                blood_pressure = ?,
+                temperature = ?,
+                pulse = ?,
+                weight = ?,
+                height = ?,
+                doctor_note = ?,
+                follow_up_date = ?,
+                status = ?
+            WHERE id = ?
         """;
 
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setString(1, diagnosis);
-            ps.setLong(2, recordId);
+        try (Connection conn = DatabaseConfig.getInstance().getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, record.getSymptoms());
+            ps.setString(2, record.getDiagnosis());
+            ps.setString(3, record.getDiagnosisCode());
+            ps.setString(4, record.getBloodPressure());
+            ps.setDouble(5, record.getTemperature());
+            ps.setInt(6, record.getPulse());
+            ps.setDouble(7, record.getWeight());
+            ps.setDouble(8, record.getHeight());
+            ps.setString(9, record.getDoctorNote());
+
+            if (record.getFollowUpDate() != null)
+                ps.setDate(10, Date.valueOf(record.getFollowUpDate()));
+            else
+                ps.setNull(10, Types.DATE);
+
+            ps.setString(11, record.getStatus());
+            ps.setLong(12, record.getId());
+
             return ps.executeUpdate() > 0;
+
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi cập nhật khám bệnh", e);
         }
     }
 
-    // ── Cập nhật triệu chứng ────────────────────────────────────────────────
-    public boolean updateSymptoms(long recordId, String symptoms) throws SQLException {
+    // ================= UPDATE VITAL SIGNS ONLY =================
+    public boolean updateVitalSigns(long recordId,
+                                    double temperature,
+                                    String bloodPressure,
+                                    int pulse,
+                                    double weight,
+                                    double height) {
 
         String sql = """
-            UPDATE MedicalRecord
-               SET symptoms   = ?,
-                   updated_at = NOW()
-             WHERE record_id  = ?
+            UPDATE medical_record
+            SET temperature = ?,
+                blood_pressure = ?,
+                pulse = ?,
+                weight = ?,
+                height = ?
+            WHERE id = ?
         """;
 
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setString(1, symptoms);
-            ps.setLong(2, recordId);
+        try (Connection conn = DatabaseConfig.getInstance().getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setDouble(1, temperature);
+            ps.setString(2, bloodPressure);
+            ps.setInt(3, pulse);
+            ps.setDouble(4, weight);
+            ps.setDouble(5, height);
+            ps.setLong(6, recordId);
+
             return ps.executeUpdate() > 0;
+
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi cập nhật sinh hiệu", e);
         }
     }
 
-    // ── Cập nhật chẩn đoán + triệu chứng cùng lúc ─────────────────────────
-    public boolean updateDiagnosisAndSymptoms(long recordId, String diagnosis, String symptoms) throws SQLException {
+    // ================= UPDATE DIAGNOSIS + SYMPTOMS =================
+    public boolean updateDiagnosisAndSymptoms(long recordId,
+                                              String diagnosis,
+                                              String symptoms) {
 
         String sql = """
-            UPDATE MedicalRecord
-               SET diagnosis  = ?,
-                   symptoms   = ?,
-                   updated_at = NOW()
-             WHERE record_id  = ?
+            UPDATE medical_record
+            SET diagnosis = ?,
+                symptoms = ?
+            WHERE id = ?
         """;
 
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
+        try (Connection conn = DatabaseConfig.getInstance().getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
             ps.setString(1, diagnosis);
             ps.setString(2, symptoms);
             ps.setLong(3, recordId);
+
             return ps.executeUpdate() > 0;
+
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi cập nhật chẩn đoán", e);
         }
     }
 
-    // ── Cập nhật sinh hiệu (vital signs) ───────────────────────────────────
-    public boolean updateVitalSigns(long recordId, double weight, double height,
-                                     String bloodPressure, int pulse) throws SQLException {
+    // ================= MAP RESULTSET =================
+    private MedicalRecord map(ResultSet rs) {
 
-        String sql = """
-            UPDATE MedicalRecord
-               SET weight         = ?,
-                   height         = ?,
-                   blood_pressure = ?,
-                   pulse          = ?,
-                   updated_at     = NOW()
-             WHERE record_id      = ?
-        """;
+        try {
 
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setDouble(1, weight);
-            ps.setDouble(2, height);
-            ps.setString(3, bloodPressure);
-            ps.setInt(4, pulse);
-            ps.setLong(5, recordId);
-            return ps.executeUpdate() > 0;
-        }
-    }
+            MedicalRecord r = new MedicalRecord();
 
-    // ── Cập nhật trạng thái bệnh án ────────────────────────────────────────
-    public boolean updateStatus(long recordId, String status) throws SQLException {
+            r.setId(rs.getLong("id"));
+            r.setPatientId(rs.getLong("patient_id"));
+            r.setDoctorId(rs.getLong("doctor_id"));
+            r.setSymptoms(rs.getString("symptoms"));
+            r.setDiagnosis(rs.getString("diagnosis"));
+            r.setDiagnosisCode(rs.getString("diagnosis_code"));
+            r.setBloodPressure(rs.getString("blood_pressure"));
+            r.setTemperature(rs.getDouble("temperature"));
+            r.setPulse(rs.getInt("pulse"));
+            r.setWeight(rs.getDouble("weight"));
+            r.setHeight(rs.getDouble("height"));
+            r.setDoctorNote(rs.getString("doctor_note"));
+            r.setStatus(rs.getString("status"));
 
-        String sql = """
-            UPDATE MedicalRecord
-               SET status     = ?,
-                   updated_at = NOW()
-             WHERE record_id  = ?
-        """;
+            Date follow = rs.getDate("follow_up_date");
+            if (follow != null)
+                r.setFollowUpDate(follow.toLocalDate());
 
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setString(1, status);
-            ps.setLong(2, recordId);
-            return ps.executeUpdate() > 0;
+            return r;
+
+        } catch (Exception e) {
+            throw new RuntimeException("Lỗi map MedicalRecord", e);
         }
     }
 }
