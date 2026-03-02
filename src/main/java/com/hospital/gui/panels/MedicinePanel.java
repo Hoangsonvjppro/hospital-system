@@ -66,6 +66,7 @@ public class MedicinePanel extends JPanel {
         tabbedPane.setFont(UIConstants.FONT_BOLD);
         tabbedPane.addTab("Quản lý kho thuốc",createMedicinePanel());
         tabbedPane.addTab("Phát thuốc",createDispenseMedicinePanel());
+        tabbedPane.addTab("Báo cáo & Thống kê", createReportTab());
         add(tabbedPane);
         loadMedicineData();
         addEvents();
@@ -221,6 +222,35 @@ public class MedicinePanel extends JPanel {
         return pnl;
     }
 
+    private JPanel createReportTab() {
+        JPanel pnlReport = new JPanel(new GridLayout(1, 2, 20, 0)); // Chia làm 2 cột
+        pnlReport.setBackground(UIConstants.CONTENT_BG);
+        pnlReport.setBorder(new EmptyBorder(20, 20, 20, 20));
+        JPanel pnlExpiring = new JPanel(new BorderLayout());
+        pnlExpiring.setBorder(BorderFactory.createTitledBorder("CẢNH BÁO: Thuốc sắp hết hạn (Dưới 30 ngày)"));
+        String[] colExpiring = {"Tên Thuốc", "Ngày Hết Hạn", "Tồn Kho"};
+        DefaultTableModel modExpiring = new DefaultTableModel(colExpiring, 0);
+        JTable tblExpiring = new JTable(modExpiring);
+        List<Medicine> expiringList = medicineBUS.getExpiredMedicinesList(); // Cần wrap lại qua BUS
+        for (Medicine m : expiringList) {
+            modExpiring.addRow(new Object[]{m.getMedicineName(), m.getExpiryDate().format(dateFormatter), m.getStockQty()});
+        }
+        pnlExpiring.add(new JScrollPane(tblExpiring), BorderLayout.CENTER);
+        JPanel pnlTopExport = new JPanel(new BorderLayout());
+        pnlTopExport.setBorder(BorderFactory.createTitledBorder("Top 10 thuốc xuất kho nhiều nhất"));
+        String[] colTop = {"Tên Thuốc", "Tổng SL Đã Xuất"};
+        DefaultTableModel modTop = new DefaultTableModel(colTop, 0);
+        JTable tblTop = new JTable(modTop);
+        List<Object[]> topList = medicineBUS.getTopExportedMedicinesList();
+        for (Object[] row : topList) {
+            modTop.addRow(row);
+        }
+        pnlTopExport.add(new JScrollPane(tblTop), BorderLayout.CENTER);
+        pnlReport.add(pnlExpiring);
+        pnlReport.add(pnlTopExport);
+        return pnlReport;
+    }
+
 
     private JPanel createKPICard(String title, JLabel lblValue, String unit, String badge, Color leftBorderColor) {
         JPanel card = new JPanel(new BorderLayout());
@@ -295,6 +325,9 @@ public class MedicinePanel extends JPanel {
             JPopupMenu popupMenu = new JPopupMenu();
             JMenuItem itemEdit = new JMenuItem("Sửa thông tin thuốc");
             JMenuItem itemDelete = new JMenuItem("Xóa thuốc này");
+            JMenuItem itemImport=new JMenuItem("Nhập thêm");
+            popupMenu.add(itemImport);
+            popupMenu.addSeparator();
             popupMenu.add(itemEdit);
             popupMenu.addSeparator();
             popupMenu.add(itemDelete);
@@ -310,6 +343,28 @@ public class MedicinePanel extends JPanel {
                     }
                 }
             });
+        itemImport.addActionListener(e -> {
+            int row = table.getSelectedRow();
+            if (row >= 0) {
+                Medicine selectedMedicine = currentList.get(row);
+                String qtyStr = JOptionPane.showInputDialog(this,
+                        "Nhập số lượng nhập kho cho thuốc '" + selectedMedicine.getMedicineName() + "':",
+                        "Nhập kho", JOptionPane.QUESTION_MESSAGE);
+                if (qtyStr != null && !qtyStr.trim().isEmpty()) {
+                    try {
+                        int qty = Integer.parseInt(qtyStr);
+                        // Giả định currentUserId = 1 (hoặc lấy từ phiên đăng nhập thực tế)
+                        medicineBUS.importStock(selectedMedicine.getId(), qty, 1, "Nhập kho bổ sung từ giao diện");
+                        JOptionPane.showMessageDialog(this, "Nhập kho thành công!");
+                        loadMedicineData();
+                    } catch (NumberFormatException ex) {
+                        JOptionPane.showMessageDialog(this, "Vui lòng nhập số nguyên hợp lệ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    } catch (Exception ex) {
+                        JOptionPane.showMessageDialog(this, ex.getMessage(), "Lỗi nhập kho", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            }
+        });
             itemEdit.addActionListener(e -> {
                 int row=table.getSelectedRow();
                 if (row >= 0) {

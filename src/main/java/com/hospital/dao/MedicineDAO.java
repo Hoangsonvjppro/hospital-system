@@ -225,6 +225,71 @@ public class MedicineDAO implements BaseDAO<Medicine> {
         }
         return arr;
     }
+    //nhập kho bằng Transaction
+    public boolean importMedicineStock(int medicineId, int importQty, int userId, String notes) throws Exception {
+        Connection conn = null;
+        try {
+            conn = DatabaseConfig.getInstance().getConnection();
+            conn.setAutoCommit(false); // Bắt đầu Transaction
+            String checkStockSql = "select stock_qty FROM Medicine where medicine_id = ? for update";
+            int stockBefore = 0;
+            try (PreparedStatement psCheck = conn.prepareStatement(checkStockSql)) {
+                psCheck.setInt(1, medicineId);
+                try (ResultSet rs = psCheck.executeQuery()) {
+                    if (rs.next()) stockBefore = rs.getInt("stock_qty");
+                    else throw new Exception("Không tìm thấy thuốc!");
+                }
+            }
+            int stockAfter = stockBefore + importQty;
+            String updateSQL = "update Medicine set stock_qty = ? where medicine_id = ?";
+            try (PreparedStatement psUpdate = conn.prepareStatement(updateSQL)) {
+                psUpdate.setInt(1, stockAfter);
+                psUpdate.setInt(2, medicineId);
+                psUpdate.executeUpdate();
+            }
+            String sql = "insert into StockTransaction " +
+                    "(medicine_id, transaction_type, quantity, stock_before, stock_after, reference_type, notes, created_by) " +
+                    "values (?, 'IMPORT', ?, ?, ?, 'MANUAL_IMPORT', ?, ?)";
+            try (PreparedStatement psTrans = conn.prepareStatement(sql)) {
+                psTrans.setInt(1, medicineId);
+                psTrans.setInt(2, importQty); // Nhập kho -> quantity dương
+                psTrans.setInt(3, stockBefore);
+                psTrans.setInt(4, stockAfter);
+                psTrans.setString(5, notes);
+                psTrans.setInt(6, userId);
+                psTrans.executeUpdate();
+            }
+            conn.commit();
+            return true;
+        } catch (SQLException e) {
+            if (conn != null) try { conn.rollback(); } catch (SQLException ignored) {}
+            throw new DataAccessException("Lỗi Database khi nhập kho: " + e.getMessage(), e);
+        } finally {
+            if (conn != null) {
+                try { conn.setAutoCommit(true); conn.close(); } catch (SQLException ignored) {}
+            }
+        }
+    }
+    //Top thuốc xuất
+    public List<Object[]> getTopExportedMedicines() {
+        List<Object[]> list = new ArrayList<>();
+        String sql = "select m.medicine_name, sum(abs(s.quantity)) as total_exported " +
+                "from StockTransaction s JOIN Medicine m ON s.medicine_id = m.medicine_id " +
+                "where s.transaction_type = 'EXPORT' " +
+                "group by s.medicine_id, m.medicine_name " +
+                "order by total_exported desc limit 10";
+
+        try (Connection conn = DatabaseConfig.getInstance().getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                list.add(new Object[]{rs.getString("medicine_name"), rs.getInt("total_exported")});
+            }
+        } catch (SQLException e) {
+            throw new DataAccessException("Lỗi truy vấn top thuốc xuất", e);
+        }
+        return list;
+    }
 
     private Medicine mapResultSet(ResultSet rs) throws SQLException {
         Medicine thuoc = new Medicine();

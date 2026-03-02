@@ -82,4 +82,14 @@ public class MedicineBUS extends BaseBUS<Medicine> {
     public List<Medicine> getLowStockMedicinesList(){
         return medicineDAO.getLowStockMedicines();
     }
+    public List<Object[]> getTopExportedMedicinesList(){
+        return medicineDAO.getTopExportedMedicines();
+    }
+    public boolean importStock(int medicineId, int importQty, int userId, String notes) throws Exception {
+        if (importQty<=0) {
+            throw new BusinessException("Số lượng nhập phải lớn hơn 0.");
+        }
+        return medicineDAO.importMedicineStock(medicineId, importQty, userId, notes);
+    }
+
 }
