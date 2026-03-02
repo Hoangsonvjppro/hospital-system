@@ -1,8 +1,11 @@
 package com.hospital.gui;
 
 import com.hospital.gui.panels.DoctorDashboardPanel;
+import com.hospital.gui.panels.DoctorSchedulePanel;
 import com.hospital.gui.panels.DoctorWorkstationPanel;
 import com.hospital.gui.panels.ExaminationPanel;
+import com.hospital.gui.panels.LabResultPanel;
+import com.hospital.gui.panels.PatientAllergyPanel;
 import com.hospital.model.Account;
 
 import javax.swing.*;
@@ -25,7 +28,20 @@ public class DoctorFrame extends BaseFrame {
         addMenuItem("🩺", "Khám bệnh",
                 () -> showPanel(new DoctorWorkstationPanel()));
 
-        addDisabledMenuItem("📝", "Kê đơn");
+        addMenuItem("📅", "Lịch khám",
+                () -> showPanel(new DoctorSchedulePanel()));
+
+        addMenuItem("📝", "Kê đơn",
+                () -> showPanel(new DoctorWorkstationPanel()));
+
+        addMenuItem("🔬", "Kết quả xét nghiệm",
+                () -> showPanel(new LabResultPanel()));
+
+        addSeparator();
+        addSectionLabel("Hồ sơ");
+
+        addMenuItem("⚠", "Dị ứng bệnh nhân",
+                () -> showPanel(new PatientAllergyPanel()));
     }
 
     @Override

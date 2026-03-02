@@ -9,8 +9,10 @@ import com.hospital.model.PrescriptionDetail;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 
 public class MedicineExportBUS {
+    private static final Logger LOGGER = Logger.getLogger(MedicineExportBUS.class.getName());
     private final MedicineExportDAO exportDAO;
     private final MedicineDAO medicineDAO;
 
@@ -49,7 +51,7 @@ public class MedicineExportBUS {
             if(!allowPartialExport){
                 throw new BusinessException(errorMsg + "\n\nXuất thuốc thất bại. Vui lòng nhập thêm kho hoặc đánh dấu 'Cho phép xuất một phần'.");
             }
-            System.out.println("Tiến hành xuất kho một phần. Các thuốc thiếu:\n" + errorMsg);//test thử
+            LOGGER.info("Tiến hành xuất kho một phần. Các thuốc thiếu:\n" + errorMsg);
         }
         // B3: Tiến hành gọi DAO để xuất các thuốc ĐỦ ĐIỀU KIỆN
         int successCount=0;

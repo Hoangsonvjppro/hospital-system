@@ -3,6 +3,9 @@ package com.hospital.gui;
 import com.hospital.bus.AccountBUS;
 import com.hospital.gui.components.RoundedBorder;
 import com.hospital.gui.components.RoundedPanel;
+
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import com.hospital.model.Account;
 import com.hospital.model.Role;
 import com.hospital.util.SessionManager;
@@ -18,6 +21,8 @@ import java.awt.geom.RoundRectangle2D;
  * Login screen for the Hospital Management System.
  */
 public class LoginFrame extends JFrame {
+
+    private static final Logger LOGGER = Logger.getLogger(LoginFrame.class.getName());
 
     // Tất cả màu/font dùng UIConstants — KHÔNG khai báo cục bộ.
 
@@ -484,7 +489,7 @@ public class LoginFrame extends JFrame {
                     }
                 } catch (Exception ex) {
                     lblGeneralError.setText("Lỗi kết nối! Vui lòng thử lại sau.");
-                    ex.printStackTrace();
+                    LOGGER.log(Level.SEVERE, "Lỗi đăng nhập", ex);
                 } finally {
                     btnLogin.setEnabled(true);
                     btnLogin.setText("Đăng nhập");

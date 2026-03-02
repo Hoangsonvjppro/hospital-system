@@ -7,6 +7,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Tiện ích seed 3 user demo vào database.
@@ -14,51 +16,52 @@ import java.sql.SQLException;
  */
 public class DataSeeder {
 
+    private static final Logger LOGGER = Logger.getLogger(DataSeeder.class.getName());
+
     public static void main(String[] args) {
-        System.err.println("=== DataSeeder BẮT ĐẦU ===");
+        LOGGER.info("=== DataSeeder BẮT ĐẦU ===");
 
         String plainPassword = "password";
         String hash = BCrypt.hashpw(plainPassword, BCrypt.gensalt(10));
-        System.err.println("[1] Generated hash: " + hash);
+        LOGGER.info("[1] Generated hash: " + hash);
 
         // Verify hash ngay lập tức
         boolean verified = BCrypt.checkpw(plainPassword, hash);
-        System.err.println("[2] Verify hash: " + (verified ? "OK ✅" : "FAIL ❌"));
+        LOGGER.info("[2] Verify hash: " + (verified ? "OK ✅" : "FAIL ❌"));
 
         if (!verified) {
-            System.err.println("BCrypt thư viện có vấn đề! Dừng lại.");
+            LOGGER.severe("BCrypt thư viện có vấn đề! Dừng lại.");
             return;
         }
 
         try {
             Connection conn = DatabaseConfig.getInstance().getConnection();
-            System.err.println("[3] Kết nối DB thành công ✅");
+            LOGGER.info("[3] Kết nối DB thành công ✅");
 
             // Update password hash cho tất cả user
             String updateSql = "UPDATE `User` SET password_hash = ? WHERE username IN ('admin', 'doctor', 'doctor2', 'letan', 'ketoan', 'nurse1')";
             PreparedStatement ps = conn.prepareStatement(updateSql);
             ps.setString(1, hash);
             int rows = ps.executeUpdate();
-            System.err.println("[4] Updated " + rows + " users ✅");
+            LOGGER.info("[4] Updated " + rows + " users ✅");
 
             // Kiểm tra lại
             String selectSql = "SELECT user_id, username, password_hash, role_id FROM `User`";
             ResultSet rs = conn.createStatement().executeQuery(selectSql);
-            System.err.println("[5] Danh sách user trong DB:");
+            LOGGER.info("[5] Danh sách user trong DB:");
             while (rs.next()) {
                 String username = rs.getString("username");
                 String dbHash = rs.getString("password_hash");
                 long roleId = rs.getLong("role_id");
                 boolean check = BCrypt.checkpw(plainPassword, dbHash);
-                System.err.println("    " + username + " | role=" + roleId
+                LOGGER.info("    " + username + " | role=" + roleId
                         + " | checkpw='" + plainPassword + "' → " + (check ? "OK ✅" : "FAIL ❌"));
             }
 
-            System.err.println("=== DataSeeder HOÀN TẤT ===");
+            LOGGER.info("=== DataSeeder HOÀN TẤT ===");
 
         } catch (SQLException e) {
-            System.err.println("❌ Lỗi DB: " + e.getMessage());
-            e.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Lỗi DB", e);
         }
     }
 }

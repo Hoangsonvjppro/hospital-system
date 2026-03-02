@@ -1,5 +1,6 @@
 package com.hospital.gui;
 
+import com.hospital.gui.panels.DispensingPanel;
 import com.hospital.gui.panels.MedicinePanel;
 import com.hospital.model.Account;
 
@@ -20,7 +21,8 @@ public class PharmacistFrame extends BaseFrame {
         addMenuItem("💊", "Quản lý kho",
                 () -> showPanel(new MedicinePanel()));
 
-        addDisabledMenuItem("💉", "Phát thuốc");
+        addMenuItem("💉", "Phát thuốc",
+                () -> showPanel(new DispensingPanel()));
     }
 
     @Override

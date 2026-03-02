@@ -4,6 +4,8 @@ import com.hospital.dao.AccountDAO;
 import com.hospital.model.Account;
 import org.mindrot.jbcrypt.BCrypt;
 
+import java.util.logging.Logger;
+
 /**
  * BUS cho tài khoản — xử lý nghiệp vụ đăng nhập, đăng ký, validate.
  * Account BUS — handles login, registration, and validation logic.
@@ -15,6 +17,8 @@ import org.mindrot.jbcrypt.BCrypt;
  * - BCrypt hash/verify password được thực hiện ở đây, KHÔNG ở DAO.
  */
 public class AccountBUS extends BaseBUS<Account> {
+
+    private static final Logger LOGGER = Logger.getLogger(AccountBUS.class.getName());
 
     // Cast sang AccountDAO để truy cập findByUsername(), existsByUsername()
     private AccountDAO accountDAO;
@@ -29,28 +33,22 @@ public class AccountBUS extends BaseBUS<Account> {
     // ── Validate ──────────────────────────────────────────────
 
     @Override
-    protected boolean validate(Account entity) {
+    protected void validate(Account entity) {
         if (entity.getUsername() == null || entity.getUsername().trim().isEmpty()) {
-            System.err.println("Lỗi: Tên đăng nhập không được để trống!");
-            return false;
+            throw new com.hospital.exception.BusinessException("Tên đăng nhập không được để trống");
         }
         if (entity.getFullName() == null || entity.getFullName().trim().isEmpty()) {
-            System.err.println("Lỗi: Họ tên không được để trống!");
-            return false;
+            throw new com.hospital.exception.BusinessException("Họ tên không được để trống");
         }
         if (entity.getEmail() == null || entity.getEmail().trim().isEmpty()) {
-            System.err.println("Lỗi: Email không được để trống!");
-            return false;
+            throw new com.hospital.exception.BusinessException("Email không được để trống");
         }
         if (entity.getPhone() == null || entity.getPhone().trim().isEmpty()) {
-            System.err.println("Lỗi: Số điện thoại không được để trống!");
-            return false;
+            throw new com.hospital.exception.BusinessException("Số điện thoại không được để trống");
         }
         if (entity.getRoleId() <= 0) {
-            System.err.println("Lỗi: Tài khoản chưa được phân quyền!");
-            return false;
+            throw new com.hospital.exception.BusinessException("Tài khoản chưa được phân quyền");
         }
-        return true;
     }
 
     // ── Đăng nhập ─────────────────────────────────────────────
@@ -66,11 +64,11 @@ public class AccountBUS extends BaseBUS<Account> {
      */
     public Account login(String username, String password) {
         if (username == null || username.trim().isEmpty()) {
-            System.err.println("Lỗi: Tên đăng nhập không được để trống!");
+            LOGGER.warning("Tên đăng nhập không được để trống!");
             return null;
         }
         if (password == null || password.isEmpty()) {
-            System.err.println("Lỗi: Mật khẩu không được để trống!");
+            LOGGER.warning("Mật khẩu không được để trống!");
             return null;
         }
 
@@ -78,13 +76,13 @@ public class AccountBUS extends BaseBUS<Account> {
         Account account = accountDAO.findByUsername(username.trim());
 
         if (account == null) {
-            System.err.println("Lỗi: Tên đăng nhập không tồn tại hoặc tài khoản đã bị vô hiệu hoá!");
+            LOGGER.warning("Tên đăng nhập không tồn tại hoặc tài khoản đã bị vô hiệu hoá!");
             return null;
         }
 
         // So sánh BCrypt hash ở tầng BUS
         if (!BCrypt.checkpw(password, account.getPasswordHash())) {
-            System.err.println("Lỗi: Mật khẩu không chính xác!");
+            LOGGER.warning("Mật khẩu không chính xác!");
             return null;
         }
 
@@ -103,21 +101,16 @@ public class AccountBUS extends BaseBUS<Account> {
      */
     public boolean insert(Account account, String password) {
         // 1. Validate entity
-        if (!validate(account)) {
-            return false;
-        }
+        validate(account);
 
         // 2. Kiểm tra username trùng
         if (accountDAO.existsByUsername(account.getUsername())) {
-            System.err.println("Lỗi: Tên đăng nhập '" + account.getUsername() + "' đã tồn tại!");
-            return false;
+            throw new com.hospital.exception.BusinessException("Tên đăng nhập '" + account.getUsername() + "' đã tồn tại");
         }
 
         // 3. Kiểm tra mật khẩu đủ mạnh
         if (!isStrongPassword(password)) {
-            System.err.println("Lỗi: Mật khẩu không đủ mạnh! "
-                    + "Yêu cầu ít nhất 8 ký tự, gồm chữ hoa, chữ thường và số.");
-            return false;
+            throw new com.hospital.exception.BusinessException("Mật khẩu không đủ mạnh! Yêu cầu ít nhất 8 ký tự, gồm chữ hoa, chữ thường và số.");
         }
 
         // 4. Hash mật khẩu bằng BCrypt rồi gán vào entity
@@ -144,5 +137,42 @@ public class AccountBUS extends BaseBUS<Account> {
         // Ít nhất 1 chữ thường, 1 chữ hoa, 1 số
         String regex = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$";
         return password.matches(regex);
+    }
+
+    // ── Quản lý tài khoản ─────────────────────────────────────
+
+    /**
+     * Bật/tắt trạng thái hoạt động của tài khoản.
+     */
+    public boolean toggleActive(int accountId) {
+        Account acc = accountDAO.findById(accountId);
+        if (acc == null) throw new com.hospital.exception.BusinessException("Không tìm thấy tài khoản");
+        acc.setActive(!acc.isActive());
+        return accountDAO.update(acc);
+    }
+
+    /**
+     * Reset mật khẩu về giá trị mặc định (password).
+     */
+    public boolean resetPassword(int accountId) {
+        Account acc = accountDAO.findById(accountId);
+        if (acc == null) throw new com.hospital.exception.BusinessException("Không tìm thấy tài khoản");
+        String hash = BCrypt.hashpw("password", BCrypt.gensalt(10));
+        acc.setPasswordHash(hash);
+        return accountDAO.update(acc);
+    }
+
+    /**
+     * Đổi mật khẩu cho tài khoản xác định.
+     */
+    public boolean changePassword(int accountId, String newPassword) {
+        if (!isStrongPassword(newPassword)) {
+            throw new com.hospital.exception.BusinessException("Mật khẩu không đủ mạnh! Yêu cầu ít nhất 8 ký tự, gồm chữ hoa, chữ thường và số.");
+        }
+        Account acc = accountDAO.findById(accountId);
+        if (acc == null) throw new com.hospital.exception.BusinessException("Không tìm thấy tài khoản");
+        String hash = BCrypt.hashpw(newPassword, BCrypt.gensalt(10));
+        acc.setPasswordHash(hash);
+        return accountDAO.update(acc);
     }
 }

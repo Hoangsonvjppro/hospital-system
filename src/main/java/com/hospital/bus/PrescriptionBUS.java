@@ -9,17 +9,17 @@ import com.hospital.model.Medicine;
 import com.hospital.model.Prescription;
 import com.hospital.model.PrescriptionDetail;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Logger;
 
 /**
  * Business logic cho đơn thuốc (Prescription).
  */
 public class PrescriptionBUS {
+
+    private static final Logger LOGGER = Logger.getLogger(PrescriptionBUS.class.getName());
 
     private final PrescriptionDAO prescriptionDAO = new PrescriptionDAO();
     private final MedicineDAO medicineDAO = new MedicineDAO();
@@ -133,7 +133,7 @@ public class PrescriptionBUS {
             }
         } catch (SQLException e) {
             // Log but don't block prescription
-            System.err.println("Lỗi kiểm tra dị ứng: " + e.getMessage());
+            LOGGER.warning("Lỗi kiểm tra dị ứng: " + e.getMessage());
         }
         return warnings;
     }

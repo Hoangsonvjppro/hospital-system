@@ -24,10 +24,12 @@ public class Patient extends BaseModel {
     private String notes;          // Ghi chu bo sung
 
     // -- Truong workflow (transient, phuc vu hang doi kham) --
-    private String patientCode;   // Ma BN hien thi (vd: "BN001")
+    // Khong luu trong bang Patient, duoc populate boi QueueDAO khi load danh sach hang doi.
+    // Dung boi: DoctorWorkstationPanel, ExaminationPanel, ReceptionPanel.
+    private String patientCode;   // Ma BN hien thi (vd: "BN001") — tu QueueDAO
     private String status;        // WAITING / EXAMINING / COMPLETED / TRANSFERRED
-    private String examType;      // Loai kham (vd: "Kham tong quat")
-    private String arrivalTime;   // Gio den (vd: "08:30")
+    private String examType;      // Loai kham (vd: "Kham tong quat") — tu MedicalRecord.exam_type
+    private String arrivalTime;   // Gio den (vd: "08:30") — tu MedicalRecord.arrival_time
     private long currentRecordId; // Record ID hien tai (dung cho queue workflow)
 
     public enum Gender {

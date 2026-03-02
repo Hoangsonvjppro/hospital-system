@@ -3,6 +3,7 @@ package com.hospital.gui.panels;
 import com.hospital.bus.DoctorBUS;
 import com.hospital.bus.PatientBUS;
 import com.hospital.bus.QueueBUS;
+import com.hospital.exception.BusinessException;
 import com.hospital.gui.UIConstants;
 import com.hospital.gui.components.RoundedButton;
 import com.hospital.gui.components.RoundedPanel;
@@ -208,7 +209,16 @@ public class ExaminationPanel extends JPanel {
         queueBUS.getWaitingPatients().stream()
             .filter(p -> p.getPatientCode().equals(code))
             .findFirst()
-            .ifPresent(p -> { queueBUS.updateQueueStatus(p.getCurrentRecordId(), "EXAMINING"); loadWaiting(); });
+            .ifPresent(p -> {
+                try {
+                    queueBUS.updateQueueStatus(p.getCurrentRecordId(), "EXAMINING");
+                    loadWaiting();
+                } catch (BusinessException ex) {
+                    JOptionPane.showMessageDialog(ExaminationPanel.this, ex.getMessage(), "Lỗi nghiệp vụ", JOptionPane.WARNING_MESSAGE);
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(ExaminationPanel.this, "Lỗi hệ thống: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                }
+            });
         JOptionPane.showMessageDialog(this, "Đã gọi bệnh nhân vào phòng khám.", "Gọi khám", JOptionPane.INFORMATION_MESSAGE);
     }
 

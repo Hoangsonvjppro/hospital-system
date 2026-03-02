@@ -51,7 +51,8 @@ public class AdminFrame extends BaseFrame {
         addSeparator();
         addSectionLabel("Hệ thống");
 
-        addDisabledMenuItem("👤", "Quản lý tài khoản");
+        addMenuItem("👤", "Quản lý tài khoản",
+                () -> showPanel(new AccountManagementPanel()));
         addMenuItem("⚙️", "Cấu hình phòng khám",
                 () -> showPanel(new ClinicConfigPanel()));
     }

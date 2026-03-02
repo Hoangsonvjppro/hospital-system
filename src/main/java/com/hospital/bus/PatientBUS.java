@@ -27,7 +27,7 @@ public class PatientBUS extends BaseBUS<Patient> {
     }
 
     @Override
-    protected boolean validate(Patient entity) {
+    protected void validate(Patient entity) {
 
         if (AppUtils.isNullOrEmpty(entity.getFullName())) {
             throw new BusinessException("Tên bệnh nhân không được để trống.");
@@ -41,22 +41,13 @@ public class PatientBUS extends BaseBUS<Patient> {
             throw new BusinessException("SĐT phải đủ 10 chữ số.");
         }
 
-        // Normalize phone (keep digits only) for comparison
-        String normalizedPhone = entity.getPhone() != null ? entity.getPhone().replaceAll("\\D", "") : null;
-        // Kiểm tra SĐT không trùng với bệnh nhân khác bằng cách quét toàn bộ DB (đảm bảo so sánh toàn repository)
+        // Kiểm tra SĐT không trùng với bệnh nhân khác
         try {
-            for (com.hospital.model.Patient p : dao.findAll()) {
-                if (p == null) continue;
-                try {
-                    String pPhone = p.getPhone() != null ? p.getPhone().replaceAll("\\D", "") : null;
-                    if (normalizedPhone != null && normalizedPhone.equals(pPhone) && p.getId() != entity.getId()) {
-                        throw new BusinessException("SĐT đã tồn tại cho bệnh nhân khác.");
-                    }
-                } catch (BusinessException be) { throw be; } catch (Exception ignored) {}
+            com.hospital.model.Patient byPhone = ((PatientDAO) dao).findByPhone(entity.getPhone());
+            if (byPhone != null && byPhone.getId() != entity.getId()) {
+                throw new BusinessException("SĐT đã tồn tại cho bệnh nhân khác.");
             }
-        } catch (BusinessException be) { throw be; } catch (Exception ex) {
-            // ignore errors from fallback scan (e.g., DB issues) and continue to other checks
-        }
+        } catch (BusinessException be) { throw be; } catch (Exception ignored) {}
 
         // CCCD: bắt buộc và phải là 12 chữ số
         if (AppUtils.isNullOrEmpty(entity.getCccd())) {
@@ -66,20 +57,13 @@ public class PatientBUS extends BaseBUS<Patient> {
             throw new BusinessException("CCCD phải là 12 chữ số.");
         }
 
-        // Kiểm tra CCCD không trùng với bệnh nhân khác bằng cách quét toàn bộ DB
+        // Kiểm tra CCCD không trùng với bệnh nhân khác
         try {
-            for (com.hospital.model.Patient p : dao.findAll()) {
-                if (p == null) continue;
-                try {
-                    String pCccd = p.getCccd();
-                    if (entity.getCccd() != null && entity.getCccd().equals(pCccd) && p.getId() != entity.getId()) {
-                        throw new BusinessException("CCCD đã tồn tại cho bệnh nhân khác.");
-                    }
-                } catch (BusinessException be) { throw be; } catch (Exception ignored) {}
+            com.hospital.model.Patient byCccd = ((PatientDAO) dao).findByCccd(entity.getCccd());
+            if (byCccd != null && byCccd.getId() != entity.getId()) {
+                throw new BusinessException("CCCD đã tồn tại cho bệnh nhân khác.");
             }
-        } catch (BusinessException be) { throw be; } catch (Exception ex) {
-            // ignore errors from fallback scan
-        }
+        } catch (BusinessException be) { throw be; } catch (Exception ignored) {}
 
         // Tuổi hợp lệ nếu có ngày sinh
         // Ngày sinh bắt buộc theo schema DB
@@ -91,7 +75,5 @@ public class PatientBUS extends BaseBUS<Patient> {
                 throw new BusinessException("Tuổi không hợp lệ.");
             }
         }
-
-        return true;
     }
 }

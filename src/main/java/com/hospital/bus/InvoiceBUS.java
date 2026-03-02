@@ -3,14 +3,13 @@ package com.hospital.bus;
 import com.hospital.config.DatabaseConfig;
 import com.hospital.dao.InvoiceDAO;
 import com.hospital.exception.BusinessException;
-import com.hospital.model.ClinicConfig;
 import com.hospital.model.Invoice;
 import com.hospital.model.InvoiceMedicineDetail;
 import com.hospital.model.InvoiceServiceDetail;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -36,11 +35,11 @@ public class InvoiceBUS extends BaseBUS<Invoice> {
     }
 
     @Override
-    protected boolean validate(Invoice inv) {
-        if (inv == null) return false;
-        if (inv.getPatientId() <= 0) return false;
-        if (inv.getExamFee() < 0 || inv.getMedicineFee() < 0) return false;
-        return true;
+    protected void validate(Invoice inv) {
+        if (inv == null) throw new BusinessException("Dữ liệu hóa đơn không hợp lệ");
+        if (inv.getPatientId() <= 0) throw new BusinessException("Mã bệnh nhân không hợp lệ");
+        if (inv.getExamFee() < 0 || inv.getMedicineFee() < 0)
+            throw new BusinessException("Phí khám hoặc tiền thuốc không được âm");
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -119,72 +118,29 @@ public class InvoiceBUS extends BaseBUS<Invoice> {
         Connection conn = null;
         try {
             conn = DatabaseConfig.getInstance().getTransactionalConnection();
+            InvoiceDAO txDao = new InvoiceDAO(conn);
 
             // 1. Lấy thông tin bệnh án
-            long patientId;
-            try (PreparedStatement ps = conn.prepareStatement(
-                    "SELECT patient_id FROM MedicalRecord WHERE record_id = ?")) {
-                ps.setLong(1, medicalRecordId);
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (!rs.next()) {
-                        throw new BusinessException("Không tìm thấy bệnh án ID=" + medicalRecordId);
-                    }
-                    patientId = rs.getLong("patient_id");
-                }
+            long patientId = txDao.getPatientIdByRecordId(medicalRecordId);
+            if (patientId < 0) {
+                throw new BusinessException("Không tìm thấy bệnh án ID=" + medicalRecordId);
             }
 
-            // 2. Phí khám mặc định từ ClinicConfig (qua ClinicConfigBUS)
+            // 2. Phí khám mặc định từ ClinicConfig
             double examFee = new ClinicConfigBUS().getDefaultExamFee();
 
-            // 3. Dịch vụ chỉ định (ServiceOrder JOIN Service)
-            List<InvoiceServiceDetail> serviceDetails = new ArrayList<>();
+            // 3. Dịch vụ chỉ định
+            List<InvoiceServiceDetail> serviceDetails = txDao.getServiceDetailsForRecord(medicalRecordId);
             double serviceFee = 0;
-            try (PreparedStatement ps = conn.prepareStatement("""
-                    SELECT so.order_id, s.service_name, s.price
-                    FROM ServiceOrder so
-                    JOIN Service s ON so.service_id = s.service_id
-                    WHERE so.record_id = ? AND so.status != 'CANCELLED'
-                    """)) {
-                ps.setLong(1, medicalRecordId);
-                try (ResultSet rs = ps.executeQuery()) {
-                    while (rs.next()) {
-                        InvoiceServiceDetail d = new InvoiceServiceDetail();
-                        d.setServiceOrderId(rs.getLong("order_id"));
-                        d.setServiceName(rs.getString("service_name"));
-                        d.setQuantity(1);
-                        d.setUnitPrice(rs.getDouble("price"));
-                        serviceDetails.add(d);
-                        serviceFee += d.getLineTotal();
-                    }
-                }
+            for (InvoiceServiceDetail d : serviceDetails) {
+                serviceFee += d.getLineTotal();
             }
 
-            // 4. Thuốc kê đơn (Prescription → PrescriptionDetail JOIN Medicine)
-            List<InvoiceMedicineDetail> medicineDetails = new ArrayList<>();
+            // 4. Thuốc kê đơn
+            List<InvoiceMedicineDetail> medicineDetails = txDao.getMedicineDetailsForRecord(medicalRecordId);
             double medicineFee = 0;
-            try (PreparedStatement ps = conn.prepareStatement("""
-                    SELECT pd.detail_id AS presc_detail_id,
-                           pd.medicine_id, pd.quantity, pd.unit_price,
-                           m.medicine_name, m.cost_price
-                    FROM Prescription p
-                    JOIN PrescriptionDetail pd ON p.prescription_id = pd.prescription_id
-                    JOIN Medicine m ON pd.medicine_id = m.medicine_id
-                    WHERE p.record_id = ? AND p.status != 'CANCELLED'
-                    """)) {
-                ps.setLong(1, medicalRecordId);
-                try (ResultSet rs = ps.executeQuery()) {
-                    while (rs.next()) {
-                        InvoiceMedicineDetail d = new InvoiceMedicineDetail();
-                        d.setPrescriptionDetailId(rs.getLong("presc_detail_id"));
-                        d.setMedicineId(rs.getLong("medicine_id"));
-                        d.setMedicineName(rs.getString("medicine_name"));
-                        d.setQuantity(rs.getInt("quantity"));
-                        d.setUnitPrice(rs.getDouble("unit_price"));
-                        d.setCostPrice(rs.getDouble("cost_price"));
-                        medicineDetails.add(d);
-                        medicineFee += d.getLineTotal();
-                    }
-                }
+            for (InvoiceMedicineDetail d : medicineDetails) {
+                medicineFee += d.getLineTotal();
             }
 
             // 5. Tạo Invoice
@@ -196,13 +152,11 @@ public class InvoiceBUS extends BaseBUS<Invoice> {
             invoice.setInvoiceDate(LocalDateTime.now());
             invoice.setExamFee(examFee);
             invoice.setMedicineFee(medicineFee);
-            invoice.setOtherFee(serviceFee);   // serviceFee → cột other_fee (phí dịch vụ/xét nghiệm)
+            invoice.setOtherFee(serviceFee);
             invoice.setDiscount(0);
             invoice.setTotalAmount(totalAmount);
             invoice.setStatus("PENDING");
 
-            // Insert Invoice (dùng DAO với external connection)
-            InvoiceDAO txDao = new InvoiceDAO(conn);
             txDao.insert(invoice);
             long invoiceId = invoice.getId();
 
@@ -220,7 +174,6 @@ public class InvoiceBUS extends BaseBUS<Invoice> {
 
             conn.commit();
 
-            // Gắn chi tiết vào invoice trả về
             invoice.setServiceDetails(serviceDetails);
             invoice.setMedicineDetails(medicineDetails);
             return invoice;

@@ -1,19 +1,28 @@
 package com.hospital.model;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+
 /**
  * Model lịch hẹn khám.
  */
 public class Appointment extends BaseModel {
     private String appointmentCode;
-    private String patientName;
+    private int patientId;
+    private int doctorId;
+    private String patientName;      // transient — populated by JOIN
     private String patientPhone;
-    private String doctorName;
+    private String doctorName;       // transient — populated by JOIN
     private String specialty;
-    private String date;          // dd/MM/yyyy
-    private String time;          // HH:mm (giờ bắt đầu)
-    private String endTime;       // HH:mm (giờ kết thúc)
-    private String status;        // Mới / Đã xác nhận / Đã khám / Hủy
+    private LocalDate date;
+    private LocalTime time;          // Giờ bắt đầu
+    private LocalTime endTime;       // Giờ kết thúc
+    private String status;           // Mới / Đã xác nhận / Đã khám / Hủy
     private String note;
+
+    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
 
     public Appointment() {}
 
@@ -33,16 +42,27 @@ public class Appointment extends BaseModel {
         this.patientPhone    = patientPhone;
         this.doctorName      = doctorName;
         this.specialty       = specialty;
-        this.date            = date;
-        this.time            = time;
-        this.endTime         = endTime;
+        this.date            = LocalDate.parse(date, DATE_FMT);
+        this.time            = LocalTime.parse(time, TIME_FMT);
+        this.endTime         = (endTime != null && !endTime.isEmpty()) ? LocalTime.parse(endTime, TIME_FMT) : null;
         this.status          = status;
         this.note            = note;
     }
 
+    // ── Convenience display methods ──────────────────────────────────────────
+    public String getFormattedDate() { return date != null ? date.format(DATE_FMT) : ""; }
+    public String getFormattedTime() { return time != null ? time.format(TIME_FMT) : ""; }
+    public String getFormattedEndTime() { return endTime != null ? endTime.format(TIME_FMT) : ""; }
+
     // ── Getters & Setters ────────────────────────────────────────────────────
     public String getAppointmentCode()  { return appointmentCode; }
     public void setAppointmentCode(String v) { this.appointmentCode = v; }
+
+    public int getPatientId()        { return patientId; }
+    public void setPatientId(int v)  { this.patientId = v; }
+
+    public int getDoctorId()         { return doctorId; }
+    public void setDoctorId(int v)   { this.doctorId = v; }
 
     public String getPatientName()   { return patientName; }
     public void setPatientName(String v) { this.patientName = v; }
@@ -56,14 +76,14 @@ public class Appointment extends BaseModel {
     public String getSpecialty()     { return specialty; }
     public void setSpecialty(String v){ this.specialty = v; }
 
-    public String getDate()          { return date; }
-    public void setDate(String v)    { this.date = v; }
+    public LocalDate getDate()       { return date; }
+    public void setDate(LocalDate v) { this.date = v; }
 
-    public String getTime()          { return time; }
-    public void setTime(String v)    { this.time = v; }
+    public LocalTime getTime()       { return time; }
+    public void setTime(LocalTime v) { this.time = v; }
 
-    public String getEndTime()       { return endTime; }
-    public void setEndTime(String v) { this.endTime = v; }
+    public LocalTime getEndTime()    { return endTime; }
+    public void setEndTime(LocalTime v) { this.endTime = v; }
 
     public String getStatus()        { return status; }
     public void setStatus(String v)  { this.status = v; }

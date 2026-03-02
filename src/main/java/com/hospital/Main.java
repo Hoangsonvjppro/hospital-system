@@ -17,7 +17,7 @@ public class Main {
             UIManager.put("Button.arc", 12);
             UIManager.put("Component.focusWidth", 1);
         } catch (Exception e) {
-            e.printStackTrace();
+            java.util.logging.Logger.getLogger(Main.class.getName()).log(java.util.logging.Level.WARNING, "Không thể khởi tạo FlatLaf", e);
         }
 
         // Chạy GUI trên Event Dispatch Thread

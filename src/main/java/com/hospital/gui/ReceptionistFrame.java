@@ -1,5 +1,6 @@
 package com.hospital.gui;
 
+import com.hospital.gui.panels.PatientAllergyPanel;
 import com.hospital.gui.panels.PatientPanel;
 import com.hospital.gui.panels.PaymentPanel;
 import com.hospital.gui.panels.ReceptionPanel;
@@ -30,6 +31,12 @@ public class ReceptionistFrame extends BaseFrame {
 
         addMenuItem("💰", "Thanh toán & Thu ngân",
                 () -> showPanel(new PaymentPanel()));
+
+        addSeparator();
+        addSectionLabel("Hồ sơ");
+
+        addMenuItem("⚠", "Dị ứng bệnh nhân",
+                () -> showPanel(new PatientAllergyPanel()));
     }
 
     @Override

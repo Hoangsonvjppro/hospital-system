@@ -1,5 +1,7 @@
 package com.hospital.gui;
 
+import com.hospital.gui.panels.AdminReportPanel;
+import com.hospital.gui.panels.InvoiceListPanel;
 import com.hospital.gui.panels.PaymentPanel;
 import com.hospital.model.Account;
 
@@ -20,8 +22,11 @@ public class AccountantFrame extends BaseFrame {
         addMenuItem("💰", "Thanh toán",
                 () -> showPanel(new PaymentPanel()));
 
-        addDisabledMenuItem("📄", "Hóa đơn");
-        addDisabledMenuItem("📈", "Báo cáo");
+        addMenuItem("📄", "Hóa đơn",
+                () -> showPanel(new InvoiceListPanel()));
+
+        addMenuItem("📈", "Báo cáo",
+                () -> showPanel(new AdminReportPanel()));
     }
 
     @Override

@@ -2,6 +2,11 @@ package com.hospital.gui.panels;
 
 import com.hospital.bus.InvoiceBUS;
 import com.hospital.dao.MedicalRecordDAO;
+import com.hospital.exception.BusinessException;
+import com.hospital.exception.DataAccessException;
+
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import com.hospital.gui.UIConstants;
 import com.hospital.gui.components.RoundedButton;
 import com.hospital.gui.components.RoundedPanel;
@@ -29,6 +34,8 @@ import java.util.Locale;
  *   Phải (60%): Chi tiết hóa đơn (info bệnh nhân, bảng dịch vụ/thuốc, form thanh toán).
  */
 public class PaymentPanel extends JPanel {
+
+    private static final Logger LOGGER = Logger.getLogger(PaymentPanel.class.getName());
 
     private final InvoiceBUS bus = new InvoiceBUS();
     private final NumberFormat moneyFmt = NumberFormat.getInstance(new Locale("vi", "VN"));
@@ -620,24 +627,30 @@ public class PaymentPanel extends JPanel {
                 "Phương thức", JOptionPane.QUESTION_MESSAGE, null, methods, methods[0]);
         if (method == null) return;
 
-        boolean ok = bus.markAsPaid(selectedInvoice.getId(), method, paid, change);
-        if (ok) {
-            // Cập nhật trạng thái bệnh án → PAID
-            if (selectedInvoice.getRecordId() != null && selectedInvoice.getRecordId() > 0) {
-                try {
-                    new MedicalRecordDAO().updateStatus(selectedInvoice.getRecordId(), "PAID");
-                } catch (Exception ex) {
-                    System.err.println("Không thể cập nhật trạng thái bệnh án: " + ex.getMessage());
+        try {
+            boolean ok = bus.markAsPaid(selectedInvoice.getId(), method, paid, change);
+            if (ok) {
+                // Cập nhật trạng thái bệnh án → PAID
+                if (selectedInvoice.getRecordId() != null && selectedInvoice.getRecordId() > 0) {
+                    try {
+                        new MedicalRecordDAO().updateStatus(selectedInvoice.getRecordId(), "PAID");
+                    } catch (Exception ex) {
+                        LOGGER.warning("Không thể cập nhật trạng thái bệnh án: " + ex.getMessage());
+                    }
                 }
+                JOptionPane.showMessageDialog(this,
+                        "Thanh toán thành công!\nTiền thừa: " + moneyFmt.format(change) + " đ",
+                        "Hoàn tất", JOptionPane.INFORMATION_MESSAGE);
+                refreshAll();
+            } else {
+                JOptionPane.showMessageDialog(this,
+                        "Thanh toán thất bại. Vui lòng thử lại.",
+                        "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
-            JOptionPane.showMessageDialog(this,
-                    "Thanh toán thành công!\nTiền thừa: " + moneyFmt.format(change) + " đ",
-                    "Hoàn tất", JOptionPane.INFORMATION_MESSAGE);
-            refreshAll();
-        } else {
-            JOptionPane.showMessageDialog(this,
-                    "Thanh toán thất bại. Vui lòng thử lại.",
-                    "Lỗi", JOptionPane.ERROR_MESSAGE);
+        } catch (BusinessException ex) {
+            JOptionPane.showMessageDialog(this, ex.getMessage(), "Lỗi nghiệp vụ", JOptionPane.WARNING_MESSAGE);
+        } catch (DataAccessException ex) {
+            JOptionPane.showMessageDialog(this, "Lỗi hệ thống: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -647,8 +660,14 @@ public class PaymentPanel extends JPanel {
                 "Bạn có chắc muốn hủy hóa đơn " + selectedInvoice.getInvoiceCode() + "?",
                 "Xác nhận hủy", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
         if (confirm == JOptionPane.YES_OPTION) {
-            bus.delete(selectedInvoice.getId());
-            refreshAll();
+            try {
+                bus.delete(selectedInvoice.getId());
+                refreshAll();
+            } catch (BusinessException ex) {
+                JOptionPane.showMessageDialog(this, ex.getMessage(), "Lỗi nghiệp vụ", JOptionPane.WARNING_MESSAGE);
+            } catch (DataAccessException ex) {
+                JOptionPane.showMessageDialog(this, "Lỗi hệ thống: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
         }
     }
 
@@ -691,7 +710,7 @@ public class PaymentPanel extends JPanel {
                 Desktop.getDesktop().open(file);
             }
         } catch (Exception ex) {
-            ex.printStackTrace();
+            LOGGER.log(Level.SEVERE, "Lỗi xuất PDF", ex);
             String msg = ex.getMessage();
             if (msg != null && msg.contains("being used by another process")) {
                 msg = "File đang được mở bởi chương trình khác.\nVui lòng đóng file rồi thử lại.";

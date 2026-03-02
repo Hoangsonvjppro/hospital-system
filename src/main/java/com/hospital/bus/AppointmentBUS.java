@@ -19,12 +19,14 @@ public class AppointmentBUS extends BaseBUS<Appointment> {
     }
 
     @Override
-    protected boolean validate(Appointment a) {
-        if (a == null) return false;
-        if (a.getPatientName() == null || a.getPatientName().trim().isEmpty()) return false;
-        if (a.getDoctorName() == null || a.getDoctorName().trim().isEmpty()) return false;
-        if (a.getDate() == null || a.getDate().isEmpty()) return false;
-        return true;
+    protected void validate(Appointment a) {
+        if (a == null) throw new com.hospital.exception.BusinessException("D\u1eef li\u1ec7u l\u1ecbch h\u1eb9n kh\u00f4ng h\u1ee3p l\u1ec7");
+        if (a.getPatientName() == null || a.getPatientName().trim().isEmpty())
+            throw new com.hospital.exception.BusinessException("T\u00ean b\u1ec7nh nh\u00e2n kh\u00f4ng \u0111\u01b0\u1ee3c \u0111\u1ec3 tr\u1ed1ng");
+        if (a.getDoctorName() == null || a.getDoctorName().trim().isEmpty())
+            throw new com.hospital.exception.BusinessException("T\u00ean b\u00e1c s\u0129 kh\u00f4ng \u0111\u01b0\u1ee3c \u0111\u1ec3 tr\u1ed1ng");
+        if (a.getDate() == null)
+            throw new com.hospital.exception.BusinessException("Ng\u00e0y h\u1eb9n kh\u00f4ng \u0111\u01b0\u1ee3c \u0111\u1ec3 tr\u1ed1ng");
     }
 
     public List<Appointment> getByStatus(String status) {

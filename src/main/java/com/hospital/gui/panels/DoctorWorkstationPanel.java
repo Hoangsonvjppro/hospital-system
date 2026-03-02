@@ -201,12 +201,18 @@ public class DoctorWorkstationPanel extends JPanel {
         }
 
         if ("WAITING".equals(selectedPatient.getStatus())) {
-            queueBUS.updateQueueStatus(selectedRecordId, "EXAMINING");
-            JOptionPane.showMessageDialog(this,
-                    "\u0110\u00E3 g\u1ECDi b\u1EC7nh nh\u00E2n: " + selectedPatient.getFullName() + " v\u00E0o ph\u00F2ng kh\u00E1m.",
-                    "G\u1ECDi kh\u00E1m", JOptionPane.INFORMATION_MESSAGE);
-            loadPatientList();
-            updateRightPanel();
+            try {
+                queueBUS.updateQueueStatus(selectedRecordId, "EXAMINING");
+                JOptionPane.showMessageDialog(this,
+                        "\u0110\u00E3 g\u1ECDi b\u1EC7nh nh\u00E2n: " + selectedPatient.getFullName() + " v\u00E0o ph\u00F2ng kh\u00E1m.",
+                        "G\u1ECDi kh\u00E1m", JOptionPane.INFORMATION_MESSAGE);
+                loadPatientList();
+                updateRightPanel();
+            } catch (BusinessException ex) {
+                JOptionPane.showMessageDialog(this, ex.getMessage(), "L\u1ED7i nghi\u1EC7p v\u1EE5", JOptionPane.WARNING_MESSAGE);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "L\u1ED7i h\u1EC7 th\u1ED1ng: " + ex.getMessage(), "L\u1ED7i", JOptionPane.ERROR_MESSAGE);
+            }
         } else if ("EXAMINING".equals(selectedPatient.getStatus())) {
             JOptionPane.showMessageDialog(this,
                     "B\u1EC7nh nh\u00E2n " + selectedPatient.getFullName() + " \u0111ang \u0111\u01B0\u1EE3c kh\u00E1m.",

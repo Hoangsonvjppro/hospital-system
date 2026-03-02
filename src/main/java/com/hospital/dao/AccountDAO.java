@@ -101,7 +101,7 @@ public class AccountDAO implements BaseDAO<Account> {
                 ps.setString(3, account.getFullName());
                 ps.setString(4, account.getEmail());
                 ps.setString(5, account.getPhone());
-                ps.setLong(6, account.getRoleId());
+                ps.setInt(6, account.getRoleId());
                 ps.setBoolean(7, account.isActive());
                 return ps.executeUpdate() > 0;
             }
@@ -125,7 +125,7 @@ public class AccountDAO implements BaseDAO<Account> {
                 ps.setString(3, account.getFullName());
                 ps.setString(4, account.getEmail());
                 ps.setString(5, account.getPhone());
-                ps.setLong(6, account.getRoleId());
+                ps.setInt(6, account.getRoleId());
                 ps.setBoolean(7, account.isActive());
                 ps.setInt(8, account.getId());
                 return ps.executeUpdate() > 0;
@@ -226,7 +226,7 @@ public class AccountDAO implements BaseDAO<Account> {
         account.setFullName(rs.getString("full_name"));
         account.setEmail(rs.getString("email"));
         account.setPhone(rs.getString("phone"));
-        account.setRoleId(rs.getLong("role_id"));
+        account.setRoleId(rs.getInt("role_id"));
         account.setActive(rs.getBoolean("is_active"));
 
         Timestamp createdAt = rs.getTimestamp("created_at");

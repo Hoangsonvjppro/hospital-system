@@ -25,16 +25,12 @@ public abstract class BaseBUS<T> {
     }
 
     public boolean insert(T entity) {
-        if (!validate(entity)) {
-            return false;
-        }
+        validate(entity); // throws BusinessException if invalid
         return dao.insert(entity);
     }
 
     public boolean update(T entity) {
-        if (!validate(entity)) {
-            return false;
-        }
+        validate(entity); // throws BusinessException if invalid
         return dao.update(entity);
     }
 
@@ -44,10 +40,10 @@ public abstract class BaseBUS<T> {
 
     /**
      * Xác thực dữ liệu trước khi thêm/sửa.
-     * Validate data before insert/update.
+     * Ném BusinessException nếu dữ liệu không hợp lệ.
      *
      * @param entity Entity cần xác thực
-     * @return true nếu hợp lệ
+     * @throws com.hospital.exception.BusinessException nếu không hợp lệ
      */
-    protected abstract boolean validate(T entity);
+    protected abstract void validate(T entity);
 }

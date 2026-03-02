@@ -20,7 +20,7 @@ public class MedicineBUS extends BaseBUS<Medicine> {
     }
 
     @Override
-    protected boolean validate(Medicine entity) {
+    protected void validate(Medicine entity) {
         if (AppUtils.isNullOrEmpty(entity.getMedicineName())) {
             throw new BusinessException("Tên thuốc không được để trống.");
         }
@@ -40,7 +40,6 @@ public class MedicineBUS extends BaseBUS<Medicine> {
         if (expiryDate != null && (expiryDate.isBefore(LocalDate.now()) || expiryDate.isEqual(LocalDate.now()))) {
             throw new BusinessException("Ngày hết hạn không thể là hôm nay hay trước đó!");
         }
-        return true;
     }
 
     @Override
@@ -50,17 +49,13 @@ public class MedicineBUS extends BaseBUS<Medicine> {
 
     @Override
     public boolean update(Medicine entity) {
-        if(!validate(entity)){
-            return false;
-        }
+        validate(entity);
         return medicineDAO.update(entity);
     }
 
     @Override
     public boolean insert(Medicine entity) {
-        if(!validate(entity)){
-            return false;
-        }
+        validate(entity);
         return medicineDAO.insert(entity);
     }
 

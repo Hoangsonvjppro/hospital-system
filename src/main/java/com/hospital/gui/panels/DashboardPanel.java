@@ -4,6 +4,9 @@ import com.formdev.flatlaf.FlatClientProperties;
 import com.hospital.dao.DashboardDAO;
 import com.hospital.gui.UIConstants;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
@@ -24,6 +27,8 @@ import java.util.Locale;
  * - Auto-refresh mỗi 30 giây (SwingWorker off-EDT)
  */
 public class DashboardPanel extends JPanel {
+
+    private static final Logger LOGGER = Logger.getLogger(DashboardPanel.class.getName());
 
     // Tất cả màu/font dùng UIConstants — KHÔNG khai báo cục bộ.
 
@@ -288,7 +293,7 @@ public class DashboardPanel extends JPanel {
                     updateUI(d);
                 } catch (Exception ex) {
                     lblLastUpdate.setText("⚠ Lỗi tải dữ liệu!");
-                    ex.printStackTrace();
+                    LOGGER.log(Level.SEVERE, "Lỗi tải dữ liệu dashboard", ex);
                 }
             }
         }.execute();

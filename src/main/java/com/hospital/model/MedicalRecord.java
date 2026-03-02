@@ -36,12 +36,13 @@ public class MedicalRecord extends BaseModel {
     public static final String STATUS_COMPLETED   = "COMPLETED";
     public static final String STATUS_PAID        = "PAID";
 
-    // Queue related fields (synchronised with DB columns queue_status, priority, queue_number, arrival_time, exam_type)
-    private String priority;       // NORMAL / ELDERLY / EMERGENCY
-    private Integer queueNumber;   // Số thứ tự hôm nay
-    private java.time.LocalTime arrivalTime; // Giờ đến
-    private String examTypeField;   // Loại khám (vd: "Kham tong quat")
-    private java.time.LocalDate followUpDate; // Ngày hẹn tái khám
+    // Queue/workflow fields — synced with DB columns: priority, queue_number, arrival_time, exam_type
+    // Used by QueueDAO, DoctorWorkstationPanel, ExaminationPanel, PatientPanel.
+    private String priority;       // NORMAL / ELDERLY / EMERGENCY — DB column: priority
+    private Integer queueNumber;   // Số thứ tự hôm nay — DB column: queue_number
+    private java.time.LocalTime arrivalTime; // Giờ đến — DB column: arrival_time
+    private String examTypeField;   // Loại khám (vd: "Kham tong quat") — DB column: exam_type
+    private java.time.LocalDate followUpDate; // Ngày hẹn tái khám — set by doctor on completion
 
     public MedicalRecord() {}
 

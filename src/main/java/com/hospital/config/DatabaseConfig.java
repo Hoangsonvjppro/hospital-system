@@ -13,13 +13,17 @@ public class DatabaseConfig {
     private static final String USER = "root";
     private static final String PASSWORD = "123456";
 
-    private static DatabaseConfig instance;
+    private static volatile DatabaseConfig instance;
     private DatabaseConfig() {
     }
 
     public static DatabaseConfig getInstance() {
         if (instance == null) {
-            instance = new DatabaseConfig();
+            synchronized (DatabaseConfig.class) {
+                if (instance == null) {
+                    instance = new DatabaseConfig();
+                }
+            }
         }
         return instance;
     }

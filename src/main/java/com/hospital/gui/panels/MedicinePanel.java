@@ -31,8 +31,10 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.logging.Logger;
 
 public class MedicinePanel extends JPanel {
+    private static final Logger LOGGER = Logger.getLogger(MedicinePanel.class.getName());
     private JToggleButton btnTatca, btnHethan, btnHetHang;
     private List<Medicine> currentList;
     private JTable table;
@@ -397,6 +399,8 @@ public class MedicinePanel extends JPanel {
                             } else {
                                 JOptionPane.showMessageDialog(this, "Lỗi khi xóa thuốc!", "Lỗi", JOptionPane.ERROR_MESSAGE);
                             }
+                        } catch (BusinessException ex) {
+                            JOptionPane.showMessageDialog(this, ex.getMessage(), "Lỗi nghiệp vụ", JOptionPane.WARNING_MESSAGE);
                         } catch (DataAccessException ex) {
                             AppUtils.showError(this, "Lỗi hệ thống: " + ex.getMessage());
                         }
@@ -444,7 +448,7 @@ public class MedicinePanel extends JPanel {
 
                 // 2. Xuất kho thuốc
                 String msg = medicineExportBUS.processPrescriptionExport(allDetails, 1, true);
-                System.out.println(msg);
+                LOGGER.info(msg);
 
                 // 3. Cập nhật trạng thái đơn thuốc → DISPENSED
                 for (Prescription p : prescriptions) {
@@ -491,7 +495,7 @@ public class MedicinePanel extends JPanel {
                 });
             }
         } catch (Exception e) {
-            System.err.println("Lỗi tải danh sách chờ phát thuốc: " + e.getMessage());
+            LOGGER.warning("Lỗi tải danh sách chờ phát thuốc: " + e.getMessage());
         }
     }
 
@@ -511,7 +515,7 @@ public class MedicinePanel extends JPanel {
                 }
             }
         } catch (Exception e) {
-            System.err.println("Lỗi tải chi tiết đơn thuốc: " + e.getMessage());
+            LOGGER.warning("Lỗi tải chi tiết đơn thuốc: " + e.getMessage());
         }
     }
 

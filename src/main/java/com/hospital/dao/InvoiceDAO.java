@@ -663,4 +663,90 @@ public class InvoiceDAO implements BaseDAO<Invoice> {
             ps.setNull(idx, Types.TIMESTAMP);
         }
     }
+
+    // ═══════════════════════════════════════════════════════════
+    //  CROSS-DOMAIN QUERIES (cho createInvoiceFromMedicalRecord)
+    // ═══════════════════════════════════════════════════════════
+
+    /**
+     * Lấy patient_id từ MedicalRecord.
+     */
+    public long getPatientIdByRecordId(long recordId) throws SQLException {
+        String sql = "SELECT patient_id FROM MedicalRecord WHERE record_id = ?";
+        Connection conn = getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, recordId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (!rs.next()) return -1;
+                return rs.getLong("patient_id");
+            }
+        } finally {
+            closeIfOwned(conn);
+        }
+    }
+
+    /**
+     * Lấy danh sách dịch vụ chỉ định cho một bệnh án (ServiceOrder JOIN Service).
+     */
+    public List<InvoiceServiceDetail> getServiceDetailsForRecord(long recordId) throws SQLException {
+        String sql = """
+                SELECT so.order_id, s.service_name, s.price
+                FROM ServiceOrder so
+                JOIN Service s ON so.service_id = s.service_id
+                WHERE so.record_id = ? AND so.status != 'CANCELLED'
+                """;
+        List<InvoiceServiceDetail> list = new ArrayList<>();
+        Connection conn = getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, recordId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    InvoiceServiceDetail d = new InvoiceServiceDetail();
+                    d.setServiceOrderId(rs.getLong("order_id"));
+                    d.setServiceName(rs.getString("service_name"));
+                    d.setQuantity(1);
+                    d.setUnitPrice(rs.getDouble("price"));
+                    list.add(d);
+                }
+            }
+        } finally {
+            closeIfOwned(conn);
+        }
+        return list;
+    }
+
+    /**
+     * Lấy danh sách thuốc kê đơn cho một bệnh án (Prescription → PrescriptionDetail JOIN Medicine).
+     */
+    public List<InvoiceMedicineDetail> getMedicineDetailsForRecord(long recordId) throws SQLException {
+        String sql = """
+                SELECT pd.detail_id AS presc_detail_id,
+                       pd.medicine_id, pd.quantity, pd.unit_price,
+                       m.medicine_name, m.cost_price
+                FROM Prescription p
+                JOIN PrescriptionDetail pd ON p.prescription_id = pd.prescription_id
+                JOIN Medicine m ON pd.medicine_id = m.medicine_id
+                WHERE p.record_id = ? AND p.status != 'CANCELLED'
+                """;
+        List<InvoiceMedicineDetail> list = new ArrayList<>();
+        Connection conn = getConnection();
+        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+            ps.setLong(1, recordId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    InvoiceMedicineDetail d = new InvoiceMedicineDetail();
+                    d.setPrescriptionDetailId(rs.getLong("presc_detail_id"));
+                    d.setMedicineId(rs.getLong("medicine_id"));
+                    d.setMedicineName(rs.getString("medicine_name"));
+                    d.setQuantity(rs.getInt("quantity"));
+                    d.setUnitPrice(rs.getDouble("unit_price"));
+                    d.setCostPrice(rs.getDouble("cost_price"));
+                    list.add(d);
+                }
+            }
+        } finally {
+            closeIfOwned(conn);
+        }
+        return list;
+    }
 }

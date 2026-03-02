@@ -92,32 +92,19 @@ public class PatientDAO implements BaseDAO<Patient> {
     }
 
     /**
-     * Tìm bệnh nhân theo CCCD / id_card (nếu cột tồn tại). Nếu cột không tồn tại, trả về null.
+     * Tìm bệnh nhân theo CCCD / id_card.
      */
     public Patient findByCccd(String cccd) {
-        // Try multiple possible column names for CCCD/id card to be robust across schemas
-        String[] candidates = new String[]{"id_card", "idcard", "cccd", "identity_card", "identity_number", "id_number", "citizen_id"};
+        String sql = "SELECT * FROM Patient WHERE id_card = ? AND is_active = true";
         Connection conn = null;
         try {
             conn = getConnection();
-            LOGGER.log(Level.FINE, "findByCccd: trying candidates for CCCD lookup");
-            for (String col : candidates) {
-                boolean has = false;
-                try { has = hasColumn(conn, "Patient", col); } catch (Exception exMeta) { has = false; }
-                LOGGER.log(Level.FINE, "findByCccd: candidate='" + col + "' hasColumn=" + has);
-                // quick metadata check first
-                if (!has) continue;
-                String sql = "SELECT * FROM Patient WHERE " + col + " = ? AND is_active = true";
-                try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                    ps.setString(1, cccd);
-                    try (ResultSet rs = ps.executeQuery()) {
-                        if (rs.next()) {
-                            return mapResultSet(rs);
-                        }
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, cccd);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return mapResultSet(rs);
                     }
-                } catch (SQLException inner) {
-                    // column might not actually exist / driver different — try next candidate
-                    LOGGER.log(Level.FINER, "Tried Patient." + col + " but query failed, try next candidate.", inner);
                 }
             }
         } catch (SQLException e) {

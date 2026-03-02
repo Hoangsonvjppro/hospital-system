@@ -14,7 +14,7 @@ public class Account extends BaseModel {
     private String fullName;
     private String email;
     private String phone;
-    private long roleId;
+    private int roleId;
     private boolean isActive;
 
     // ── Constructors ──────────────────────────────────────────
@@ -24,7 +24,7 @@ public class Account extends BaseModel {
 
     public Account(int id, String username, String passwordHash,
                    String fullName, String email, String phone,
-                   long roleId, boolean isActive) {
+                   int roleId, boolean isActive) {
         super(id);
         this.username = username;
         this.passwordHash = passwordHash;
@@ -77,11 +77,11 @@ public class Account extends BaseModel {
         this.phone = phone;
     }
 
-    public long getRoleId() {
+    public int getRoleId() {
         return roleId;
     }
 
-    public void setRoleId(long roleId) {
+    public void setRoleId(int roleId) {
         this.roleId = roleId;
     }
 

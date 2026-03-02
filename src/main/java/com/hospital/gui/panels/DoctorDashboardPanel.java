@@ -3,6 +3,7 @@ package com.hospital.gui.panels;
 import com.hospital.bus.AppointmentBUS;
 import com.hospital.bus.PatientBUS;
 import com.hospital.bus.QueueBUS;
+import com.hospital.exception.BusinessException;
 import com.hospital.gui.UIConstants;
 import com.hospital.gui.components.RoundedButton;
 import com.hospital.gui.components.RoundedPanel;
@@ -283,7 +284,7 @@ public class DoctorDashboardPanel extends JPanel {
             BorderFactory.createEmptyBorder(8, 12, 8, 12)));
 
         // Time badge
-        JLabel timeLbl = new JLabel(a.getTime());
+        JLabel timeLbl = new JLabel(a.getFormattedTime());
         timeLbl.setFont(new Font(UIConstants.FONT_NAME, Font.BOLD, 12));
         timeLbl.setForeground(UIConstants.PRIMARY_RED);
         timeLbl.setPreferredSize(new Dimension(50, 0));
@@ -326,7 +327,15 @@ public class DoctorDashboardPanel extends JPanel {
             queueBUS.getWaitingPatients().stream()
                 .filter(p -> p.getPatientCode().equals(code))
                 .findFirst()
-                .ifPresent(p -> queueBUS.updateQueueStatus(p.getCurrentRecordId(), "EXAMINING"));
+                .ifPresent(p -> {
+                    try {
+                        queueBUS.updateQueueStatus(p.getCurrentRecordId(), "EXAMINING");
+                    } catch (BusinessException ex) {
+                        JOptionPane.showMessageDialog(DoctorDashboardPanel.this, ex.getMessage(), "Lỗi nghiệp vụ", JOptionPane.WARNING_MESSAGE);
+                    } catch (Exception ex) {
+                        JOptionPane.showMessageDialog(DoctorDashboardPanel.this, "Lỗi hệ thống: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    }
+                });
             loadWaiting();
             JOptionPane.showMessageDialog(this,
                 "Đã gọi bệnh nhân vào phòng khám.", "Gọi khám",
@@ -338,11 +347,17 @@ public class DoctorDashboardPanel extends JPanel {
         queueBUS.getPatientsByStatus("WAITING").stream()
             .findFirst()
             .ifPresentOrElse(p -> {
-                queueBUS.updateQueueStatus(p.getCurrentRecordId(), "EXAMINING");
-                loadWaiting();
-                JOptionPane.showMessageDialog(this,
-                    "Đã gọi bệnh nhân: " + p.getFullName(), "Gọi khám",
-                    JOptionPane.INFORMATION_MESSAGE);
+                try {
+                    queueBUS.updateQueueStatus(p.getCurrentRecordId(), "EXAMINING");
+                    loadWaiting();
+                    JOptionPane.showMessageDialog(this,
+                        "Đã gọi bệnh nhân: " + p.getFullName(), "Gọi khám",
+                        JOptionPane.INFORMATION_MESSAGE);
+                } catch (BusinessException ex) {
+                    JOptionPane.showMessageDialog(this, ex.getMessage(), "Lỗi nghiệp vụ", JOptionPane.WARNING_MESSAGE);
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(this, "Lỗi hệ thống: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                }
             }, () -> JOptionPane.showMessageDialog(this,
                 "Không còn bệnh nhân nào đang chờ.", "Thông báo",
                 JOptionPane.INFORMATION_MESSAGE));

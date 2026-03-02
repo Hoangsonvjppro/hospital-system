@@ -16,15 +16,15 @@ public enum Role {
     PATIENT(6, "Bệnh nhân"),
     PHARMACIST(7, "Dược sĩ");
 
-    private final long id;
+    private final int id;
     private final String displayName;
 
-    Role(long id, String displayName) {
+    Role(int id, String displayName) {
         this.id = id;
         this.displayName = displayName;
     }
 
-    public long getId() {
+    public int getId() {
         return id;
     }
 
@@ -39,7 +39,7 @@ public enum Role {
      * @return Role tương ứng
      * @throws IllegalArgumentException nếu id không hợp lệ
      */
-    public static Role fromId(long id) {
+    public static Role fromId(int id) {
         for (Role role : values()) {
             if (role.id == id) {
                 return role;

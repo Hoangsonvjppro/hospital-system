@@ -1,6 +1,8 @@
 package com.hospital.gui.panels;
 
 import com.hospital.bus.AppointmentBUS;
+import com.hospital.exception.BusinessException;
+import com.hospital.exception.DataAccessException;
 import com.hospital.gui.UIConstants;
 import com.hospital.gui.components.RoundedButton;
 import com.hospital.model.Appointment;
@@ -257,7 +259,7 @@ public class AppointmentPanel extends JPanel {
         for (int i = 0; i < 7; i++) byDay.put(i, new ArrayList<>());
 
         for (Appointment a : all) {
-            LocalDate aDate = parseDate(a.getDate());
+            LocalDate aDate = a.getDate();
             if (aDate == null) continue;
             if (!aDate.isBefore(weekStart) && !aDate.isAfter(weekEnd)) {
                 int dayIdx = aDate.getDayOfWeek().getValue() - 1;
@@ -272,7 +274,7 @@ public class AppointmentPanel extends JPanel {
     private void updateLegendCounts(List<Appointment> all, LocalDate ws, LocalDate we) {
         int confirmed = 0, waiting = 0, done = 0, cancel = 0;
         for (Appointment a : all) {
-            LocalDate d = parseDate(a.getDate());
+            LocalDate d = a.getDate();
             if (d == null || d.isBefore(ws) || d.isAfter(we)) continue;
             switch (a.getStatus()) {
                 case "Đã xác nhận": confirmed++; break;
@@ -293,6 +295,11 @@ public class AppointmentPanel extends JPanel {
     private LocalDate parseDate(String s) {
         try { return LocalDate.parse(s, DD_MM_YYYY); }
         catch (Exception e) { return null; }
+    }
+
+    private static double timeToMinutes(java.time.LocalTime t) {
+        if (t == null) return 0;
+        return t.getHour() * 60 + t.getMinute();
     }
 
     private static Color statusColor(String status) {
@@ -472,7 +479,7 @@ public class AppointmentPanel extends JPanel {
 
                     g2.setColor(accent.darker());
                     g2.setFont(new Font(UIConstants.FONT_NAME, Font.BOLD, 10));
-                    String timeRange = a.getTime() + " – " + (a.getEndTime().isEmpty() ? "?" : a.getEndTime());
+                    String timeRange = a.getFormattedTime() + " – " + (a.getEndTime() == null ? "?" : a.getFormattedEndTime());
                     g2.drawString(timeRange, cx + 8, y1 + 14);
 
                     g2.setColor(UIConstants.TEXT_PRIMARY);
@@ -495,7 +502,7 @@ public class AppointmentPanel extends JPanel {
             Appointment a = hitTest(e.getX(), e.getY());
             if (a != null) {
                 return "<html><b>" + a.getPatientName() + "</b><br>"
-                     + a.getTime() + " – " + a.getEndTime() + "<br>"
+                     + a.getFormattedTime() + " – " + a.getFormattedEndTime() + "<br>"
                      + "Bác sĩ: " + a.getDoctorName() + "<br>"
                      + "Trạng thái: " + a.getStatus()
                      + (a.getNote().isEmpty() ? "" : "<br>Ghi chú: " + a.getNote())
@@ -540,7 +547,7 @@ public class AppointmentPanel extends JPanel {
             popup.add(header);
             popup.addSeparator();
 
-            popup.add(makeMenuItem("Thời gian: " + a.getTime() + " – " + a.getEndTime()));
+            popup.add(makeMenuItem("Thời gian: " + a.getFormattedTime() + " – " + a.getFormattedEndTime()));
             popup.add(makeMenuItem("Bác sĩ: " + a.getDoctorName()));
             popup.add(makeMenuItem("Loại khám: " + a.getSpecialty()));
             popup.add(makeMenuItem("Trạng thái: " + a.getStatus()));
@@ -551,7 +558,13 @@ public class AppointmentPanel extends JPanel {
                 JMenuItem confirm = new JMenuItem("✓  Xác nhận lịch hẹn");
                 confirm.setForeground(CLR_CONFIRMED);
                 confirm.addActionListener(e -> {
-                    a.setStatus("Đã xác nhận"); apptBUS.update(a); refreshCalendar();
+                    try {
+                        a.setStatus("Đã xác nhận"); apptBUS.update(a); refreshCalendar();
+                    } catch (BusinessException ex) {
+                        JOptionPane.showMessageDialog(AppointmentPanel.this, ex.getMessage(), "Lỗi nghiệp vụ", JOptionPane.WARNING_MESSAGE);
+                    } catch (DataAccessException ex) {
+                        JOptionPane.showMessageDialog(AppointmentPanel.this, "Lỗi hệ thống: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    }
                 });
                 popup.add(confirm);
             }
@@ -563,7 +576,13 @@ public class AppointmentPanel extends JPanel {
                         "Hủy lịch hẹn của " + a.getPatientName() + "?", "Xác nhận",
                         JOptionPane.YES_NO_OPTION);
                     if (ok == JOptionPane.YES_OPTION) {
-                        a.setStatus("Hủy"); apptBUS.update(a); refreshCalendar();
+                        try {
+                            a.setStatus("Hủy"); apptBUS.update(a); refreshCalendar();
+                        } catch (BusinessException ex) {
+                            JOptionPane.showMessageDialog(AppointmentPanel.this, ex.getMessage(), "Lỗi nghiệp vụ", JOptionPane.WARNING_MESSAGE);
+                        } catch (DataAccessException ex) {
+                            JOptionPane.showMessageDialog(AppointmentPanel.this, "Lỗi hệ thống: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                        }
                     }
                 });
                 popup.add(cancelItem);

@@ -257,6 +257,8 @@ public class ReceptionPanel extends JPanel {
                     .filter(p -> p.getPatientCode().equals(code))
                     .findFirst()
                     .ifPresent(p -> { bus.delete(p.getId()); loadTable(bus.findAll()); });
+            } catch (BusinessException e) {
+                JOptionPane.showMessageDialog(this, e.getMessage(), "Lỗi nghiệp vụ", JOptionPane.WARNING_MESSAGE);
             } catch (DataAccessException e) {
                 JOptionPane.showMessageDialog(this, "Lỗi hệ thống: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
