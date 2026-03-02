@@ -271,81 +271,81 @@ public class MedicinePanel extends JPanel {
     }
 
     private void addEvents() {
-        btnNhapThuocMoi.addActionListener(e -> {
-            MedicineDialog dialog = new MedicineDialog((Frame) SwingUtilities.getWindowAncestor(this), null);
-            dialog.setVisible(true);
-            if (dialog.isDataChanged()) {
-                loadMedicineData();
-            }
-        });
-        btnTatca.addActionListener(e -> {
-            loadMedicineData();
-        });
-        btnHethan.addActionListener(e -> {
-            List<Medicine> expiredMedicines=new ArrayList<>();
-            expiredMedicines=medicineBUS.getExpiredMedicinesList();
-            renderTable(expiredMedicines);
-        });
-        btnHetHang.addActionListener(e -> {
-            List<Medicine> lowStock=new ArrayList<>();
-            lowStock=medicineBUS.getLowStockMedicinesList();
-            renderTable(lowStock);
-        });
-
-        JPopupMenu popupMenu = new JPopupMenu();
-        JMenuItem itemEdit = new JMenuItem("Sửa thông tin thuốc");
-        JMenuItem itemDelete = new JMenuItem("Xóa thuốc này");
-        popupMenu.add(itemEdit);
-        popupMenu.addSeparator();
-        popupMenu.add(itemDelete);
-        table.addMouseListener(new java.awt.event.MouseAdapter() {
-            @Override
-            public void mousePressed(java.awt.event.MouseEvent e) {
-                if (e.isPopupTrigger()) {
-                    int row =table.rowAtPoint(e.getPoint());
-                    if (row >= 0 && row < table.getRowCount()) {
-                        table.setRowSelectionInterval(row, row); // Tự động chọn dòng bị click
-                        popupMenu.show(e.getComponent(), e.getX(), e.getY());
-                    }
-                }
-            }
-        });
-        itemEdit.addActionListener(e -> {
-            int row=table.getSelectedRow();
-            if (row >= 0) {
-                Medicine selectedMedicine = currentList.get(row); // Lấy object Thuốc từ danh sách
-                // Mở Dialog với chế độ "Sửa" (truyền object vào)
-                MedicineDialog dialog = new MedicineDialog((Frame) SwingUtilities.getWindowAncestor(this), selectedMedicine);
+            btnNhapThuocMoi.addActionListener(e -> {
+                MedicineDialog dialog = new MedicineDialog((Frame) SwingUtilities.getWindowAncestor(this), null);
                 dialog.setVisible(true);
-
                 if (dialog.isDataChanged()) {
                     loadMedicineData();
                 }
-            }
-        });
+            });
+            btnTatca.addActionListener(e -> {
+                loadMedicineData();
+            });
+            btnHethan.addActionListener(e -> {
+                List<Medicine> expiredMedicines=new ArrayList<>();
+                expiredMedicines=medicineBUS.getExpiredMedicinesList();
+                renderTable(expiredMedicines);
+            });
+            btnHetHang.addActionListener(e -> {
+                List<Medicine> lowStock=new ArrayList<>();
+                lowStock=medicineBUS.getLowStockMedicinesList();
+                renderTable(lowStock);
+            });
 
-        itemDelete.addActionListener(e -> {
-            int row=table.getSelectedRow();
-            if (row >= 0) {
-                Medicine selectedMedicine = currentList.get(row);
-                int confirm = JOptionPane.showConfirmDialog(this,
-                        "Bạn có chắc muốn xóa thuốc: " + selectedMedicine.getMedicineName() + "?",
-                        "Xác nhận xóa", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
-
-                if (confirm == JOptionPane.YES_OPTION) {
-                    try {
-                        if (medicineBUS.delete(selectedMedicine.getId())) {
-                            JOptionPane.showMessageDialog(this, "Đã xóa thành công!");
-                            loadMedicineData();
-                        } else {
-                            JOptionPane.showMessageDialog(this, "Lỗi khi xóa thuốc!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            JPopupMenu popupMenu = new JPopupMenu();
+            JMenuItem itemEdit = new JMenuItem("Sửa thông tin thuốc");
+            JMenuItem itemDelete = new JMenuItem("Xóa thuốc này");
+            popupMenu.add(itemEdit);
+            popupMenu.addSeparator();
+            popupMenu.add(itemDelete);
+            table.addMouseListener(new java.awt.event.MouseAdapter() {
+                @Override
+                public void mousePressed(java.awt.event.MouseEvent e) {
+                    if (e.isPopupTrigger()) {
+                        int row =table.rowAtPoint(e.getPoint());
+                        if (row >= 0 && row < table.getRowCount()) {
+                            table.setRowSelectionInterval(row, row); // Tự động chọn dòng bị click
+                            popupMenu.show(e.getComponent(), e.getX(), e.getY());
                         }
-                    } catch (DataAccessException ex) {
-                        AppUtils.showError(this, "Lỗi hệ thống: " + ex.getMessage());
                     }
                 }
-            }
-        });
+            });
+            itemEdit.addActionListener(e -> {
+                int row=table.getSelectedRow();
+                if (row >= 0) {
+                    Medicine selectedMedicine = currentList.get(row); // Lấy object Thuốc từ danh sách
+                    // Mở Dialog với chế độ "Sửa" (truyền object vào)
+                    MedicineDialog dialog = new MedicineDialog((Frame) SwingUtilities.getWindowAncestor(this), selectedMedicine);
+                    dialog.setVisible(true);
+
+                    if (dialog.isDataChanged()) {
+                        loadMedicineData();
+                    }
+                }
+            });
+
+            itemDelete.addActionListener(e -> {
+                int row=table.getSelectedRow();
+                if (row >= 0) {
+                    Medicine selectedMedicine = currentList.get(row);
+                    int confirm = JOptionPane.showConfirmDialog(this,
+                            "Bạn có chắc muốn xóa thuốc: " + selectedMedicine.getMedicineName() + "?",
+                            "Xác nhận xóa", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+
+                    if (confirm == JOptionPane.YES_OPTION) {
+                        try {
+                            if (medicineBUS.delete(selectedMedicine.getId())) {
+                                JOptionPane.showMessageDialog(this, "Đã xóa thành công!");
+                                loadMedicineData();
+                            } else {
+                                JOptionPane.showMessageDialog(this, "Lỗi khi xóa thuốc!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                            }
+                        } catch (DataAccessException ex) {
+                            AppUtils.showError(this, "Lỗi hệ thống: " + ex.getMessage());
+                        }
+                    }
+                }
+            });
 
         txtSearch.addKeyListener(new KeyAdapter() {
             @Override
@@ -361,11 +361,11 @@ public class MedicinePanel extends JPanel {
 
         //tab 2
         tablePendingRecords.getSelectionModel().addListSelectionListener(e ->{
-            if(!e.getValueIsAdjusting()&&tablePendingRecords.getSelectedRow()!=-1){
-                btnPhatThuoc.setEnabled(true);
-                long recordId=Long.parseLong(tablePendingRecords.getValueAt(tablePendingRecords.getSelectedRow(),0).toString());
-                loadPrescriptionDetails(recordId);
-            }
+           if(!e.getValueIsAdjusting()&&tablePendingRecords.getSelectedRow()!=-1){
+               btnPhatThuoc.setEnabled(true);
+               long recordId=Long.parseLong(tablePendingRecords.getValueAt(tablePendingRecords.getSelectedRow(),0).toString());
+               loadPrescriptionDetails(recordId);
+           }
         });
         btnPhatThuoc.addActionListener(e->{
             int row=tablePendingRecords.getSelectedRow();
@@ -391,7 +391,7 @@ public class MedicinePanel extends JPanel {
                 JOptionPane.showMessageDialog(this, "Lỗi khi phát thuốc: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
             }
         });
-    }
+        }
 
     private void createInvoiceForRecord(long recordId) {
         Invoice invoice=new Invoice();
