@@ -11,7 +11,7 @@ import javax.swing.*;
 public class Main {
     public static void main(String[] args) {
         // Đặt FlatLaf Look and Feel
-        System.out.println("cong viec3");
+        System.out.println("cong viec4");
         try {
             FlatLightLaf.setup();
             UIManager.put("TextComponent.arc", 12);
