@@ -226,61 +226,6 @@ public class MedicineDAO implements BaseDAO<Medicine> {
         return arr;
     }
 
-    public int getStockQty(int medicineId) {
-
-        String sql = "SELECT stock_qty FROM Medicine WHERE medicine_id = ?";
-
-        Connection conn = null;
-
-        try {
-            conn = getConnection();
-            try (PreparedStatement ps = conn.prepareStatement(sql)) {
-
-                ps.setInt(1, medicineId);
-
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next()) {
-                        return rs.getInt("stock_qty");
-                    }
-                }
-            }
-        } catch (SQLException e) {
-            throw new DataAccessException("Không thể lấy tồn kho", e);
-        } finally {
-            closeIfOwned(conn);
-        }
-
-        return 0;
-    }
-
-    public boolean reduceStock(int medicineId, int quantity) {
-
-        String sql = """
-            UPDATE Medicine
-               SET stock_qty = stock_qty - ?
-             WHERE medicine_id = ?
-               AND stock_qty >= ?
-        """;
-
-        Connection conn = null;
-
-        try {
-            conn = getConnection();
-            try (PreparedStatement ps = conn.prepareStatement(sql)) {
-
-                ps.setInt(1, quantity);
-                ps.setInt(2, medicineId);
-                ps.setInt(3, quantity);
-
-                return ps.executeUpdate() > 0;
-            }
-        } catch (SQLException e) {
-            throw new DataAccessException("Không thể trừ tồn kho", e);
-        } finally {
-            closeIfOwned(conn);
-        }
-    }
-
     private Medicine mapResultSet(ResultSet rs) throws SQLException {
         Medicine thuoc = new Medicine();
         thuoc.setId(rs.getInt("medicine_id"));
