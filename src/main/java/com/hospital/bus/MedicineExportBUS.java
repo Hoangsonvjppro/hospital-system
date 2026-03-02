@@ -55,7 +55,7 @@ public class MedicineExportBUS {
         int successCount=0;
         for (PrescriptionDetail detail:exportable){
             MedicineExport exportInfo = new MedicineExport(
-                    detail.getId(),          // ID chi tiết đơn thuốc
+                    (int) detail.getId(),   // ID chi tiết đơn thuốc
                     detail.getMedicineId(),  // ID thuốc
                     detail.getQuantity(),    // Số lượng xuất
                     LocalDateTime.now(),     // Thời gian xuất
