@@ -66,10 +66,101 @@ public class PatientDAO implements BaseDAO<Patient> {
         return null;
     }
 
+    /**
+     * Tìm bệnh nhân theo số điện thoại (chính xác).
+     */
+    public Patient findByPhone(String phone) {
+        String sql = "SELECT * FROM Patient WHERE phone = ? AND is_active = true";
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, phone);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return mapResultSet(rs);
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi truy vấn bệnh nhân theo SĐT=" + phone, e);
+            throw new DataAccessException("Lỗi truy vấn bệnh nhân theo SĐT=" + phone, e);
+        } finally {
+            closeIfOwned(conn);
+        }
+        return null;
+    }
+
+    /**
+     * Tìm bệnh nhân theo CCCD / id_card (nếu cột tồn tại). Nếu cột không tồn tại, trả về null.
+     */
+    public Patient findByCccd(String cccd) {
+        // Try multiple possible column names for CCCD/id card to be robust across schemas
+        String[] candidates = new String[]{"id_card", "idcard", "cccd", "identity_card", "identity_number", "id_number", "citizen_id"};
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            LOGGER.log(Level.FINE, "findByCccd: trying candidates for CCCD lookup");
+            for (String col : candidates) {
+                boolean has = false;
+                try { has = hasColumn(conn, "Patient", col); } catch (Exception exMeta) { has = false; }
+                LOGGER.log(Level.FINE, "findByCccd: candidate='" + col + "' hasColumn=" + has);
+                // quick metadata check first
+                if (!has) continue;
+                String sql = "SELECT * FROM Patient WHERE " + col + " = ? AND is_active = true";
+                try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                    ps.setString(1, cccd);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) {
+                            return mapResultSet(rs);
+                        }
+                    }
+                } catch (SQLException inner) {
+                    // column might not actually exist / driver different — try next candidate
+                    LOGGER.log(Level.FINER, "Tried Patient." + col + " but query failed, try next candidate.", inner);
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi truy vấn bệnh nhân theo CCCD=" + cccd, e);
+            throw new DataAccessException("Lỗi truy vấn bệnh nhân theo CCCD=" + cccd, e);
+        } finally {
+            closeIfOwned(conn);
+        }
+        return null;
+    }
+
+    /**
+     * Tìm bệnh nhân theo tên (like) để hỗ trợ tìm tái khám.
+     */
+    public List<Patient> searchByName(String name) {
+        List<Patient> list = new ArrayList<>();
+        String sql = "SELECT * FROM Patient WHERE full_name LIKE ? AND is_active = true";
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, "%" + name + "%");
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        list.add(mapResultSet(rs));
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi tìm bệnh nhân theo tên=" + name, e);
+            throw new DataAccessException("Lỗi tìm bệnh nhân theo tên=" + name, e);
+        } finally {
+            closeIfOwned(conn);
+        }
+        return list;
+    }
+
     @Override
     public List<Patient> findAll() {
         List<Patient> list = new ArrayList<>();
-        String sql = "SELECT * FROM Patient WHERE is_active = true";
+        // Return all patients from DB. Previously we filtered by is_active=true which hid soft-deleted
+        // records; change to show all patients as requested.
+        String sql = "SELECT * FROM Patient";
         Connection conn = null;
         try {
             conn = getConnection();
@@ -90,11 +181,33 @@ public class PatientDAO implements BaseDAO<Patient> {
 
     @Override
     public boolean insert(Patient entity) {
+        // Server-side defensive duplicate checks before attempting INSERT.
+        try {
+            // Check CCCD if present and column exists
+            if (entity.getCccd() != null && !entity.getCccd().isEmpty()) {
+                Patient existing = findByCccd(entity.getCccd());
+                if (existing != null) {
+                    throw new DataAccessException("CCCD đã tồn tại cho bệnh nhân khác", null);
+                }
+            }
+            // Check phone
+            if (entity.getPhone() != null && !entity.getPhone().isEmpty()) {
+                Patient byPhone = findByPhone(entity.getPhone());
+                if (byPhone != null) {
+                    throw new DataAccessException("SĐT đã tồn tại cho bệnh nhân khác", null);
+                }
+            }
+        } catch (DataAccessException dae) {
+            // Rethrow our duplicate detection as-is
+            throw dae;
+        } catch (Exception ex) {
+            // If duplicate check can't complete (metadata/driver issue), continue to attempt insert and rely on DB constraints
+        }
+
         String sql = """
                 INSERT INTO Patient
-                (full_name, gender, date_of_birth, phone, address,
-                 is_active)
-                VALUES (?,?,?,?,?,?)
+                (full_name, gender, date_of_birth, phone, address, id_card, allergy_note, is_active)
+                VALUES (?,?,?,?,?,?,?,?)
                 """;
         Connection conn = null;
         try {
@@ -113,7 +226,11 @@ public class PatientDAO implements BaseDAO<Patient> {
                 }
                 ps.setString(4, entity.getPhone());
                 ps.setString(5, entity.getAddress());
-                ps.setBoolean(6, entity.isActive());
+                // CCCD (id_card)
+                if (entity.getCccd() != null) ps.setString(6, entity.getCccd()); else ps.setNull(6, Types.VARCHAR);
+                // allergy note
+                if (entity.getAllergyHistory() != null) ps.setString(7, entity.getAllergyHistory()); else ps.setNull(7, Types.VARCHAR);
+                ps.setBoolean(8, entity.isActive());
 
                 int rows = ps.executeUpdate();
                 if (rows > 0) {
@@ -142,6 +259,8 @@ public class PatientDAO implements BaseDAO<Patient> {
                     date_of_birth=?,
                     phone=?,
                     address=?,
+                    id_card=?,
+                    allergy_note=?,
                     is_active=?
                 WHERE patient_id=?
                 """;
@@ -162,8 +281,12 @@ public class PatientDAO implements BaseDAO<Patient> {
                 }
                 ps.setString(4, entity.getPhone());
                 ps.setString(5, entity.getAddress());
-                ps.setBoolean(6, entity.isActive());
-                ps.setInt(7, entity.getId());
+                // id_card
+                if (entity.getCccd() != null) ps.setString(6, entity.getCccd()); else ps.setNull(6, Types.VARCHAR);
+                // allergy_note
+                if (entity.getAllergyHistory() != null) ps.setString(7, entity.getAllergyHistory()); else ps.setNull(7, Types.VARCHAR);
+                ps.setBoolean(8, entity.isActive());
+                ps.setInt(9, entity.getId());
                 return ps.executeUpdate() > 0;
             }
         } catch (SQLException e) {
@@ -188,6 +311,59 @@ public class PatientDAO implements BaseDAO<Patient> {
             LOGGER.log(Level.SEVERE, "Không thể xóa bệnh nhân ID=" + id, e);
             throw new DataAccessException("Không thể xóa bệnh nhân ID=" + id, e);
         } finally {
+            closeIfOwned(conn);
+        }
+    }
+
+    /**
+     * Permanently delete a patient and related dependent rows (best-effort) in a transaction.
+     * This will attempt to remove rows from dependent tables that reference Patient to avoid
+     * foreign key constraint violations (Appointment, MedicalRecord, PatientAllergy, Invoice).
+     */
+    public boolean deletePermanent(int id) {
+        Connection conn = null;
+        boolean localConn = false;
+        try {
+            conn = getConnection();
+            // If we obtained our own connection, manage transaction here
+            if (externalConnection == null) {
+                localConn = true;
+                conn.setAutoCommit(false);
+            }
+
+            // Delete dependent rows in a safe order
+            try (PreparedStatement ps1 = conn.prepareStatement("DELETE FROM PatientAllergy WHERE patient_id = ?")) {
+                ps1.setInt(1, id);
+                ps1.executeUpdate();
+            }
+            try (PreparedStatement ps2 = conn.prepareStatement("DELETE FROM Appointment WHERE patient_id = ?")) {
+                ps2.setInt(1, id);
+                ps2.executeUpdate();
+            }
+            try (PreparedStatement ps3 = conn.prepareStatement("DELETE FROM MedicalRecord WHERE patient_id = ?")) {
+                ps3.setInt(1, id);
+                ps3.executeUpdate();
+            }
+            try (PreparedStatement ps4 = conn.prepareStatement("DELETE FROM Invoice WHERE patient_id = ?")) {
+                ps4.setInt(1, id);
+                ps4.executeUpdate();
+            }
+
+            // Finally delete patient row
+            try (PreparedStatement ps = conn.prepareStatement("DELETE FROM Patient WHERE patient_id = ?")) {
+                ps.setInt(1, id);
+                int rows = ps.executeUpdate();
+                if (localConn) conn.commit();
+                return rows > 0;
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Không thể xóa vĩnh viễn bệnh nhân ID=" + id, e);
+            try { if (conn != null && localConn) conn.rollback(); } catch (SQLException ignored) {}
+            throw new DataAccessException("Không thể xóa vĩnh viễn bệnh nhân ID=" + id, e);
+        } finally {
+            if (localConn && conn != null) {
+                try { conn.setAutoCommit(true); } catch (SQLException ignored) {}
+            }
             closeIfOwned(conn);
         }
     }
@@ -222,6 +398,72 @@ public class PatientDAO implements BaseDAO<Patient> {
             p.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
         }
 
+        // Optional columns: cccd, allergy_history, notes — không bắt buộc tồn tại trong mọi schema
+        try {
+            rs.findColumn("id_card");
+            p.setCccd(rs.getString("id_card"));
+        } catch (SQLException ignored) {
+        }
+
+        try {
+            // prefer allergy_note (init SQL uses this), fallback to allergy_history
+            try {
+                rs.findColumn("allergy_note");
+                p.setAllergyHistory(rs.getString("allergy_note"));
+            } catch (SQLException ex) {
+                rs.findColumn("allergy_history");
+                p.setAllergyHistory(rs.getString("allergy_history"));
+            }
+        } catch (SQLException ignored) {
+        }
+
+        try {
+            rs.findColumn("notes");
+            p.setNotes(rs.getString("notes"));
+        } catch (SQLException ignored) {
+        }
+
         return p;
+    }
+
+    /**
+     * Kiểm tra xem bảng có cột cụ thể hay không.
+     */
+    private boolean hasColumn(Connection conn, String tableName, String columnName) {
+        try {
+            DatabaseMetaData meta = conn.getMetaData();
+            // Some drivers/databases are case-sensitive or expect catalog/schema parameters.
+            // We'll iterate all columns for the table and compare names case-insensitively.
+            String catalog = conn.getCatalog();
+            try (ResultSet rs = meta.getColumns(catalog, null, tableName, "%")) {
+                while (rs.next()) {
+                    String col = rs.getString("COLUMN_NAME");
+                    if (col != null && col.equalsIgnoreCase(columnName)) {
+                        return true;
+                    }
+                }
+            }
+            // Try with upper-cased table name (some DBs store upper-case metadata)
+            try (ResultSet rs2 = meta.getColumns(catalog, null, tableName.toUpperCase(), "%")) {
+                while (rs2.next()) {
+                    String col = rs2.getString("COLUMN_NAME");
+                    if (col != null && col.equalsIgnoreCase(columnName)) {
+                        return true;
+                    }
+                }
+            }
+            try (ResultSet rs3 = meta.getColumns(catalog, null, tableName.toLowerCase(), "%")) {
+                while (rs3.next()) {
+                    String col = rs3.getString("COLUMN_NAME");
+                    if (col != null && col.equalsIgnoreCase(columnName)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        } catch (SQLException e) {
+            LOGGER.log(Level.WARNING, "Không thể kiểm tra cột " + columnName + " trong bảng " + tableName, e);
+            return false;
+        }
     }
 }

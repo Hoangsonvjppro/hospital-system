@@ -41,14 +41,28 @@ public class MedicalRecordDAO {
 
     // ── Tạo bệnh án trống và trả về record_id ──────────────────────────────
     public long createEmptyRecord(long patientId, long doctorId, Long appointmentId) {
+        // Delegate to the new overload with defaults (no priority, no queue number)
+        return createEmptyRecord(patientId, doctorId, appointmentId, null, null, null, null);
+    }
+
+    /**
+     * Tạo bệnh án với khả năng lưu priority / queue_number / arrival_time / exam_type.
+     */
+    public long createEmptyRecord(long patientId, long doctorId, Long appointmentId,
+                                  String priority, Integer queueNumber,
+                                  Time arrivalTime, String examType) {
 
         String sql = """
             INSERT INTO MedicalRecord (
                 patient_id,
                 doctor_id,
                 appointment_id,
-                visit_date
-            ) VALUES (?, ?, ?, NOW())
+                visit_date,
+                priority,
+                queue_number,
+                arrival_time,
+                exam_type
+            ) VALUES (?, ?, ?, NOW(), ?, ?, ?, ?)
         """;
 
         Connection conn = null;
@@ -64,11 +78,36 @@ public class MedicalRecordDAO {
                     ps.setNull(3, Types.BIGINT);
                 }
 
-                ps.executeUpdate();
+                if (priority != null) {
+                    ps.setString(4, priority);
+                } else {
+                    ps.setNull(4, Types.VARCHAR);
+                }
 
-                try (ResultSet rs = ps.getGeneratedKeys()) {
-                    if (rs.next()) {
-                        return rs.getLong(1);
+                if (queueNumber != null) {
+                    ps.setInt(5, queueNumber);
+                } else {
+                    ps.setNull(5, Types.INTEGER);
+                }
+
+                if (arrivalTime != null) {
+                    ps.setTime(6, arrivalTime);
+                } else {
+                    ps.setNull(6, Types.TIME);
+                }
+
+                if (examType != null) {
+                    ps.setString(7, examType);
+                } else {
+                    ps.setNull(7, Types.VARCHAR);
+                }
+
+                int rows = ps.executeUpdate();
+                if (rows > 0) {
+                    try (ResultSet rs = ps.getGeneratedKeys()) {
+                        if (rs.next()) {
+                            return rs.getLong(1);
+                        }
                     }
                 }
             }
@@ -80,6 +119,186 @@ public class MedicalRecordDAO {
         }
 
         throw new DataAccessException("Không thể tạo Medical Record - không lấy được generated key", null);
+    }
+
+    /**
+     * Kiểm tra xem bệnh nhân đã có record trong ngày hôm nay chưa.
+     */
+    public boolean patientHasRecordToday(long patientId) {
+        String sql = "SELECT COUNT(*) AS cnt FROM MedicalRecord WHERE patient_id = ? AND DATE(visit_date) = CURRENT_DATE";
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setLong(1, patientId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getInt("cnt") > 0;
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi kiểm tra record hôm nay cho patientId=" + patientId, e);
+            throw new DataAccessException("Lỗi kiểm tra record hôm nay", e);
+        } finally {
+            closeIfOwned(conn);
+        }
+        return false;
+    }
+
+    /**
+     * Đếm số bệnh án (hàng đợi) hôm nay cho một bác sĩ (nếu doctorId <=0 thì đếm toàn bộ).
+     */
+    public int countQueueToday(long doctorId) {
+        String sql = (doctorId > 0)
+                ? "SELECT COUNT(*) AS cnt FROM MedicalRecord WHERE doctor_id = ? AND DATE(visit_date) = CURRENT_DATE"
+                : "SELECT COUNT(*) AS cnt FROM MedicalRecord WHERE DATE(visit_date) = CURRENT_DATE";
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                if (doctorId > 0) ps.setLong(1, doctorId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) return rs.getInt("cnt");
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi đếm hàng đợi hôm nay", e);
+            throw new DataAccessException("Lỗi đếm hàng đợi hôm nay", e);
+        } finally {
+            closeIfOwned(conn);
+        }
+        return 0;
+    }
+
+    /**
+     * Lấy danh sách hàng đợi hôm nay (optionally theo bác sĩ). Trả về danh sách MedicalRecord đầy đủ.
+     */
+    public java.util.List<com.hospital.model.MedicalRecord> listQueueToday(long doctorId) {
+        java.util.List<com.hospital.model.MedicalRecord> list = new java.util.ArrayList<>();
+    // Order priorities so that EMERGENCY comes first, then ELDERLY, then NORMAL
+    String sql = (doctorId > 0)
+        ? "SELECT * FROM MedicalRecord WHERE doctor_id = ? AND DATE(visit_date) = CURRENT_DATE ORDER BY FIELD(priority, 'EMERGENCY','ELDERLY','NORMAL') ASC, queue_number ASC"
+        : "SELECT * FROM MedicalRecord WHERE DATE(visit_date) = CURRENT_DATE ORDER BY FIELD(priority, 'EMERGENCY','ELDERLY','NORMAL') ASC, queue_number ASC";
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                if (doctorId > 0) ps.setLong(1, doctorId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        list.add(mapResultSet(rs));
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi lấy danh sách hàng đợi hôm nay", e);
+            throw new DataAccessException("Lỗi lấy danh sách hàng đợi hôm nay", e);
+        } finally {
+            closeIfOwned(conn);
+        }
+        return list;
+    }
+
+    /**
+     * Lấy MedicalRecord theo ID
+     */
+    public com.hospital.model.MedicalRecord findById(long recordId) {
+        String sql = "SELECT * FROM MedicalRecord WHERE record_id = ?";
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setLong(1, recordId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return mapResultSet(rs);
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi lấy MedicalRecord ID=" + recordId, e);
+            throw new DataAccessException("Lỗi lấy MedicalRecord", e);
+        } finally {
+            closeIfOwned(conn);
+        }
+        return null;
+    }
+
+    /**
+     * List all medical records for a patient (history), ordered by visit_date desc.
+     */
+    public java.util.List<com.hospital.model.MedicalRecord> listByPatient(long patientId) {
+        java.util.List<com.hospital.model.MedicalRecord> list = new java.util.ArrayList<>();
+        String sql = "SELECT * FROM MedicalRecord WHERE patient_id = ? ORDER BY visit_date DESC";
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setLong(1, patientId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        list.add(mapResultSet(rs));
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi lấy lịch sử khám cho patientId=" + patientId, e);
+            throw new DataAccessException("Không thể lấy lịch sử khám", e);
+        } finally {
+            closeIfOwned(conn);
+        }
+        return list;
+    }
+
+    private com.hospital.model.MedicalRecord mapResultSet(ResultSet rs) throws SQLException {
+        com.hospital.model.MedicalRecord r = new com.hospital.model.MedicalRecord();
+        r.setId(rs.getInt("record_id"));
+        r.setPatientId(rs.getLong("patient_id"));
+        r.setDoctorId(rs.getLong("doctor_id"));
+        r.setAppointmentId(rs.getObject("appointment_id") == null ? null : rs.getLong("appointment_id"));
+        if (rs.getTimestamp("visit_date") != null) r.setVisitDate(rs.getTimestamp("visit_date").toLocalDateTime());
+        r.setSymptoms(rs.getString("symptoms"));
+        r.setDiagnosis(rs.getString("diagnosis"));
+        r.setWeight(rs.getDouble("weight"));
+        r.setHeight(rs.getDouble("height"));
+        r.setBloodPressure(rs.getString("blood_pressure"));
+        r.setPulse(rs.getInt("heart_rate"));
+        r.setStatus(rs.getString("queue_status"));
+        try { r.setPriority(rs.getString("priority")); } catch (SQLException ignored) {}
+        try { r.setQueueNumber(rs.getObject("queue_number") == null ? null : rs.getInt("queue_number")); } catch (SQLException ignored) {}
+        try { r.setExamTypeField(rs.getString("exam_type")); } catch (SQLException ignored) {}
+        try { java.sql.Time t = rs.getTime("arrival_time"); if (t != null) r.setArrivalTime(t.toLocalTime()); } catch (SQLException ignored) {}
+        try { java.sql.Date d = rs.getDate("follow_up_date"); if (d != null) r.setFollowUpDate(d.toLocalDate()); } catch (SQLException ignored) {}
+        return r;
+    }
+
+    /**
+     * List follow-up records scheduled for today (optionally for a specific doctor).
+     */
+    public java.util.List<com.hospital.model.MedicalRecord> listFollowUpsToday(long doctorId) {
+        java.util.List<com.hospital.model.MedicalRecord> list = new java.util.ArrayList<>();
+        String sql = (doctorId > 0)
+                ? "SELECT * FROM MedicalRecord WHERE doctor_id = ? AND DATE(follow_up_date) = CURRENT_DATE ORDER BY follow_up_date ASC"
+                : "SELECT * FROM MedicalRecord WHERE DATE(follow_up_date) = CURRENT_DATE ORDER BY follow_up_date ASC";
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                if (doctorId > 0) ps.setLong(1, doctorId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        list.add(mapResultSet(rs));
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi lấy danh sách tái khám hôm nay", e);
+            throw new DataAccessException("Lỗi lấy danh sách tái khám hôm nay", e);
+        } finally {
+            closeIfOwned(conn);
+        }
+        return list;
     }
 
     // ── Cập nhật chẩn đoán ──────────────────────────────────────────────────
@@ -200,9 +419,9 @@ public class MedicalRecordDAO {
 
         String sql = """
             UPDATE MedicalRecord
-               SET status     = ?,
-                   updated_at = NOW()
-             WHERE record_id  = ?
+               SET queue_status = ?,
+                   updated_at  = NOW()
+             WHERE record_id   = ?
         """;
 
         Connection conn = null;
@@ -217,6 +436,121 @@ public class MedicalRecordDAO {
             LOGGER.log(Level.SEVERE, "Lỗi cập nhật trạng thái bệnh án recordId=" + recordId, e);
             throw new DataAccessException("Không thể cập nhật trạng thái bệnh án", e);
         } finally {
+            closeIfOwned(conn);
+        }
+    }
+
+    /**
+     * Update priority of a record (e.g., to EMERGENCY) and set updated_at.
+     */
+    public boolean updatePriority(long recordId, String priority) {
+        String sql = "UPDATE MedicalRecord SET priority = ?, updated_at = NOW() WHERE record_id = ?";
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, priority);
+                ps.setLong(2, recordId);
+                return ps.executeUpdate() > 0;
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi cập nhật priority recordId=" + recordId, e);
+            throw new DataAccessException("Không thể cập nhật priority", e);
+        } finally {
+            closeIfOwned(conn);
+        }
+    }
+
+    /**
+     * Reindex today's queue_number for a doctor (or all doctors if doctorId<=0).
+     * Ordering: priority (EMERGENCY, ELDERLY, NORMAL) desc, arrival_time ASC, visit_date ASC
+     */
+    public void reindexTodayQueue(long doctorId) {
+        // Delegate to new overload without a forced-top record
+        reindexTodayQueue(doctorId, null);
+    }
+
+    /**
+     * Reindex today's queue_number for a doctor (or all doctors if doctorId<=0).
+     * If topRecordId is provided, that record will be ordered first (queue_number = 1),
+     * then the rest will follow ordered by priority and arrival_time.
+     */
+    public void reindexTodayQueue(long doctorId, Long topRecordId) {
+        String selectSql;
+        if (doctorId > 0) {
+            if (topRecordId != null) {
+                // Place existing EMERGENCY records first, then the promoted record, then ELDERLY, then NORMAL
+                selectSql = "SELECT record_id FROM MedicalRecord WHERE doctor_id = ? AND DATE(visit_date) = CURRENT_DATE "
+                        + "ORDER BY (CASE WHEN priority = 'EMERGENCY' AND record_id <> ? THEN 0 WHEN record_id = ? THEN 1 WHEN priority = 'ELDERLY' THEN 2 ELSE 3 END), arrival_time ASC, visit_date ASC";
+            } else {
+                selectSql = "SELECT record_id FROM MedicalRecord WHERE doctor_id = ? AND DATE(visit_date) = CURRENT_DATE "
+                        + "ORDER BY FIELD(priority, 'EMERGENCY','ELDERLY','NORMAL') DESC, arrival_time ASC, visit_date ASC";
+            }
+        } else {
+            if (topRecordId != null) {
+                selectSql = "SELECT record_id FROM MedicalRecord WHERE DATE(visit_date) = CURRENT_DATE "
+                        + "ORDER BY (CASE WHEN record_id = ? THEN 0 ELSE 1 END), FIELD(priority, 'EMERGENCY','ELDERLY','NORMAL') DESC, arrival_time ASC, visit_date ASC";
+            } else {
+                selectSql = "SELECT record_id FROM MedicalRecord WHERE DATE(visit_date) = CURRENT_DATE "
+                        + "ORDER BY FIELD(priority, 'EMERGENCY','ELDERLY','NORMAL') DESC, arrival_time ASC, visit_date ASC";
+            }
+        }
+
+        Connection conn = null;
+        boolean localConn = false;
+        try {
+            conn = getConnection();
+            if (externalConnection == null) {
+                localConn = true;
+                conn.setAutoCommit(false);
+            }
+
+            try (PreparedStatement ps = conn.prepareStatement(selectSql)) {
+                int paramIndex = 1;
+                if (doctorId > 0) {
+                    ps.setLong(paramIndex++, doctorId);
+                }
+                    if (topRecordId != null) {
+                        // For the CASE expression we need to bind topRecordId twice (for the <> ? and = ? checks)
+                        ps.setLong(paramIndex++, topRecordId);
+                        ps.setLong(paramIndex++, topRecordId);
+                    }
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    // Collect ordered record ids first so we can log before/after
+                    java.util.List<Long> ordered = new java.util.ArrayList<>();
+                    while (rs.next()) {
+                        ordered.add(rs.getLong("record_id"));
+                    }
+
+                    LOGGER.info(() -> "Reindex selected order (doctorId=" + doctorId + ", topRecordId=" + topRecordId + "): " + ordered.toString());
+
+                    int idx = 0;
+                    StringBuilder sb = new StringBuilder();
+                    for (Long rid : ordered) {
+                        idx++;
+                        try (PreparedStatement up = conn.prepareStatement("UPDATE MedicalRecord SET queue_number = ?, updated_at = NOW() WHERE record_id = ?")) {
+                            up.setInt(1, idx);
+                            up.setLong(2, rid);
+                            up.executeUpdate();
+                        }
+                        if (sb.length() > 0) sb.append(", ");
+                        sb.append(rid).append("->").append(idx);
+                    }
+
+                    LOGGER.info(() -> "Reindex applied (doctorId=" + doctorId + ", topRecordId=" + topRecordId + "): " + sb.toString());
+                }
+            }
+
+            if (localConn) conn.commit();
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi reindex hàng đợi hôm nay", e);
+            try { if (conn != null && localConn) conn.rollback(); } catch (SQLException ignored) {}
+            throw new DataAccessException("Không thể reindex hàng đợi hôm nay", e);
+        } finally {
+            if (localConn && conn != null) {
+                try { conn.setAutoCommit(true); } catch (SQLException ignored) {}
+            }
             closeIfOwned(conn);
         }
     }
