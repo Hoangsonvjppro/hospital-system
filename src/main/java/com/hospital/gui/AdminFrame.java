@@ -1,5 +1,7 @@
 package com.hospital.gui;
 
+import com.hospital.gui.panels.AdminReportPanel;
+import com.hospital.gui.panels.ClinicConfigPanel;
 import com.hospital.gui.panels.DashboardPanel;
 import com.hospital.gui.panels.MedicinePanel;
 import com.hospital.model.Account;
@@ -24,10 +26,16 @@ public class AdminFrame extends BaseFrame {
                 () -> showPanel(new MedicinePanel()));
 
         addSeparator();
-        addSectionLabel("Sắp ra mắt");
+        addSectionLabel("Báo cáo");
 
-        addDisabledMenuItem("👥", "Bệnh nhân");
-        addDisabledMenuItem("🩺", "Phòng khám BS");
+        addMenuItem("📈", "Doanh thu",
+                () -> showPanel(new AdminReportPanel()));
+
+        addSeparator();
+        addSectionLabel("Hệ thống");
+
+        addMenuItem("⚙️", "Cấu hình phòng khám",
+                () -> showPanel(new ClinicConfigPanel()));
     }
 
     @Override

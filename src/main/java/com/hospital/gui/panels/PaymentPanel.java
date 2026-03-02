@@ -69,6 +69,7 @@ public class PaymentPanel extends JPanel {
         title.setFont(UIConstants.FONT_TITLE);
         title.setForeground(UIConstants.PRIMARY);
         header.add(title, BorderLayout.WEST);
+
         header.setBorder(BorderFactory.createEmptyBorder(0, 0, 12, 0));
         add(header, BorderLayout.NORTH);
 

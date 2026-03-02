@@ -1,5 +1,6 @@
 package com.hospital.gui;
 
+import com.hospital.gui.panels.PaymentPanel;
 import com.hospital.gui.panels.ReceptionPanel;
 import com.hospital.model.Account;
 
@@ -19,6 +20,12 @@ public class ReceptionistFrame extends BaseFrame {
     protected void registerMenuItems() {
         addMenuItem("📋", "Tiếp nhận",
                 () -> showPanel(new ReceptionPanel()));
+
+        addSeparator();
+        addSectionLabel("Thu ngân");
+
+        addMenuItem("💰", "Thanh toán & Thu ngân",
+                () -> showPanel(new PaymentPanel()));
     }
 
     @Override
