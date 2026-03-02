@@ -33,7 +33,9 @@ public class PatientPanel extends JPanel {
     private DefaultTableModel tableModel;
     private JTable queueTable;
     private DefaultTableModel queueTableModel;
+    private java.util.List<Long> queueRecordIds = new java.util.ArrayList<>();
     private JTabbedPane tabbedPane;
+    private javax.swing.Timer queueRefreshTimer;
     private final PatientBUS patientBUS = new PatientBUS();
     private final MedicalRecordBUS medicalRecordBUS = new MedicalRecordBUS();
     private final DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -45,6 +47,12 @@ public class PatientPanel extends JPanel {
         initComponents();
         loadData();
         refreshQueue();
+        // Refresh waiting times periodically so "Thời gian chờ" updates live
+        try {
+            queueRefreshTimer = new javax.swing.Timer(30_000, e -> refreshQueue());
+            queueRefreshTimer.setInitialDelay(30_000);
+            queueRefreshTimer.start();
+        } catch (Exception ignored) {}
     }
 
     private void initComponents() {
@@ -205,9 +213,24 @@ public class PatientPanel extends JPanel {
         RoundedButton btnPromote = new RoundedButton("Đẩy ưu tiên");
         btnPromote.addActionListener(e -> {
             int sel = queueTable.getSelectedRow();
-            if (sel < 0) return;
-            // For now just show placeholder — implementing promotion requires update DAO/DB (could set priority to EMERGENCY)
-            JOptionPane.showMessageDialog(this, "Tính năng đẩy ưu tiên tạm (chưa cập nhật DB)", "Info", JOptionPane.INFORMATION_MESSAGE);
+            if (sel < 0) {
+                JOptionPane.showMessageDialog(this, "Vui lòng chọn một người trong hàng đợi.", "Chú ý", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            if (sel >= queueRecordIds.size()) {
+                JOptionPane.showMessageDialog(this, "Không tìm thấy bản ghi hàng đợi tương ứng.", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            long recordId = queueRecordIds.get(sel);
+            int confirm = JOptionPane.showConfirmDialog(this, "Xác nhận đẩy ưu tiên cho bệnh nhân này?", "Xác nhận", JOptionPane.YES_NO_OPTION);
+            if (confirm != JOptionPane.YES_OPTION) return;
+            try {
+                medicalRecordBUS.promoteRecordToEmergency(recordId);
+                refreshQueue();
+                JOptionPane.showMessageDialog(this, "Đã đẩy ưu tiên.", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(this, "Không thể đẩy ưu tiên: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
         });
         actions.add(btnPromote);
         card.add(actions, BorderLayout.SOUTH);
@@ -462,11 +485,14 @@ public class PatientPanel extends JPanel {
     private void refreshQueue() {
         if (queueTableModel == null) return;
         queueTableModel.setRowCount(0);
+        queueRecordIds.clear();
         long doctorId = 1L; // TODO: make selectable
         java.util.List<com.hospital.model.MedicalRecord> list = medicalRecordBUS.getTodayQueue(doctorId);
         int idx = 0;
         for (com.hospital.model.MedicalRecord r : list) {
             idx++; // display index as sequential STT (1,2,3...)
+            // keep record id mapping for actions
+            queueRecordIds.add((long) r.getId());
             String name = "-";
             try {
                 com.hospital.model.Patient p = patientBUS.findById((int) r.getPatientId());

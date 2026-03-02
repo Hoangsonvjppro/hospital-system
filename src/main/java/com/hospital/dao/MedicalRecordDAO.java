@@ -176,9 +176,10 @@ public class MedicalRecordDAO {
      */
     public java.util.List<com.hospital.model.MedicalRecord> listQueueToday(long doctorId) {
         java.util.List<com.hospital.model.MedicalRecord> list = new java.util.ArrayList<>();
-        String sql = (doctorId > 0)
-                ? "SELECT * FROM MedicalRecord WHERE doctor_id = ? AND DATE(visit_date) = CURRENT_DATE ORDER BY FIELD(priority, 'EMERGENCY','ELDERLY','NORMAL') DESC, queue_number ASC"
-                : "SELECT * FROM MedicalRecord WHERE DATE(visit_date) = CURRENT_DATE ORDER BY FIELD(priority, 'EMERGENCY','ELDERLY','NORMAL') DESC, queue_number ASC";
+    // Order priorities so that EMERGENCY comes first, then ELDERLY, then NORMAL
+    String sql = (doctorId > 0)
+        ? "SELECT * FROM MedicalRecord WHERE doctor_id = ? AND DATE(visit_date) = CURRENT_DATE ORDER BY FIELD(priority, 'EMERGENCY','ELDERLY','NORMAL') ASC, queue_number ASC"
+        : "SELECT * FROM MedicalRecord WHERE DATE(visit_date) = CURRENT_DATE ORDER BY FIELD(priority, 'EMERGENCY','ELDERLY','NORMAL') ASC, queue_number ASC";
         Connection conn = null;
         try {
             conn = getConnection();
@@ -380,6 +381,121 @@ public class MedicalRecordDAO {
             LOGGER.log(Level.SEVERE, "Lỗi cập nhật trạng thái bệnh án recordId=" + recordId, e);
             throw new DataAccessException("Không thể cập nhật trạng thái bệnh án", e);
         } finally {
+            closeIfOwned(conn);
+        }
+    }
+
+    /**
+     * Update priority of a record (e.g., to EMERGENCY) and set updated_at.
+     */
+    public boolean updatePriority(long recordId, String priority) {
+        String sql = "UPDATE MedicalRecord SET priority = ?, updated_at = NOW() WHERE record_id = ?";
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, priority);
+                ps.setLong(2, recordId);
+                return ps.executeUpdate() > 0;
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi cập nhật priority recordId=" + recordId, e);
+            throw new DataAccessException("Không thể cập nhật priority", e);
+        } finally {
+            closeIfOwned(conn);
+        }
+    }
+
+    /**
+     * Reindex today's queue_number for a doctor (or all doctors if doctorId<=0).
+     * Ordering: priority (EMERGENCY, ELDERLY, NORMAL) desc, arrival_time ASC, visit_date ASC
+     */
+    public void reindexTodayQueue(long doctorId) {
+        // Delegate to new overload without a forced-top record
+        reindexTodayQueue(doctorId, null);
+    }
+
+    /**
+     * Reindex today's queue_number for a doctor (or all doctors if doctorId<=0).
+     * If topRecordId is provided, that record will be ordered first (queue_number = 1),
+     * then the rest will follow ordered by priority and arrival_time.
+     */
+    public void reindexTodayQueue(long doctorId, Long topRecordId) {
+        String selectSql;
+        if (doctorId > 0) {
+            if (topRecordId != null) {
+                // Place existing EMERGENCY records first, then the promoted record, then ELDERLY, then NORMAL
+                selectSql = "SELECT record_id FROM MedicalRecord WHERE doctor_id = ? AND DATE(visit_date) = CURRENT_DATE "
+                        + "ORDER BY (CASE WHEN priority = 'EMERGENCY' AND record_id <> ? THEN 0 WHEN record_id = ? THEN 1 WHEN priority = 'ELDERLY' THEN 2 ELSE 3 END), arrival_time ASC, visit_date ASC";
+            } else {
+                selectSql = "SELECT record_id FROM MedicalRecord WHERE doctor_id = ? AND DATE(visit_date) = CURRENT_DATE "
+                        + "ORDER BY FIELD(priority, 'EMERGENCY','ELDERLY','NORMAL') DESC, arrival_time ASC, visit_date ASC";
+            }
+        } else {
+            if (topRecordId != null) {
+                selectSql = "SELECT record_id FROM MedicalRecord WHERE DATE(visit_date) = CURRENT_DATE "
+                        + "ORDER BY (CASE WHEN record_id = ? THEN 0 ELSE 1 END), FIELD(priority, 'EMERGENCY','ELDERLY','NORMAL') DESC, arrival_time ASC, visit_date ASC";
+            } else {
+                selectSql = "SELECT record_id FROM MedicalRecord WHERE DATE(visit_date) = CURRENT_DATE "
+                        + "ORDER BY FIELD(priority, 'EMERGENCY','ELDERLY','NORMAL') DESC, arrival_time ASC, visit_date ASC";
+            }
+        }
+
+        Connection conn = null;
+        boolean localConn = false;
+        try {
+            conn = getConnection();
+            if (externalConnection == null) {
+                localConn = true;
+                conn.setAutoCommit(false);
+            }
+
+            try (PreparedStatement ps = conn.prepareStatement(selectSql)) {
+                int paramIndex = 1;
+                if (doctorId > 0) {
+                    ps.setLong(paramIndex++, doctorId);
+                }
+                    if (topRecordId != null) {
+                        // For the CASE expression we need to bind topRecordId twice (for the <> ? and = ? checks)
+                        ps.setLong(paramIndex++, topRecordId);
+                        ps.setLong(paramIndex++, topRecordId);
+                    }
+
+                try (ResultSet rs = ps.executeQuery()) {
+                    // Collect ordered record ids first so we can log before/after
+                    java.util.List<Long> ordered = new java.util.ArrayList<>();
+                    while (rs.next()) {
+                        ordered.add(rs.getLong("record_id"));
+                    }
+
+                    LOGGER.info(() -> "Reindex selected order (doctorId=" + doctorId + ", topRecordId=" + topRecordId + "): " + ordered.toString());
+
+                    int idx = 0;
+                    StringBuilder sb = new StringBuilder();
+                    for (Long rid : ordered) {
+                        idx++;
+                        try (PreparedStatement up = conn.prepareStatement("UPDATE MedicalRecord SET queue_number = ?, updated_at = NOW() WHERE record_id = ?")) {
+                            up.setInt(1, idx);
+                            up.setLong(2, rid);
+                            up.executeUpdate();
+                        }
+                        if (sb.length() > 0) sb.append(", ");
+                        sb.append(rid).append("->").append(idx);
+                    }
+
+                    LOGGER.info(() -> "Reindex applied (doctorId=" + doctorId + ", topRecordId=" + topRecordId + "): " + sb.toString());
+                }
+            }
+
+            if (localConn) conn.commit();
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi reindex hàng đợi hôm nay", e);
+            try { if (conn != null && localConn) conn.rollback(); } catch (SQLException ignored) {}
+            throw new DataAccessException("Không thể reindex hàng đợi hôm nay", e);
+        } finally {
+            if (localConn && conn != null) {
+                try { conn.setAutoCommit(true); } catch (SQLException ignored) {}
+            }
             closeIfOwned(conn);
         }
     }

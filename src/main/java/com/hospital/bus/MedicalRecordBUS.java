@@ -7,6 +7,8 @@ import com.hospital.exception.DataAccessException;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.sql.Time;
+import java.time.LocalTime;
 
 /**
  * Business logic layer cho benh an.
@@ -20,6 +22,29 @@ public class MedicalRecordBUS {
 
     public MedicalRecordBUS() {
         this.dao = new MedicalRecordDAO();
+    }
+
+    /**
+     * Promote a record to EMERGENCY priority and reindex today's queue for the same doctor.
+     */
+    public void promoteRecordToEmergency(long recordId) {
+        if (recordId <= 0) throw new com.hospital.exception.BusinessException("Record ID không hợp lệ");
+        try (java.sql.Connection conn = com.hospital.config.DatabaseConfig.getInstance().getTransactionalConnection()) {
+            MedicalRecordDAO txnDao = new MedicalRecordDAO(conn);
+            // fetch record to know doctorId
+            com.hospital.model.MedicalRecord r = txnDao.findById(recordId);
+            if (r == null) throw new com.hospital.exception.BusinessException("Không tìm thấy bản ghi");
+
+            // set priority
+            txnDao.updatePriority(recordId, "EMERGENCY");
+
+            // reindex today's queue for this doctor and force the promoted record to be first
+            txnDao.reindexTodayQueue(r.getDoctorId(), recordId);
+
+            conn.commit();
+        } catch (java.sql.SQLException e) {
+            throw new com.hospital.exception.DataAccessException("Không thể đẩy ưu tiên", e);
+        }
     }
 
     public long createMedicalRecord(long patientId, long doctorId, Long appointmentId) {
@@ -72,12 +97,15 @@ public class MedicalRecordBUS {
                 }
             }
 
-            // Xác định số thứ tự: đếm hiện tại +1
-            int nextQueue = txnRecordDAO.countQueueToday(doctorId) + 1;
+        // Xác định số thứ tự: đếm hiện tại +1
+        int nextQueue = txnRecordDAO.countQueueToday(doctorId) + 1;
 
-            // Tạo record trong transaction với priority và queue_number
-            long recordId = txnRecordDAO.createEmptyRecord(patientId, doctorId, appointmentId,
-                    priority, nextQueue, null, examType);
+        // arrival time = now (store TIME of arrival when receptionist registers)
+        Time arrival = Time.valueOf(LocalTime.now());
+
+        // Tạo record trong transaction với priority, queue_number và arrival_time
+        long recordId = txnRecordDAO.createEmptyRecord(patientId, doctorId, appointmentId,
+            priority, nextQueue, arrival, examType);
 
             // Đặt trạng thái WAITING explicitly
             txnRecordDAO.updateStatus(recordId, com.hospital.model.MedicalRecord.STATUS_WAITING);
