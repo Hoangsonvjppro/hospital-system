@@ -126,6 +126,14 @@ public class MedicalRecordBUS {
     }
 
     /**
+     * Get follow-up list scheduled for today (optionally for a doctor).
+     */
+    public java.util.List<com.hospital.model.MedicalRecord> getFollowUpsToday(long doctorId) {
+        MedicalRecordDAO dao = new MedicalRecordDAO();
+        return dao.listFollowUpsToday(doctorId);
+    }
+
+    /**
      * Get history (all medical records) for a patient.
      */
     public java.util.List<com.hospital.model.MedicalRecord> getHistoryByPatient(long patientId) {

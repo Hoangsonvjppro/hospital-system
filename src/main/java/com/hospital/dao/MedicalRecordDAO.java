@@ -269,7 +269,36 @@ public class MedicalRecordDAO {
         try { r.setQueueNumber(rs.getObject("queue_number") == null ? null : rs.getInt("queue_number")); } catch (SQLException ignored) {}
         try { r.setExamTypeField(rs.getString("exam_type")); } catch (SQLException ignored) {}
         try { java.sql.Time t = rs.getTime("arrival_time"); if (t != null) r.setArrivalTime(t.toLocalTime()); } catch (SQLException ignored) {}
+        try { java.sql.Date d = rs.getDate("follow_up_date"); if (d != null) r.setFollowUpDate(d.toLocalDate()); } catch (SQLException ignored) {}
         return r;
+    }
+
+    /**
+     * List follow-up records scheduled for today (optionally for a specific doctor).
+     */
+    public java.util.List<com.hospital.model.MedicalRecord> listFollowUpsToday(long doctorId) {
+        java.util.List<com.hospital.model.MedicalRecord> list = new java.util.ArrayList<>();
+        String sql = (doctorId > 0)
+                ? "SELECT * FROM MedicalRecord WHERE doctor_id = ? AND DATE(follow_up_date) = CURRENT_DATE ORDER BY follow_up_date ASC"
+                : "SELECT * FROM MedicalRecord WHERE DATE(follow_up_date) = CURRENT_DATE ORDER BY follow_up_date ASC";
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                if (doctorId > 0) ps.setLong(1, doctorId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        list.add(mapResultSet(rs));
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi lấy danh sách tái khám hôm nay", e);
+            throw new DataAccessException("Lỗi lấy danh sách tái khám hôm nay", e);
+        } finally {
+            closeIfOwned(conn);
+        }
+        return list;
     }
 
     // ── Cập nhật chẩn đoán ──────────────────────────────────────────────────

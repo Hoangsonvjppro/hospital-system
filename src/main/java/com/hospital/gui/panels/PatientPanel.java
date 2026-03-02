@@ -34,6 +34,9 @@ public class PatientPanel extends JPanel {
     private JTable queueTable;
     private DefaultTableModel queueTableModel;
     private java.util.List<Long> queueRecordIds = new java.util.ArrayList<>();
+    private JTable followUpTable;
+    private DefaultTableModel followUpTableModel;
+    private java.util.List<Long> followUpRecordIds = new java.util.ArrayList<>();
     private JTabbedPane tabbedPane;
     private javax.swing.Timer queueRefreshTimer;
     private final PatientBUS patientBUS = new PatientBUS();
@@ -44,12 +47,13 @@ public class PatientPanel extends JPanel {
         setBackground(UIConstants.CONTENT_BG);
         setLayout(new BorderLayout(0, 20));
         setBorder(new EmptyBorder(24, 28, 24, 28));
-        initComponents();
-        loadData();
-        refreshQueue();
+    initComponents();
+    loadData();
+    refreshQueue();
+    refreshFollowUps();
         // Refresh waiting times periodically so "Thời gian chờ" updates live
         try {
-            queueRefreshTimer = new javax.swing.Timer(30_000, e -> refreshQueue());
+            queueRefreshTimer = new javax.swing.Timer(30_000, e -> { refreshQueue(); refreshFollowUps(); });
             queueRefreshTimer.setInitialDelay(30_000);
             queueRefreshTimer.start();
         } catch (Exception ignored) {}
@@ -59,8 +63,9 @@ public class PatientPanel extends JPanel {
         add(createHeaderPanel(), BorderLayout.NORTH);
 
         tabbedPane = new JTabbedPane();
-        tabbedPane.addTab("Đăng ký / Tìm kiếm", createRegistrationTab());
-        tabbedPane.addTab("Hàng đợi hôm nay", createQueueTab());
+    tabbedPane.addTab("Đăng ký / Tìm kiếm", createRegistrationTab());
+    tabbedPane.addTab("Hàng đợi hôm nay", createQueueTab());
+    tabbedPane.addTab("Tái khám hôm nay", createFollowUpTab());
 
         add(tabbedPane, BorderLayout.CENTER);
     }
@@ -590,5 +595,60 @@ public class PatientPanel extends JPanel {
             ""
         });
         }
+    }
+
+    /**
+     * Refresh the follow-up list for today.
+     */
+    private void refreshFollowUps() {
+        if (followUpTableModel == null) return;
+        followUpTableModel.setRowCount(0);
+        followUpRecordIds.clear();
+        long doctorId = 1L; // TODO: make selectable
+        java.util.List<com.hospital.model.MedicalRecord> list = medicalRecordBUS.getFollowUpsToday(doctorId);
+        for (com.hospital.model.MedicalRecord r : list) {
+            followUpRecordIds.add((long) r.getId());
+            String name = "-";
+            String docName = "-";
+            try {
+                com.hospital.model.Patient p = patientBUS.findById((int) r.getPatientId());
+                if (p != null) name = p.getFullName();
+            } catch (Exception ignored) {}
+            try {
+                com.hospital.dao.DoctorDAO ddao = new com.hospital.dao.DoctorDAO();
+                com.hospital.model.Doctor d = ddao.findById((int) r.getDoctorId());
+                if (d != null) docName = d.getFullName();
+            } catch (Exception ignored) {}
+            String follow = r.getFollowUpDate() != null ? r.getFollowUpDate().toString() : "";
+            String diag = r.getDiagnosis() != null ? r.getDiagnosis() : "";
+            String sym = r.getSymptoms() != null ? r.getSymptoms() : "";
+
+            followUpTableModel.addRow(new Object[]{follow, name, docName, diag, sym});
+        }
+    }
+
+    private JPanel createFollowUpTab() {
+        RoundedPanel card = new RoundedPanel(UIConstants.CARD_RADIUS);
+        card.setBackground(UIConstants.CARD_BG);
+        card.setLayout(new BorderLayout());
+
+        followUpTableModel = new DefaultTableModel(new String[]{"Ngày tái khám","Tên BN","Bác sĩ","Chẩn đoán","Triệu chứng"}, 0) {
+            @Override public boolean isCellEditable(int row, int col) { return false; }
+        };
+        followUpTable = new JTable(followUpTableModel);
+        followUpTable.setRowHeight(36);
+        JScrollPane scroll = new JScrollPane(followUpTable);
+        scroll.setBorder(null);
+        card.add(scroll, BorderLayout.CENTER);
+
+        // Action area (refresh)
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        actions.setOpaque(false);
+        RoundedButton btnRefresh = new RoundedButton("Làm mới");
+        btnRefresh.addActionListener(e -> refreshFollowUps());
+        actions.add(btnRefresh);
+        card.add(actions, BorderLayout.SOUTH);
+
+        return card;
     }
 }

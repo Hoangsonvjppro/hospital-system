@@ -36,6 +36,7 @@ public class MedicalRecord extends BaseModel {
     private Integer queueNumber;   // Số thứ tự hôm nay
     private java.time.LocalTime arrivalTime; // Giờ đến
     private String examTypeField;   // Loại khám (vd: "Kham tong quat")
+    private java.time.LocalDate followUpDate; // Ngày hẹn tái khám
 
     public MedicalRecord() {}
 
@@ -79,6 +80,9 @@ public class MedicalRecord extends BaseModel {
 
     public String getExamTypeField()          { return examTypeField; }
     public void setExamTypeField(String v)    { this.examTypeField = v; }
+
+    public java.time.LocalDate getFollowUpDate() { return followUpDate; }
+    public void setFollowUpDate(java.time.LocalDate v) { this.followUpDate = v; }
 
     public double getWeight()                 { return weight; }
     public void setWeight(double v)           { this.weight = v; }
