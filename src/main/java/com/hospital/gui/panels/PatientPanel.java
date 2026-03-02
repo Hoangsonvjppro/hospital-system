@@ -16,6 +16,8 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.table.JTableHeader;
 import java.awt.*;
 import java.time.LocalDate;
+import java.time.Duration;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -188,7 +190,7 @@ public class PatientPanel extends JPanel {
         card.setBackground(UIConstants.CARD_BG);
         card.setLayout(new BorderLayout());
 
-        queueTableModel = new DefaultTableModel(new String[]{"STT","Tên BN","Trạng thái","Thời gian đến","Ưu tiên","Hành động"},0) {
+        queueTableModel = new DefaultTableModel(new String[]{"STT","Tên BN","Trạng thái","Thời gian chờ","Thời gian đến","Ưu tiên","Hành động"},0) {
             @Override public boolean isCellEditable(int row, int col) { return false; }
         };
         queueTable = new JTable(queueTableModel);
@@ -229,6 +231,32 @@ public class PatientPanel extends JPanel {
         lblTitle.setFont(UIConstants.FONT_TITLE);
         lblTitle.setForeground(UIConstants.TEXT_PRIMARY);
         titleRow.add(lblTitle, BorderLayout.WEST);
+
+        // Action buttons (right side of title)
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        actions.setOpaque(false);
+        RoundedButton btnDeletePatient = new RoundedButton("Xóa bệnh nhân");
+        btnDeletePatient.addActionListener(e -> {
+            int sel = table.getSelectedRow();
+            if (sel < 0) {
+                JOptionPane.showMessageDialog(this, "Vui lòng chọn bệnh nhân cần xóa.", "Chú ý", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            int pid = (int) tableModel.getValueAt(sel, 0);
+            int confirm = JOptionPane.showConfirmDialog(this, "Bạn có chắc muốn xóa bệnh nhân này vĩnh viễn?\nHành động sẽ xóa hồ sơ và các dữ liệu liên quan.", "Xác nhận xóa", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+            if (confirm == JOptionPane.YES_OPTION) {
+                try {
+                    patientBUS.deletePermanent(pid);
+                    loadData();
+                    refreshQueue();
+                    JOptionPane.showMessageDialog(this, "Xóa bệnh nhân thành công.", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(this, "Không thể xóa bệnh nhân: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+        actions.add(btnDeletePatient);
+        titleRow.add(actions, BorderLayout.EAST);
 
     // NOTE: 'Thêm bệnh nhân' button removed — registration is done via the "Đăng ký khám" button in the tab
 
@@ -449,10 +477,28 @@ public class PatientPanel extends JPanel {
             String priority = r.getPriority() != null ? r.getPriority() : "NORMAL";
             String status = r.getStatus() != null ? r.getStatus() : "";
 
+            // compute waiting time from arrivalTime to now (in minutes/hours)
+            String waiting = "";
+            try {
+                LocalTime at = r.getArrivalTime();
+                if (at != null) {
+                    long mins = Duration.between(at, LocalTime.now()).toMinutes();
+                    if (mins < 0) mins = 0; // guard against negative across midnight
+                    if (mins < 60) {
+                        waiting = mins + " phút";
+                    } else {
+                        long hh = mins / 60;
+                        long mm = mins % 60;
+                        waiting = hh + "h " + mm + "m";
+                    }
+                }
+            } catch (Exception ignored) {}
+
         queueTableModel.addRow(new Object[]{
             idx,
             name,
             status,
+            waiting,
             arrival,
             priority,
             ""

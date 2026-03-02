@@ -315,6 +315,59 @@ public class PatientDAO implements BaseDAO<Patient> {
         }
     }
 
+    /**
+     * Permanently delete a patient and related dependent rows (best-effort) in a transaction.
+     * This will attempt to remove rows from dependent tables that reference Patient to avoid
+     * foreign key constraint violations (Appointment, MedicalRecord, PatientAllergy, Invoice).
+     */
+    public boolean deletePermanent(int id) {
+        Connection conn = null;
+        boolean localConn = false;
+        try {
+            conn = getConnection();
+            // If we obtained our own connection, manage transaction here
+            if (externalConnection == null) {
+                localConn = true;
+                conn.setAutoCommit(false);
+            }
+
+            // Delete dependent rows in a safe order
+            try (PreparedStatement ps1 = conn.prepareStatement("DELETE FROM PatientAllergy WHERE patient_id = ?")) {
+                ps1.setInt(1, id);
+                ps1.executeUpdate();
+            }
+            try (PreparedStatement ps2 = conn.prepareStatement("DELETE FROM Appointment WHERE patient_id = ?")) {
+                ps2.setInt(1, id);
+                ps2.executeUpdate();
+            }
+            try (PreparedStatement ps3 = conn.prepareStatement("DELETE FROM MedicalRecord WHERE patient_id = ?")) {
+                ps3.setInt(1, id);
+                ps3.executeUpdate();
+            }
+            try (PreparedStatement ps4 = conn.prepareStatement("DELETE FROM Invoice WHERE patient_id = ?")) {
+                ps4.setInt(1, id);
+                ps4.executeUpdate();
+            }
+
+            // Finally delete patient row
+            try (PreparedStatement ps = conn.prepareStatement("DELETE FROM Patient WHERE patient_id = ?")) {
+                ps.setInt(1, id);
+                int rows = ps.executeUpdate();
+                if (localConn) conn.commit();
+                return rows > 0;
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Không thể xóa vĩnh viễn bệnh nhân ID=" + id, e);
+            try { if (conn != null && localConn) conn.rollback(); } catch (SQLException ignored) {}
+            throw new DataAccessException("Không thể xóa vĩnh viễn bệnh nhân ID=" + id, e);
+        } finally {
+            if (localConn && conn != null) {
+                try { conn.setAutoCommit(true); } catch (SQLException ignored) {}
+            }
+            closeIfOwned(conn);
+        }
+    }
+
     // -- Helper --
 
     private Patient mapResultSet(ResultSet rs) throws SQLException {

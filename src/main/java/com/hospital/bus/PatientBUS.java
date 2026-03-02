@@ -15,6 +15,17 @@ public class PatientBUS extends BaseBUS<Patient> {
         super(new PatientDAO());
     }
 
+    /**
+     * Permanently delete a patient from DB (delegates to DAO.deletePermanent).
+     */
+    public boolean deletePermanent(int id) {
+        try {
+            return ((PatientDAO) dao).deletePermanent(id);
+        } catch (Exception e) {
+            throw e;
+        }
+    }
+
     @Override
     protected boolean validate(Patient entity) {
 
