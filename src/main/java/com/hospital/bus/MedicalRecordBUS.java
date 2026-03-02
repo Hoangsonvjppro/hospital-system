@@ -76,39 +76,23 @@ public class MedicalRecordBUS {
         return dao.updateDiagnosisAndSymptoms(recordId, diagnosis.trim(), symptoms.trim());
     }
 
-    public boolean updateVitalSigns(long recordId,
-                                double weight,
-                                double height,
-                                String bloodPressure,
-                                int pulse,
-                                Double temperature) {
-
-    if (recordId <= 0) {
-        throw new BusinessException("Record ID không hợp lệ");
+    public boolean updateVitalSigns(long recordId, double weight, double height,
+                                     String bloodPressure, int pulse) {
+        if (recordId <= 0) {
+            throw new BusinessException("Record ID không hợp lệ");
+        }
+        if (weight <= 0) {
+            throw new BusinessException("Cân nặng phải lớn hơn 0");
+        }
+        if (height <= 0) {
+            throw new BusinessException("Chiều cao phải lớn hơn 0");
+        }
+        if (pulse <= 0) {
+            throw new BusinessException("Mạch phải lớn hơn 0");
+        }
+        return dao.updateVitalSigns(recordId, weight, height, bloodPressure, pulse);
     }
 
-    if (weight <= 0) {
-        throw new BusinessException("Cân nặng phải lớn hơn 0");
-    }
-
-    if (height <= 0) {
-        throw new BusinessException("Chiều cao phải lớn hơn 0");
-    }
-
-    if (pulse <= 0) {
-        throw new BusinessException("Mạch phải lớn hơn 0");
-    }
-
-    if (bloodPressure == null || !bloodPressure.matches("\\d{2,3}/\\d{2,3}")) {
-        throw new BusinessException("Huyết áp không đúng định dạng (vd: 120/80)");
-    }
-
-    if (temperature != null && (temperature < 35 || temperature > 42)) {
-        throw new BusinessException("Nhiệt độ phải từ 35°C đến 42°C");
-    }
-
-    return dao.updateVitalSigns(recordId, weight, height, bloodPressure, pulse, temperature);
-}
     public boolean updateStatus(long recordId, String status) {
         if (recordId <= 0) {
             throw new BusinessException("Record ID không hợp lệ");
