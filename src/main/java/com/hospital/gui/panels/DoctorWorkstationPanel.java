@@ -26,6 +26,8 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 
 /**
  * Doctor Workstation Panel - Giao dien kham benh cho bac si.
@@ -57,15 +59,12 @@ public class DoctorWorkstationPanel extends JPanel {
     private int selectedIndex = -1;
 
     // Tab 0 - Vital Signs
-    private JTextField txtWeight, txtHeight, txtBloodPressure, txtPulse, txtTemperature, txtSpo2;
+    private VitalSignsPanel vitalSignsPanel;
 
     // Tab 1 - Examination
-    private JTextArea txtSymptoms, txtDiagnosis;
-    private JTextField txtDiagnosisCode, txtDoctorNotes;
-    private JTextField txtFollowUpDate;
+    private SymptomsPanel symptomsPanel;
 
-    private static final String SYMPTOMS_PLACEHOLDER = "Nh\u1EADp tri\u1EC7u ch\u1EE9ng c\u1EE7a b\u1EC7nh nh\u00E2n...";
-    private static final String DIAGNOSIS_PLACEHOLDER = "Nh\u1EADp ch\u1EA9n \u0111o\u00E1n...";
+
 
     // Tab 2 - Prescription
     private JTextField txtMedicineSearch;
@@ -94,6 +93,9 @@ public class DoctorWorkstationPanel extends JPanel {
     }
 
     private void initComponents() {
+        vitalSignsPanel = new VitalSignsPanel();
+        symptomsPanel = new SymptomsPanel();
+        
         JPanel mainPanel = new JPanel(new BorderLayout(0, 0));
         mainPanel.setOpaque(false);
         mainPanel.add(createLeftPanel(), BorderLayout.WEST);
@@ -425,6 +427,12 @@ public class DoctorWorkstationPanel extends JPanel {
     }
 
     private void refreshTabBar() {
+        // Capture state before switching
+        if (selectedPatient != null) {
+            if (activeTab == 0) {
+               // Assuming we'd capture state here. We'll do it centrally in updateRightPanel
+            }
+        }
         tabBar.removeAll();
         for (int i = 0; i < TAB_NAMES.length; i++) {
             final int idx = i;
@@ -449,6 +457,8 @@ public class DoctorWorkstationPanel extends JPanel {
             tab.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mousePressed(MouseEvent e) {
+                    // Capture state of current tab before changing activeTab
+                    captureCurrentTabState();
                     activeTab = idx;
                     refreshTabBar();
                     updateRightPanel();
@@ -459,6 +469,17 @@ public class DoctorWorkstationPanel extends JPanel {
         tabBar.revalidate();
         tabBar.repaint();
     }
+    
+    private Map<Integer, Map<String, Object>> tabStates = new java.util.HashMap<>();
+    
+    private void captureCurrentTabState() {
+        if (selectedPatient == null) return;
+        if (activeTab == 0) {
+             tabStates.put(0, vitalSignsPanel.captureState());
+        } else if (activeTab == 1) {
+             tabStates.put(1, symptomsPanel.captureState());
+        }
+    }
 
     private void updateRightPanel() {
         rightContentPanel.removeAll();
@@ -466,8 +487,14 @@ public class DoctorWorkstationPanel extends JPanel {
             showEmptyState();
         } else {
             switch (activeTab) {
-                case 0 -> rightContentPanel.add(createInfoAndVitalsContent(), BorderLayout.CENTER);
-                case 1 -> rightContentPanel.add(createExaminationContent(), BorderLayout.CENTER);
+                case 0 -> {
+                    rightContentPanel.add(createInfoAndVitalsContent(), BorderLayout.CENTER);
+                    if (tabStates.containsKey(0)) vitalSignsPanel.restoreState(tabStates.get(0));
+                }
+                case 1 -> {
+                    rightContentPanel.add(createExaminationContent(), BorderLayout.CENTER);
+                    if (tabStates.containsKey(1)) symptomsPanel.restoreState(tabStates.get(1));
+                }
                 case 2 -> rightContentPanel.add(createPrescriptionContent(), BorderLayout.CENTER);
                 case 3 -> rightContentPanel.add(createHistoryContent(), BorderLayout.CENTER);
             }
@@ -494,7 +521,15 @@ public class DoctorWorkstationPanel extends JPanel {
 
         content.add(createPatientInfoCard());
         content.add(Box.createVerticalStrut(24));
-        content.add(createVitalSignsSection());
+        
+        MedicalRecord rec = null;
+        if (selectedRecordId > 0) {
+            try { rec = medicalRecordBUS.findById(selectedRecordId); } catch (Exception ignored) {}
+        }
+        if (!tabStates.containsKey(0)) {
+             vitalSignsPanel.populateFromRecord(rec);
+        }
+        content.add(vitalSignsPanel);
 
         JScrollPane scroll = new JScrollPane(content);
         scroll.setBorder(null);
@@ -585,77 +620,7 @@ public class DoctorWorkstationPanel extends JPanel {
         return card;
     }
 
-    // Vital Signs - 6 fields
-    private JPanel createVitalSignsSection() {
-        JPanel section = new JPanel();
-        section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
-        section.setOpaque(false);
-        section.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        JLabel title = new JLabel("Sinh hi\u1EC7u");
-        title.setFont(UIConstants.FONT_SECTION);
-        title.setForeground(UIConstants.TEXT_PRIMARY);
-        title.setAlignmentX(Component.LEFT_ALIGNMENT);
-        section.add(title);
-        section.add(Box.createVerticalStrut(16));
-
-        MedicalRecord rec = null;
-        if (selectedRecordId > 0) {
-            try { rec = medicalRecordBUS.findById(selectedRecordId); } catch (Exception ignored) {}
-        }
-
-        JPanel grid = new JPanel(new GridLayout(2, 3, 16, 16));
-        grid.setOpaque(false);
-        grid.setAlignmentX(Component.LEFT_ALIGNMENT);
-        grid.setMaximumSize(new Dimension(Integer.MAX_VALUE, 290));
-
-        txtWeight = new JTextField(rec != null && rec.getWeight() > 0 ? String.valueOf(rec.getWeight()) : "");
-        txtHeight = new JTextField(rec != null && rec.getHeight() > 0 ? String.valueOf(rec.getHeight()) : "");
-        txtBloodPressure = new JTextField(rec != null && rec.getBloodPressure() != null ? rec.getBloodPressure() : "");
-        txtPulse = new JTextField(rec != null && rec.getPulse() > 0 ? String.valueOf(rec.getPulse()) : "");
-        txtTemperature = new JTextField(rec != null && rec.getTemperature() > 0 ? String.valueOf(rec.getTemperature()) : "");
-        txtSpo2 = new JTextField(rec != null && rec.getSpo2() > 0 ? String.valueOf(rec.getSpo2()) : "");
-
-        grid.add(createVitalCard("C\u00C2N N\u1EB6NG", txtWeight, "kg"));
-        grid.add(createVitalCard("CHI\u1EC0U CAO", txtHeight, "cm"));
-        grid.add(createVitalCard("HUY\u1EBET \u00C1P", txtBloodPressure, "mmHg"));
-        grid.add(createVitalCard("M\u1EA0CH", txtPulse, "bpm"));
-        grid.add(createVitalCard("NHI\u1EC6T \u0110\u1ED8", txtTemperature, "\u00B0C"));
-        grid.add(createVitalCard("SpO2", txtSpo2, "%"));
-
-        section.add(grid);
-        return section;
-    }
-
-    private RoundedPanel createVitalCard(String label, JTextField field, String unit) {
-        RoundedPanel card = new RoundedPanel(12);
-        card.setBackground(UIConstants.CARD_BG);
-        card.setLayout(new BorderLayout(0, 8));
-        card.setBorder(new EmptyBorder(16, 18, 16, 18));
-
-        JLabel mainLabel = new JLabel(label);
-        mainLabel.setFont(UIConstants.FONT_OVERLINE);
-        mainLabel.setForeground(UIConstants.TEXT_SECONDARY);
-        card.add(mainLabel, BorderLayout.NORTH);
-
-        JPanel valuePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
-        valuePanel.setOpaque(false);
-        field.setFont(UIConstants.FONT_NUMBER_BIG);
-        field.setForeground(UIConstants.TEXT_PRIMARY);
-        field.setBorder(null);
-        field.setBackground(UIConstants.CARD_BG);
-        field.setColumns(4);
-        field.setCaretColor(UIConstants.ACCENT_BLUE);
-        valuePanel.add(field);
-
-        JLabel unitLabel = new JLabel(unit);
-        unitLabel.setFont(UIConstants.FONT_BODY);
-        unitLabel.setForeground(UIConstants.TEXT_MUTED);
-        valuePanel.add(unitLabel);
-        card.add(valuePanel, BorderLayout.CENTER);
-
-        return card;
-    }
 
     // ==========================================================================
     //  TAB 1 - Kham benh
@@ -670,41 +635,11 @@ public class DoctorWorkstationPanel extends JPanel {
         if (selectedRecordId > 0) {
             try { rec = medicalRecordBUS.findById(selectedRecordId); } catch (Exception ignored) {}
         }
-
-        // Symptoms
-        txtSymptoms = new JTextArea(4, 0);
-        if (rec != null && rec.getSymptoms() != null && !rec.getSymptoms().isEmpty()) {
-            txtSymptoms.setText(rec.getSymptoms());
-            txtSymptoms.setForeground(UIConstants.TEXT_PRIMARY);
+        if (!tabStates.containsKey(1)) {
+            symptomsPanel.populateFromRecord(rec);
         }
-        content.add(createTextSection("Tri\u1EC7u ch\u1EE9ng (Symptoms)", SYMPTOMS_PLACEHOLDER, txtSymptoms));
-        content.add(Box.createVerticalStrut(16));
-
-        // Diagnosis
-        txtDiagnosis = new JTextArea(4, 0);
-        if (rec != null && rec.getDiagnosis() != null && !rec.getDiagnosis().isEmpty()) {
-            txtDiagnosis.setText(rec.getDiagnosis());
-            txtDiagnosis.setForeground(UIConstants.TEXT_PRIMARY);
-        }
-        content.add(createTextSection("Ch\u1EA9n \u0111o\u00E1n (Diagnosis)", DIAGNOSIS_PLACEHOLDER, txtDiagnosis));
-        content.add(Box.createVerticalStrut(16));
-
-        // ICD-10 + Doctor Notes + Follow-up
-        JPanel fieldsRow = new JPanel(new GridLayout(1, 3, 16, 0));
-        fieldsRow.setOpaque(false);
-        fieldsRow.setAlignmentX(Component.LEFT_ALIGNMENT);
-        fieldsRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 80));
-
-        txtDiagnosisCode = new JTextField(rec != null && rec.getDiagnosisCode() != null ? rec.getDiagnosisCode() : "");
-        txtDoctorNotes = new JTextField(rec != null && rec.getNotes() != null ? rec.getNotes() : "");
-        txtFollowUpDate = new JTextField(rec != null && rec.getFollowUpDate() != null
-                ? rec.getFollowUpDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) : "");
-
-        fieldsRow.add(createLabeledField("M\u00E3 ICD-10", txtDiagnosisCode));
-        fieldsRow.add(createLabeledField("Ghi ch\u00FA b\u00E1c s\u0129", txtDoctorNotes));
-        fieldsRow.add(createLabeledField("Ng\u00E0y t\u00E1i kh\u00E1m (dd/MM/yyyy)", txtFollowUpDate));
-
-        content.add(fieldsRow);
+        
+        content.add(symptomsPanel);
 
         JScrollPane scrollContent = new JScrollPane(content);
         scrollContent.setBorder(null);
@@ -718,61 +653,7 @@ public class DoctorWorkstationPanel extends JPanel {
         return wrapper;
     }
 
-    private JPanel createLabeledField(String label, JTextField field) {
-        JPanel panel = new JPanel(new BorderLayout(0, 6));
-        panel.setOpaque(false);
-        JLabel lbl = new JLabel(label);
-        lbl.setFont(UIConstants.FONT_OVERLINE);
-        lbl.setForeground(UIConstants.TEXT_SECONDARY);
-        panel.add(lbl, BorderLayout.NORTH);
-        field.setFont(UIConstants.FONT_BODY);
-        field.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(UIConstants.BORDER_COLOR, 1, true),
-                new EmptyBorder(8, 10, 8, 10)));
-        panel.add(field, BorderLayout.CENTER);
-        return panel;
-    }
 
-    private JPanel createTextSection(String title, String placeholder, JTextArea area) {
-        JPanel section = new JPanel();
-        section.setLayout(new BoxLayout(section, BoxLayout.Y_AXIS));
-        section.setOpaque(false);
-        section.setAlignmentX(Component.LEFT_ALIGNMENT);
-
-        JLabel lbl = new JLabel(title);
-        lbl.setFont(UIConstants.FONT_SECTION);
-        lbl.setForeground(UIConstants.TEXT_PRIMARY);
-        lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
-        section.add(lbl);
-        section.add(Box.createVerticalStrut(8));
-
-        area.setFont(UIConstants.FONT_LABEL);
-        area.setLineWrap(true);
-        area.setWrapStyleWord(true);
-        area.setCaretColor(UIConstants.ACCENT_BLUE);
-        area.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(UIConstants.BORDER_COLOR, 1, true),
-                new EmptyBorder(10, 12, 10, 12)));
-        if (area.getText() == null || area.getText().isEmpty()) {
-            area.setText(placeholder);
-            area.setForeground(UIConstants.TEXT_MUTED);
-        }
-        area.addFocusListener(new FocusAdapter() {
-            @Override public void focusGained(FocusEvent e) {
-                if (area.getText().equals(placeholder)) { area.setText(""); area.setForeground(UIConstants.TEXT_PRIMARY); }
-            }
-            @Override public void focusLost(FocusEvent e) {
-                if (area.getText().isEmpty()) { area.setText(placeholder); area.setForeground(UIConstants.TEXT_MUTED); }
-            }
-        });
-
-        JScrollPane scroll = new JScrollPane(area);
-        scroll.setBorder(null);
-        scroll.setAlignmentX(Component.LEFT_ALIGNMENT);
-        scroll.setMaximumSize(new Dimension(Integer.MAX_VALUE, 130));
-        section.add(scroll);
-        return section;
-    }
 
     // ==========================================================================
     //  TAB 2 - Ke don thuoc
@@ -1036,12 +917,15 @@ public class DoctorWorkstationPanel extends JPanel {
             JOptionPane.showMessageDialog(this, "Vui l\u00F2ng ch\u1ECDn b\u1EC7nh nh\u00E2n.", "Th\u00F4ng b\u00E1o", JOptionPane.WARNING_MESSAGE); return;
         }
         try {
-            double weight = parseDouble(txtWeight, "C\u00E2n n\u1EB7ng");
-            double height = parseDouble(txtHeight, "Chi\u1EC1u cao");
-            String bp = txtBloodPressure.getText().trim();
-            int pulse = parseInt(txtPulse, "M\u1EA1ch");
-            double temp = parseDoubleOrZero(txtTemperature);
-            int spo2Val = parseIntOrZero(txtSpo2);
+            captureCurrentTabState(); // Ensure we have latest data
+            Map<String, Object> vitals = tabStates.containsKey(0) ? tabStates.get(0) : vitalSignsPanel.captureState();
+
+            double weight = parseDoubleFromMap(vitals, "weight", "C\u00E2n n\u1EB7ng");
+            double height = parseDoubleFromMap(vitals, "height", "Chi\u1EC1u cao");
+            String bp = (String) vitals.getOrDefault("bp", "");
+            int pulse = parseIntFromMap(vitals, "pulse", "M\u1EA1ch");
+            double temp = parseDoubleFromMapOrZero(vitals, "temp");
+            int spo2Val = parseIntFromMapOrZero(vitals, "spo2");
             medicalRecordBUS.updateVitalSigns(selectedRecordId, weight, height, bp, pulse, temp, spo2Val);
             JOptionPane.showMessageDialog(this, "\u0110\u00E3 l\u01B0u sinh hi\u1EC7u cho: " + selectedPatient.getFullName(), "Th\u00E0nh c\u00F4ng", JOptionPane.INFORMATION_MESSAGE);
         } catch (BusinessException e) {
@@ -1065,21 +949,25 @@ public class DoctorWorkstationPanel extends JPanel {
             JOptionPane.showMessageDialog(this, "Vui l\u00F2ng ch\u1ECDn b\u1EC7nh nh\u00E2n.", "Th\u00F4ng b\u00E1o", JOptionPane.WARNING_MESSAGE); return;
         }
         try {
+            captureCurrentTabState(); // Make sure latest inputs from any open tab are saved to tabStates
+            Map<String, Object> vitals = tabStates.containsKey(0) ? tabStates.get(0) : vitalSignsPanel.captureState();
+            Map<String, Object> symptomsMap = tabStates.containsKey(1) ? tabStates.get(1) : symptomsPanel.captureState();
+
             // 1. Save vitals
-            double weight = parseDouble(txtWeight, "C\u00E2n n\u1EB7ng");
-            double height = parseDouble(txtHeight, "Chi\u1EC1u cao");
-            String bp = txtBloodPressure.getText().trim();
-            int pulse = parseInt(txtPulse, "M\u1EA1ch");
-            double temp = parseDoubleOrZero(txtTemperature);
-            int spo2Val = parseIntOrZero(txtSpo2);
+            double weight = parseDoubleFromMap(vitals, "weight", "C\u00E2n n\u1EB7ng");
+            double height = parseDoubleFromMap(vitals, "height", "Chi\u1EC1u cao");
+            String bp = (String) vitals.getOrDefault("bp", "");
+            int pulse = parseIntFromMap(vitals, "pulse", "M\u1EA1ch");
+            double temp = parseDoubleFromMapOrZero(vitals, "temp");
+            int spo2Val = parseIntFromMapOrZero(vitals, "spo2");
             medicalRecordBUS.updateVitalSigns(selectedRecordId, weight, height, bp, pulse, temp, spo2Val);
 
             // 2. Save examination
-            String symptoms = getTextAreaValue(txtSymptoms, SYMPTOMS_PLACEHOLDER);
-            String diagnosis = getTextAreaValue(txtDiagnosis, DIAGNOSIS_PLACEHOLDER);
-            String diagnosisCode = txtDiagnosisCode != null ? txtDiagnosisCode.getText().trim() : "";
-            String doctorNotes = txtDoctorNotes != null ? txtDoctorNotes.getText().trim() : "";
-            String followUpStr = txtFollowUpDate != null ? txtFollowUpDate.getText().trim() : "";
+            String symptoms = (String) symptomsMap.getOrDefault("symptoms", "");
+            String diagnosis = (String) symptomsMap.getOrDefault("diagnosis", "");
+            String diagnosisCode = (String) symptomsMap.getOrDefault("diagnosisCode", "");
+            String doctorNotes = (String) symptomsMap.getOrDefault("doctorNotes", "");
+            String followUpStr = (String) symptomsMap.getOrDefault("followUpDate", "");
 
             LocalDate followUpDate = null;
             if (!followUpStr.isEmpty()) {
@@ -1089,9 +977,9 @@ public class DoctorWorkstationPanel extends JPanel {
                 }
             }
 
-            if (symptoms != null || diagnosis != null) {
+            if (!symptoms.isEmpty() || !diagnosis.isEmpty()) {
                 medicalRecordBUS.updateFullExamination(selectedRecordId,
-                        diagnosis != null ? diagnosis : "", symptoms != null ? symptoms : "",
+                        diagnosis, symptoms,
                         diagnosisCode.isEmpty() ? null : diagnosisCode, doctorNotes.isEmpty() ? null : doctorNotes, followUpDate);
             }
 
@@ -1139,28 +1027,26 @@ public class DoctorWorkstationPanel extends JPanel {
         return text;
     }
 
-    private double parseDouble(JTextField field, String name) {
-        String text = field.getText().trim();
+    private double parseDoubleFromMap(Map<String, Object> map, String key, String name) {
+        String text = (String) map.getOrDefault(key, "");
         if (text.isEmpty()) throw new NumberFormatException(name + " empty");
         return Double.parseDouble(text);
     }
 
-    private int parseInt(JTextField field, String name) {
-        String text = field.getText().trim();
+    private int parseIntFromMap(Map<String, Object> map, String key, String name) {
+        String text = (String) map.getOrDefault(key, "");
         if (text.isEmpty()) throw new NumberFormatException(name + " empty");
         return Integer.parseInt(text);
     }
 
-    private double parseDoubleOrZero(JTextField field) {
-        if (field == null) return 0;
-        String text = field.getText().trim();
+    private double parseDoubleFromMapOrZero(Map<String, Object> map, String key) {
+        String text = (String) map.getOrDefault(key, "");
         if (text.isEmpty()) return 0;
         try { return Double.parseDouble(text); } catch (NumberFormatException e) { return 0; }
     }
 
-    private int parseIntOrZero(JTextField field) {
-        if (field == null) return 0;
-        String text = field.getText().trim();
+    private int parseIntFromMapOrZero(Map<String, Object> map, String key) {
+        String text = (String) map.getOrDefault(key, "");
         if (text.isEmpty()) return 0;
         try { return Integer.parseInt(text); } catch (NumberFormatException e) { return 0; }
     }
