@@ -283,6 +283,30 @@ CREATE TABLE IF NOT EXISTS LabResult (
     FOREIGN KEY (service_order_id) REFERENCES ServiceOrder(order_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- 14B. Bảng LabOrder — Phiếu yêu cầu xét nghiệm
+CREATE TABLE IF NOT EXISTS LabOrder (
+    lab_order_id    BIGINT AUTO_INCREMENT PRIMARY KEY,
+    examination_id  BIGINT       NOT NULL              COMMENT 'FK → MedicalRecord.record_id (lần khám)',
+    patient_id      BIGINT       NOT NULL              COMMENT 'FK → Patient.patient_id',
+    test_type       ENUM('BLOOD','URINE','XRAY','ULTRASOUND','OTHER') DEFAULT 'OTHER'
+                                                       COMMENT 'Loại xét nghiệm',
+    test_name       VARCHAR(255) NOT NULL               COMMENT 'Tên xét nghiệm cụ thể',
+    status          ENUM('PENDING','IN_PROGRESS','COMPLETED') DEFAULT 'PENDING'
+                                                       COMMENT 'Trạng thái xử lý',
+    result          TEXT                                COMMENT 'Kết quả xét nghiệm (text)',
+    notes           TEXT                                COMMENT 'Ghi chú bổ sung',
+    ordered_at      DATETIME     DEFAULT CURRENT_TIMESTAMP
+                                                       COMMENT 'Thời điểm yêu cầu',
+    completed_at    DATETIME                            COMMENT 'Thời điểm hoàn tất',
+    ordered_by      BIGINT                              COMMENT 'FK → User.user_id (bác sĩ chỉ định)',
+    created_at      DATETIME     DEFAULT CURRENT_TIMESTAMP,
+    updated_at      DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (examination_id) REFERENCES MedicalRecord(record_id),
+    FOREIGN KEY (patient_id)     REFERENCES Patient(patient_id),
+    FOREIGN KEY (ordered_by)     REFERENCES `User`(user_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- 15. Bảng Prescription — Đơn thuốc
 CREATE TABLE IF NOT EXISTS Prescription (
     prescription_id BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -302,6 +326,8 @@ CREATE TABLE IF NOT EXISTS PrescriptionDetail (
     quantity        INT           NOT NULL,
     dosage          VARCHAR(200),
     instruction     VARCHAR(500),
+    frequency       VARCHAR(200)  COMMENT 'Cách dùng: Ngày 3 lần, mỗi lần 1 viên',
+    duration        INT DEFAULT 0 COMMENT 'Số ngày dùng thuốc',
     unit_price      DECIMAL(15,2) NOT NULL,
     line_total      DECIMAL(15,2) GENERATED ALWAYS AS (quantity * unit_price) STORED,
     FOREIGN KEY (prescription_id) REFERENCES Prescription(prescription_id),
@@ -499,6 +525,11 @@ CREATE INDEX idx_queue_date_status ON QueueEntry(created_at, status);
 CREATE INDEX idx_queue_patient     ON QueueEntry(patient_id);
 CREATE INDEX idx_queue_priority    ON QueueEntry(priority, created_at);
 CREATE INDEX idx_ingredient_name ON MedicineIngredient(ingredient_name);
+
+CREATE INDEX idx_laborder_exam      ON LabOrder(examination_id);
+CREATE INDEX idx_laborder_patient   ON LabOrder(patient_id);
+CREATE INDEX idx_laborder_status    ON LabOrder(status);
+CREATE INDEX idx_laborder_orderedby ON LabOrder(ordered_by);
 
 CREATE INDEX idx_record_patient    ON MedicalRecord(patient_id, visit_date);
 CREATE INDEX idx_record_doctor     ON MedicalRecord(doctor_id, visit_date);

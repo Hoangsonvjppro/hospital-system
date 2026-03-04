@@ -201,4 +201,72 @@ public class PrescriptionDAO {
         }
         return p;
     }
+
+    /**
+     * Lấy danh sách đơn thuốc theo patient_id (lịch sử đơn thuốc).
+     */
+    public List<Prescription> findByPatientId(long patientId) {
+        List<Prescription> result = new ArrayList<>();
+        String sql = """
+            SELECT p.* FROM Prescription p
+            JOIN MedicalRecord mr ON p.record_id = mr.record_id
+            WHERE mr.patient_id = ?
+            ORDER BY p.created_at DESC
+        """;
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setLong(1, patientId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        result.add(mapPrescription(rs));
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            throw new DataAccessException("Không thể lấy lịch sử đơn thuốc theo bệnh nhân", e);
+        } finally {
+            closeIfOwned(conn);
+        }
+        return result;
+    }
+
+    /**
+     * Tạo đơn thuốc + danh sách chi tiết trong TRANSACTION.
+     * Nếu insert detail thất bại → rollback tất cả.
+     */
+    public long createPrescriptionWithItems(Prescription p, List<PrescriptionDetail> items) {
+        Connection conn = null;
+        try {
+            conn = DatabaseConfig.getInstance().getConnection();
+            conn.setAutoCommit(false);
+
+            // 1. Insert Prescription
+            PrescriptionDAO txDao = new PrescriptionDAO(conn);
+            long prescriptionId = txDao.insertPrescription(p);
+            if (prescriptionId <= 0) {
+                throw new DataAccessException("Không thể tạo đơn thuốc", new Exception("Failed to insert prescription"));
+            }
+
+            // 2. Insert từng PrescriptionDetail
+            for (PrescriptionDetail d : items) {
+                d.setPrescriptionId(prescriptionId);
+                if (!txDao.insertDetail(d)) {
+                    throw new DataAccessException("Không thể thêm chi tiết đơn thuốc cho thuốc: " + d.getMedicineName(), new Exception("Failed to insert detail"));
+                }
+            }
+
+            conn.commit();
+            return prescriptionId;
+
+        } catch (SQLException e) {
+            if (conn != null) try { conn.rollback(); } catch (SQLException ignored) {}
+            throw new DataAccessException("Lỗi tạo đơn thuốc (transaction)", e);
+        } finally {
+            if (conn != null) {
+                try { conn.setAutoCommit(true); conn.close(); } catch (SQLException ignored) {}
+            }
+        }
+    }
 }

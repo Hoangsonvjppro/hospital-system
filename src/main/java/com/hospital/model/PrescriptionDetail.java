@@ -7,9 +7,13 @@ public class PrescriptionDetail {
     private int medicineId;
     private int quantity;
     private String dosage;       // "2 viên x 3 lần/ngày"
+    private String frequency;    // Cách dùng: "Ngày 3 lần, mỗi lần 1 viên"
+    private int duration;        // Số ngày dùng thuốc
     private String instruction;  // "Uống sau ăn"
     private double unitPrice;    // Đơn giá tại thời điểm kê
+    private double totalAmount;  // Tổng tiền cho dòng này
     private String medicineName; // Transient — for display
+    private String unit;         // Transient — đơn vị tính
 
     public PrescriptionDetail() {}
 
@@ -93,5 +97,37 @@ public class PrescriptionDetail {
 
     public void setMedicineName(String medicineName) {
         this.medicineName = medicineName;
+    }
+
+    public String getFrequency() {
+        return frequency;
+    }
+
+    public void setFrequency(String frequency) {
+        this.frequency = frequency;
+    }
+
+    public int getDuration() {
+        return duration;
+    }
+
+    public void setDuration(int duration) {
+        this.duration = duration;
+    }
+
+    public double getTotalAmount() {
+        return totalAmount;
+    }
+
+    public void setTotalAmount(double totalAmount) {
+        this.totalAmount = totalAmount;
+    }
+
+    public String getUnit() {
+        return unit;
+    }
+
+    public void setUnit(String unit) {
+        this.unit = unit;
     }
 }

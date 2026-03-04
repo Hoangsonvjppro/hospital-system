@@ -296,7 +296,9 @@ public class MedicineDAO implements BaseDAO<Medicine> {
         thuoc.setId(rs.getInt("medicine_id"));
         thuoc.setMedicineCode(rs.getString("medicine_code"));
         thuoc.setMedicineName(rs.getString("medicine_name"));
+        try { thuoc.setGenericName(rs.getString("generic_name")); } catch (SQLException ignored) {}
         thuoc.setUnit(rs.getString("unit"));
+        try { thuoc.setDosageForm(rs.getString("dosage_form")); } catch (SQLException ignored) {}
         thuoc.setCostPrice(rs.getDouble("cost_price"));
         thuoc.setSellPrice(rs.getDouble("sell_price"));
         thuoc.setStockQty(rs.getInt("stock_qty"));
@@ -308,5 +310,27 @@ public class MedicineDAO implements BaseDAO<Medicine> {
         thuoc.setDescription(rs.getString("description"));
         thuoc.setActive(rs.getBoolean("is_active"));
         return thuoc;
+    }
+
+    /**
+     * Cập nhật tồn kho (+ nhập, - xuất).
+     */
+    public boolean updateStock(int id, int quantityChange) {
+        String sql = "UPDATE Medicine SET stock_qty = stock_qty + ? WHERE medicine_id = ? AND stock_qty + ? >= 0";
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setInt(1, quantityChange);
+                ps.setInt(2, id);
+                ps.setInt(3, quantityChange);
+                return ps.executeUpdate() > 0;
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi cập nhật tồn kho thuốc ID=" + id, e);
+            throw new DataAccessException("Lỗi cập nhật tồn kho thuốc", e);
+        } finally {
+            closeIfOwned(conn);
+        }
     }
 }

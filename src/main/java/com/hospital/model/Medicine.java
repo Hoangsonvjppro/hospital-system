@@ -5,7 +5,9 @@ import java.time.LocalDate;
 public class Medicine extends BaseModel {
     private String medicineCode;
     private String medicineName;
-    private String unit;
+    private String genericName;    // Tên hoạt chất
+    private String unit;           // viên/gói/ống/chai
+    private String dosageForm;     // viên nén/viên nang/siro/tiêm
     private double costPrice;
     private double sellPrice;
     private int stockQty;
@@ -18,6 +20,8 @@ public class Medicine extends BaseModel {
     public Medicine(String medicineCode, String medicineName, String unit, double costPrice, double sellPrice, int stockQty, int minThreshold, String manufacturer, LocalDate expiryDate, String description, boolean isActive) {
         this.medicineCode = medicineCode;
         this.medicineName = medicineName;
+        this.genericName = null;
+        this.dosageForm = null;
         this.unit = unit;
         this.costPrice = costPrice;
         this.sellPrice = sellPrice;
@@ -43,6 +47,22 @@ public class Medicine extends BaseModel {
 
     public void setManufacturer(String manufacturer) {
         this.manufacturer = manufacturer;
+    }
+
+    public String getGenericName() {
+        return genericName;
+    }
+
+    public void setGenericName(String genericName) {
+        this.genericName = genericName;
+    }
+
+    public String getDosageForm() {
+        return dosageForm;
+    }
+
+    public void setDosageForm(String dosageForm) {
+        this.dosageForm = dosageForm;
     }
 
     public Medicine() {

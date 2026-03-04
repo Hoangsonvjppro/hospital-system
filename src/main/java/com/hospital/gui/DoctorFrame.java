@@ -4,15 +4,18 @@ import com.hospital.gui.panels.DoctorDashboardPanel;
 import com.hospital.gui.panels.DoctorSchedulePanel;
 import com.hospital.gui.panels.DoctorWorkstationPanel;
 import com.hospital.gui.panels.ExaminationPanel;
+import com.hospital.gui.panels.LabOrderPanel;
+import com.hospital.gui.panels.LabProcessingPanel;
 import com.hospital.gui.panels.LabResultPanel;
 import com.hospital.gui.panels.PatientAllergyPanel;
+import com.hospital.gui.panels.PrescriptionPanel;
 import com.hospital.model.Account;
 
 import javax.swing.*;
 
 /**
  * Frame chính dành cho Bác sĩ — kế thừa BaseFrame.
- * Menu: Danh sách chờ khám, Khám bệnh, Kê đơn.
+ * Menu: Danh sách chờ khám, Khám bệnh, Kê đơn, Xét nghiệm.
  */
 public class DoctorFrame extends BaseFrame {
 
@@ -31,10 +34,19 @@ public class DoctorFrame extends BaseFrame {
         addMenuItem("📅", "Lịch khám",
                 () -> showPanel(new DoctorSchedulePanel()));
 
-        addMenuItem("📝", "Kê đơn",
-                () -> showPanel(new DoctorWorkstationPanel()));
+        addMenuItem("📝", "Kê đơn thuốc",
+                () -> showPanel(new PrescriptionPanel()));
 
-        addMenuItem("🔬", "Kết quả xét nghiệm",
+        addSeparator();
+        addSectionLabel("Xét nghiệm");
+
+        addMenuItem("🧪", "Yêu cầu xét nghiệm",
+                () -> showPanel(new LabOrderPanel()));
+
+        addMenuItem("🔬", "Xử lý xét nghiệm",
+                () -> showPanel(new LabProcessingPanel()));
+
+        addMenuItem("📊", "Kết quả xét nghiệm",
                 () -> showPanel(new LabResultPanel()));
 
         addSeparator();

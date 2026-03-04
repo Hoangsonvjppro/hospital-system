@@ -4,6 +4,8 @@ import com.hospital.bus.MedicalRecordBUS;
 import com.hospital.bus.MedicineBUS;
 import com.hospital.bus.PrescriptionBUS;
 import com.hospital.bus.QueueBUS;
+import com.hospital.bus.event.EventBus;
+import com.hospital.bus.event.LabResultReadyEvent;
 import com.hospital.exception.BusinessException;
 import com.hospital.exception.DataAccessException;
 import com.hospital.gui.UIConstants;
@@ -42,7 +44,7 @@ import java.util.HashMap;
 public class DoctorWorkstationPanel extends JPanel {
 
     private static final String[] TAB_NAMES = {
-        "Th\u00F4ng tin & Sinh hi\u1EC7u", "Kh\u00E1m b\u1EC7nh", "K\u00EA \u0111\u01A1n thu\u1ED1c", "L\u1ECBch s\u1EED kh\u00E1m"
+        "Th\u00F4ng tin & Sinh hi\u1EC7u", "Kh\u00E1m b\u1EC7nh", "K\u00EA \u0111\u01A1n thu\u1ED1c", "X\u00E9t nghi\u1EC7m", "L\u1ECBch s\u1EED kh\u00E1m"
     };
 
     private final QueueBUS queueBUS = new QueueBUS();
@@ -74,6 +76,9 @@ public class DoctorWorkstationPanel extends JPanel {
     private DefaultTableModel modelPrescription;
     private final List<PrescriptionDetail> prescriptionItems = new ArrayList<>();
 
+    // Tab 3 - Lab Orders
+    private LabOrderPanel labOrderPanel;
+
     private int activeTab = 0;
     private JPanel tabBar;
     private JPanel bottomBar;
@@ -96,6 +101,14 @@ public class DoctorWorkstationPanel extends JPanel {
     private void initComponents() {
         vitalSignsPanel = new VitalSignsPanel();
         symptomsPanel = new SymptomsPanel();
+        labOrderPanel = new LabOrderPanel();
+
+        // Subscribe to lab result ready events
+        EventBus.getInstance().subscribe(LabResultReadyEvent.class, evt -> {
+            if (selectedPatient != null && activeTab == 3) {
+                // Lab result ready - user can see updates in LabOrderPanel
+            }
+        });
         
         JPanel mainPanel = new JPanel(new BorderLayout(0, 0));
         mainPanel.setOpaque(false);
@@ -499,7 +512,13 @@ public class DoctorWorkstationPanel extends JPanel {
                     if (tabStates.containsKey(1)) symptomsPanel.restoreState(tabStates.get(1));
                 }
                 case 2 -> rightContentPanel.add(createPrescriptionContent(), BorderLayout.CENTER);
-                case 3 -> rightContentPanel.add(createHistoryContent(), BorderLayout.CENTER);
+                case 3 -> {
+                    if (selectedPatient != null && selectedRecordId > 0) {
+                        labOrderPanel.setContext(selectedRecordId, selectedPatient.getId(), 0);
+                    }
+                    rightContentPanel.add(labOrderPanel, BorderLayout.CENTER);
+                }
+                case 4 -> rightContentPanel.add(createHistoryContent(), BorderLayout.CENTER);
             }
         }
         rightContentPanel.revalidate();
@@ -920,6 +939,8 @@ public class DoctorWorkstationPanel extends JPanel {
                 btnSave.setPreferredSize(new Dimension(160, 40));
                 btnSave.addActionListener(e -> onSaveAndComplete());
                 btns.add(btnSave);
+            } else if (activeTab == 3) {
+                // Lab orders tab - no extra buttons needed, LabOrderPanel has its own
             }
         }
         
