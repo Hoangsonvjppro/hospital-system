@@ -2,16 +2,39 @@ package com.hospital.model;
 
 import java.time.LocalDate;
 import java.time.Period;
+import java.util.Objects;
 
 /**
- * Entity benh nhan — anh xa bang Patient trong CSDL.
- * Bo sung cac truong workflow (status, examType, arrivalTime, patientCode)
- * phuc vu hang doi kham benh tai DoctorWorkstationPanel.
- * Cac truong workflow la transient (khong luu trong bang Patient).
+ * Entity bệnh nhân — ánh xạ bảng Patient trong CSDL.
+ * Bổ sung các trường workflow (status, examType, arrivalTime, patientCode)
+ * phục vụ hàng đợi khám bệnh tại DoctorWorkstationPanel.
+ * Các trường workflow là transient (không lưu trong bảng Patient).
  */
 public class Patient extends BaseModel {
 
-    // -- Truong DB (anh xa bang Patient) --
+    // ── Enum phân loại bệnh nhân ──────────────────────────────
+    public enum PatientType {
+        FIRST_VISIT("Khám lần đầu"),
+        REVISIT("Tái khám"),
+        EMERGENCY("Cấp cứu");
+
+        private final String displayName;
+
+        PatientType(String displayName) {
+            this.displayName = displayName;
+        }
+
+        public String getDisplayName() {
+            return displayName;
+        }
+
+        @Override
+        public String toString() {
+            return displayName;
+        }
+    }
+
+    // -- Trường DB (ánh xạ bảng Patient) --
     private String fullName;
     private Gender gender;
     private LocalDate dateOfBirth;
@@ -19,23 +42,22 @@ public class Patient extends BaseModel {
     private String address;
     private Long userId;
     private boolean isActive;
-    private String cccd;           // So chung minh / CCCD
-    private String allergyHistory; // Tien su di ung
-    private String notes;          // Ghi chu bo sung
+    private String cccd;           // Số CCCD (12 số)
+    private String allergyHistory; // Tiền sử dị ứng
+    private String notes;          // Ghi chú bổ sung
+    private PatientType patientType; // Phân loại: FIRST_VISIT / REVISIT / EMERGENCY
 
-    // -- Truong workflow (transient, phuc vu hang doi kham) --
-    // Khong luu trong bang Patient, duoc populate boi QueueDAO khi load danh sach hang doi.
-    // Dung boi: DoctorWorkstationPanel, ExaminationPanel, ReceptionPanel.
-    private String patientCode;   // Ma BN hien thi (vd: "BN001") — tu QueueDAO
+    // -- Trường workflow (transient, phục vụ hàng đợi khám) --
+    private String patientCode;   // Mã BN hiển thị (vd: "BN001")
     private String status;        // WAITING / EXAMINING / COMPLETED / TRANSFERRED
-    private String examType;      // Loai kham (vd: "Kham tong quat") — tu MedicalRecord.exam_type
-    private String arrivalTime;   // Gio den (vd: "08:30") — tu MedicalRecord.arrival_time
-    private long currentRecordId; // Record ID hien tai (dung cho queue workflow)
+    private String examType;      // Loại khám (vd: "Khám tổng quát")
+    private String arrivalTime;   // Giờ đến (vd: "08:30")
+    private long currentRecordId; // Record ID hiện tại (dùng cho queue workflow)
 
     public enum Gender {
         MALE("Nam"),
-        FEMALE("Nu"),
-        OTHER("Khac");
+        FEMALE("Nữ"),
+        OTHER("Khác");
 
         private final String displayName;
 
@@ -57,6 +79,7 @@ public class Patient extends BaseModel {
 
     public Patient() {
         this.isActive = true;
+        this.patientType = PatientType.FIRST_VISIT;
     }
 
     public Patient(int id, String fullName, Gender gender, LocalDate dateOfBirth,
@@ -69,6 +92,7 @@ public class Patient extends BaseModel {
         this.address = address;
         this.userId = userId;
         this.isActive = isActive;
+        this.patientType = PatientType.FIRST_VISIT;
     }
 
     // -- DB field getters/setters --
@@ -153,6 +177,14 @@ public class Patient extends BaseModel {
         isActive = active;
     }
 
+    public PatientType getPatientType() {
+        return patientType;
+    }
+
+    public void setPatientType(PatientType patientType) {
+        this.patientType = patientType;
+    }
+
     // -- Workflow field getters/setters --
 
     public String getPatientCode() {
@@ -201,11 +233,26 @@ public class Patient extends BaseModel {
     // -- Helper methods --
 
     /**
-     * Tinh tuoi dua tren ngay sinh.
+     * Tính tuổi dựa trên ngày sinh.
      */
     public int getAge() {
         if (dateOfBirth == null) return 0;
         return Period.between(dateOfBirth, LocalDate.now()).getYears();
+    }
+
+    // -- equals / hashCode (dựa trên id) --
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Patient patient = (Patient) o;
+        return id == patient.id;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(id);
     }
 
     // -- toString --
@@ -218,8 +265,8 @@ public class Patient extends BaseModel {
                 ", gender=" + gender +
                 ", dateOfBirth=" + dateOfBirth +
                 ", phone='" + phone + '\'' +
-                ", address='" + address + '\'' +
-                ", userId=" + userId +
+                ", cccd='" + cccd + '\'' +
+                ", patientType=" + patientType +
                 ", isActive=" + isActive +
                 '}';
     }

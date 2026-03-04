@@ -87,6 +87,19 @@ CREATE TABLE IF NOT EXISTS PatientAllergy (
     FOREIGN KEY (patient_id) REFERENCES Patient(patient_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- 4B. Bảng QueueEntry — Hàng đợi khám bệnh (standalone, không phụ thuộc MedicalRecord)
+CREATE TABLE IF NOT EXISTS QueueEntry (
+    id            BIGINT AUTO_INCREMENT PRIMARY KEY,
+    patient_id    BIGINT       NOT NULL,
+    queue_number  INT          NOT NULL,
+    priority      ENUM('EMERGENCY','ELDERLY','NORMAL') NOT NULL DEFAULT 'NORMAL',
+    status        ENUM('WAITING','IN_PROGRESS','COMPLETED','CANCELLED') NOT NULL DEFAULT 'WAITING',
+    created_at    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    called_at     DATETIME     DEFAULT NULL,
+    completed_at  DATETIME     DEFAULT NULL,
+    FOREIGN KEY (patient_id) REFERENCES Patient(patient_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- 5. Bảng Doctor — Thông tin bác sĩ
 CREATE TABLE IF NOT EXISTS Doctor (
     doctor_id   BIGINT AUTO_INCREMENT PRIMARY KEY,
@@ -481,6 +494,10 @@ CREATE INDEX idx_patient_id_card ON Patient(id_card);
 CREATE INDEX idx_patient_type    ON Patient(patient_type);
 
 CREATE INDEX idx_allergy_patient ON PatientAllergy(patient_id);
+
+CREATE INDEX idx_queue_date_status ON QueueEntry(created_at, status);
+CREATE INDEX idx_queue_patient     ON QueueEntry(patient_id);
+CREATE INDEX idx_queue_priority    ON QueueEntry(priority, created_at);
 CREATE INDEX idx_ingredient_name ON MedicineIngredient(ingredient_name);
 
 CREATE INDEX idx_record_patient    ON MedicalRecord(patient_id, visit_date);

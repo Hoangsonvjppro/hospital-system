@@ -2,280 +2,332 @@ package com.hospital.gui.panels;
 
 import com.hospital.bus.PatientBUS;
 import com.hospital.bus.QueueBUS;
+import com.hospital.bus.event.EventBus;
+import com.hospital.bus.event.PatientRegisteredEvent;
+import com.hospital.bus.event.QueueUpdatedEvent;
+import com.hospital.dao.PatientDAO;
 import com.hospital.exception.BusinessException;
 import com.hospital.exception.DataAccessException;
 import com.hospital.gui.UIConstants;
 import com.hospital.gui.components.RoundedButton;
 import com.hospital.gui.components.RoundedPanel;
+import com.hospital.gui.dialogs.PatientRegistrationDialog;
 import com.hospital.model.Patient;
+import com.hospital.model.QueueEntry;
+import com.hospital.model.QueueEntry.Priority;
 
 import javax.swing.*;
+import javax.swing.border.EmptyBorder;
 import javax.swing.table.*;
 import java.awt.*;
-import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
  * Trang Tiếp nhận bệnh nhân.
+ * <p>
+ * - Không có BHYT
+ * - Không thu phí khám (phí ở bước Thanh toán cuối cùng)
+ * - Bảng danh sách bệnh nhân đã tiếp nhận trong ngày
+ * - Nút: Đăng ký mới, Tìm kiếm, Chuyển vào hàng đợi
  */
 public class ReceptionPanel extends JPanel {
 
-    private final PatientBUS bus = new PatientBUS();
+    private final PatientBUS patientBUS = new PatientBUS();
     private final QueueBUS queueBUS = new QueueBUS();
+    private final PatientDAO patientDAO = new PatientDAO();
+    private final DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private final DateTimeFormatter dateTimeFmt = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+
     private DefaultTableModel tableModel;
     private JTable table;
+    private JTextField txtSearch;
+    private JLabel lblCount;
 
-    // Form fields
-    private JTextField txtName, txtPhone, txtAddress, txtExamType;
-    private JComboBox<String> cbGender;
-    private JSpinner spnBirthYear;
+    // Store patient IDs for table row mapping
+    private final java.util.List<Integer> patientIds = new java.util.ArrayList<>();
 
     public ReceptionPanel() {
         setBackground(UIConstants.CONTENT_BG);
         setLayout(new BorderLayout(0, 0));
         setBorder(BorderFactory.createEmptyBorder(20, 24, 20, 24));
         initComponents();
+        loadTodayPatients();
+        subscribeEvents();
     }
 
     private void initComponents() {
-        // Header
-        JPanel header = new JPanel(new BorderLayout());
+        add(createHeader(), BorderLayout.NORTH);
+        add(createTablePanel(), BorderLayout.CENTER);
+    }
+
+    // ══════════════════════════════════════════════════════════
+    //  HEADER: Tiêu đề + Nút hành động + Tìm kiếm
+    // ══════════════════════════════════════════════════════════
+
+    private JPanel createHeader() {
+        JPanel header = new JPanel(new BorderLayout(16, 12));
         header.setOpaque(false);
+        header.setBorder(new EmptyBorder(0, 0, 12, 0));
+
+        // Title row
+        JPanel titleRow = new JPanel(new BorderLayout());
+        titleRow.setOpaque(false);
+
         JLabel title = new JLabel("Tiếp nhận bệnh nhân");
         title.setFont(UIConstants.FONT_TITLE);
-        title.setForeground(UIConstants.PRIMARY_RED);
-        header.add(title, BorderLayout.WEST);
-        add(header, BorderLayout.NORTH);
+        title.setForeground(UIConstants.PRIMARY);
+        titleRow.add(title, BorderLayout.WEST);
 
-        // Body: Form left + Table right
-        JPanel body = new JPanel(new BorderLayout(16, 0));
-        body.setOpaque(false);
-        body.setBorder(BorderFactory.createEmptyBorder(16, 0, 0, 0));
+        // Action buttons
+        JPanel actions = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        actions.setOpaque(false);
 
-        body.add(createForm(),  BorderLayout.WEST);
-        body.add(createTable(), BorderLayout.CENTER);
-        add(body, BorderLayout.CENTER);
+        RoundedButton btnRegister = new RoundedButton("Đăng ký mới");
+        btnRegister.addActionListener(e -> openRegistrationDialog());
+
+        RoundedButton btnToQueue = new RoundedButton("Chuyển vào hàng đợi");
+        btnToQueue.setColors(UIConstants.SUCCESS_GREEN, UIConstants.SUCCESS_GREEN_DARK);
+        btnToQueue.addActionListener(e -> transferToQueue());
+
+        actions.add(btnRegister);
+        actions.add(btnToQueue);
+        titleRow.add(actions, BorderLayout.EAST);
+
+        header.add(titleRow, BorderLayout.NORTH);
+
+        // Search bar + count
+        JPanel searchRow = new JPanel(new BorderLayout(8, 0));
+        searchRow.setOpaque(false);
+
+        txtSearch = new JTextField();
+        txtSearch.putClientProperty("JTextField.placeholderText", "Tìm theo tên, SĐT hoặc CCCD...");
+        txtSearch.setFont(UIConstants.FONT_BODY);
+        txtSearch.setPreferredSize(new Dimension(0, 38));
+        txtSearch.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(UIConstants.BORDER_COLOR, 1, true),
+                new EmptyBorder(0, 14, 0, 14)));
+
+        RoundedButton btnSearch = new RoundedButton("Tìm kiếm");
+        btnSearch.setPreferredSize(new Dimension(100, 38));
+        btnSearch.addActionListener(e -> searchPatients());
+
+        txtSearch.addActionListener(e -> searchPatients());
+
+        lblCount = new JLabel("0 bệnh nhân");
+        lblCount.setFont(UIConstants.FONT_LABEL);
+        lblCount.setForeground(UIConstants.TEXT_SECONDARY);
+
+        JPanel searchLeft = new JPanel(new BorderLayout(8, 0));
+        searchLeft.setOpaque(false);
+        searchLeft.add(txtSearch, BorderLayout.CENTER);
+        searchLeft.add(btnSearch, BorderLayout.EAST);
+
+        searchRow.add(searchLeft, BorderLayout.CENTER);
+        searchRow.add(lblCount, BorderLayout.EAST);
+
+        header.add(searchRow, BorderLayout.SOUTH);
+
+        return header;
     }
 
-    // ── Form ──────────────────────────────────────────────────────────────────
-    private JPanel createForm() {
+    // ══════════════════════════════════════════════════════════
+    //  TABLE: Danh sách bệnh nhân đã tiếp nhận
+    // ══════════════════════════════════════════════════════════
+
+    private JPanel createTablePanel() {
         RoundedPanel card = new RoundedPanel(UIConstants.CARD_RADIUS);
         card.setBackground(UIConstants.CARD_BG);
-        card.setLayout(new BorderLayout(0, 12));
-        card.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        card.setPreferredSize(new Dimension(300, 0));
+        card.setLayout(new BorderLayout());
+        card.setBorder(new EmptyBorder(12, 12, 12, 12));
 
-        JLabel formTitle = new JLabel("Thông tin bệnh nhân");
-        formTitle.setFont(UIConstants.FONT_SUBTITLE);
-        formTitle.setForeground(UIConstants.TEXT_PRIMARY);
-        card.add(formTitle, BorderLayout.NORTH);
-
-        JPanel fields = new JPanel(new GridBagLayout());
-        fields.setOpaque(false);
-        GridBagConstraints g = new GridBagConstraints();
-        g.fill = GridBagConstraints.HORIZONTAL;
-        g.insets = new Insets(5, 0, 5, 0);
-        g.gridx = 0; g.weightx = 1;
-
-        txtName      = new JTextField();
-        txtPhone     = new JTextField();
-        txtAddress   = new JTextField();
-        txtExamType  = new JTextField();
-        cbGender     = new JComboBox<>(new String[]{"Nam", "Nữ"});
-        spnBirthYear = new JSpinner(new SpinnerNumberModel(1990, 1900, 2026, 1));
-        spnBirthYear.setEditor(new JSpinner.NumberEditor(spnBirthYear, "#"));
-
-        Object[][] rows = {
-            {"Họ và tên (*)", txtName},
-            {"Năm sinh", spnBirthYear},
-            {"Giới tính", cbGender},
-            {"Số điện thoại (*)", txtPhone},
-            {"Địa chỉ", txtAddress},
-            {"Loại khám", txtExamType},
-        };
-
-        int gridy = 0;
-        for (Object[] row : rows) {
-            g.gridy = gridy++;
-            JLabel lbl = new JLabel((String) row[0]);
-            lbl.setFont(UIConstants.FONT_LABEL);
-            lbl.setForeground(UIConstants.TEXT_SECONDARY);
-            fields.add(lbl, g);
-            g.gridy = gridy++;
-            JComponent comp = (JComponent) row[1];
-            comp.setFont(UIConstants.FONT_LABEL);
-            fields.add(comp, g);
-        }
-        card.add(fields, BorderLayout.CENTER);
-
-        // Buttons
-        JPanel btns = new JPanel(new GridLayout(1, 2, 8, 0));
-        btns.setOpaque(false);
-
-        RoundedButton btnAdd = new RoundedButton("Thêm mới");
-        btnAdd.addActionListener(e -> addPatient());
-
-        RoundedButton btnClear = new RoundedButton("Làm mới");
-        btnClear.setColors(UIConstants.TEXT_SECONDARY, UIConstants.STATUS_CANCEL);
-        btnClear.addActionListener(e -> clearForm());
-
-        btns.add(btnAdd);
-        btns.add(btnClear);
-        card.add(btns, BorderLayout.SOUTH);
-        return card;
-    }
-
-    // ── Table ─────────────────────────────────────────────────────────────────
-    private JPanel createTable() {
-        RoundedPanel card = new RoundedPanel(UIConstants.CARD_RADIUS);
-        card.setBackground(UIConstants.CARD_BG);
-        card.setLayout(new BorderLayout(0, 12));
-        card.setBorder(BorderFactory.createEmptyBorder(18, 20, 18, 20));
-
-        // Search bar
-        JPanel topBar = new JPanel(new BorderLayout(8, 0));
-        topBar.setOpaque(false);
-        JTextField txtSearch = new JTextField();
-        txtSearch.putClientProperty("JTextField.placeholderText", "Tìm kiếm bệnh nhân...");
-        txtSearch.addActionListener(e -> searchPatients(txtSearch.getText()));
-
-        RoundedButton btnSearch = new RoundedButton("Tìm");
-        btnSearch.setPreferredSize(new Dimension(70, 32));
-        btnSearch.addActionListener(e -> searchPatients(txtSearch.getText()));
-
-        RoundedButton btnDelete = new RoundedButton("Xóa");
-        btnDelete.setColors(UIConstants.STATUS_CANCEL, UIConstants.STATUS_CANCEL.darker());
-        btnDelete.setPreferredSize(new Dimension(70, 32));
-        btnDelete.addActionListener(e -> deleteSelected());
-
-        topBar.add(txtSearch, BorderLayout.CENTER);
-        JPanel acts = new JPanel(new FlowLayout(FlowLayout.RIGHT, 6, 0));
-        acts.setOpaque(false);
-        acts.add(btnSearch);
-        acts.add(btnDelete);
-        topBar.add(acts, BorderLayout.EAST);
-        card.add(topBar, BorderLayout.NORTH);
-
-        // Table
-        String[] cols = {"Mã BN", "Họ và tên", "Tuổi", "Giới tính", "Điện thoại", "Địa chỉ"};
+        String[] cols = {"STT", "Mã BN", "Họ tên", "SĐT", "CCCD", "Ngày sinh", "Giới tính", "Phân loại", "Thời gian đăng ký"};
         tableModel = new DefaultTableModel(cols, 0) {
-            @Override public boolean isCellEditable(int r, int c) { return false; }
+            @Override
+            public boolean isCellEditable(int row, int col) { return false; }
         };
         table = new JTable(tableModel);
-        table.setRowHeight(42);
-        table.setGridColor(UIConstants.BORDER_COLOR);
+        table.setFont(UIConstants.FONT_LABEL);
+        table.setRowHeight(40);
+        table.setShowHorizontalLines(true);
         table.setShowVerticalLines(false);
-        table.setSelectionBackground(UIConstants.RED_BG_SOFT);
+        table.setGridColor(UIConstants.BORDER_COLOR);
+        table.setSelectionBackground(UIConstants.PRIMARY_BG_SOFT);
         table.setSelectionForeground(UIConstants.TEXT_PRIMARY);
+        table.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
+        // Header style
         JTableHeader header = table.getTableHeader();
-        header.setBackground(UIConstants.TABLE_HEADER_BG);
         header.setFont(UIConstants.FONT_BOLD);
+        header.setBackground(UIConstants.TABLE_HEADER_BG);
+        header.setForeground(UIConstants.TEXT_PRIMARY);
+        header.setPreferredSize(new Dimension(0, 42));
+        header.setReorderingAllowed(false);
 
-        // Status renderer
-        // (removed — status column no longer in patient table)
+        // Column widths
+        table.getColumnModel().getColumn(0).setMaxWidth(50);   // STT
+        table.getColumnModel().getColumn(1).setMaxWidth(80);   // Mã BN
+        table.getColumnModel().getColumn(3).setMaxWidth(110);  // SĐT
+        table.getColumnModel().getColumn(4).setMaxWidth(130);  // CCCD
+        table.getColumnModel().getColumn(5).setMaxWidth(100);  // Ngày sinh
+        table.getColumnModel().getColumn(6).setMaxWidth(80);   // Giới tính
+        table.getColumnModel().getColumn(7).setMaxWidth(120);  // Phân loại
 
-        // Selection listener to populate form
-        table.getSelectionModel().addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting() && table.getSelectedRow() >= 0) {
-                populateForm(table.getSelectedRow());
-            }
-        });
+        // Cell renderer with padding
+        DefaultTableCellRenderer renderer = new DefaultTableCellRenderer();
+        renderer.setBorder(new EmptyBorder(0, 10, 0, 10));
+        for (int i = 0; i < table.getColumnCount(); i++) {
+            table.getColumnModel().getColumn(i).setCellRenderer(renderer);
+        }
 
-        loadTable(bus.findAll());
-        card.add(new JScrollPane(table), BorderLayout.CENTER);
+        JScrollPane scroll = new JScrollPane(table);
+        scroll.setBorder(null);
+        scroll.getViewport().setBackground(UIConstants.CARD_BG);
+        card.add(scroll, BorderLayout.CENTER);
+
         return card;
     }
 
-    // ── Helpers ──────────────────────────────────────────────────────────────
-    private void loadTable(List<Patient> list) {
-        tableModel.setRowCount(0);
-        for (Patient p : list) {
-            tableModel.addRow(new Object[]{
-                p.getPatientCode(), p.getFullName(), p.getAge(),
-                p.getGender(), p.getPhone(), p.getAddress()
-            });
+    // ══════════════════════════════════════════════════════════
+    //  ACTIONS
+    // ══════════════════════════════════════════════════════════
+
+    /**
+     * Mở dialog đăng ký bệnh nhân mới.
+     */
+    private void openRegistrationDialog() {
+        PatientRegistrationDialog dialog = new PatientRegistrationDialog(
+                (Frame) SwingUtilities.getWindowAncestor(this));
+        dialog.setVisible(true);
+
+        if (dialog.isRegistered()) {
+            loadTodayPatients();
         }
     }
 
-    private void searchPatients(String kw) {
-        List<Patient> all = bus.findAll();
-        if (kw == null || kw.isBlank()) { loadTable(all); return; }
-        String lc = kw.toLowerCase();
-        loadTable(all.stream()
-            .filter(p -> p.getFullName().toLowerCase().contains(lc)
-                    || p.getPatientCode().toLowerCase().contains(lc)
-                    || p.getPhone().contains(lc))
-            .collect(java.util.stream.Collectors.toList()));
-    }
-
-    private void addPatient() {
-        String name = txtName.getText().trim();
-        String phone = txtPhone.getText().trim();
-        if (name.isEmpty() || phone.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Vui lòng điền các trường có dấu (*)", "Thiếu thông tin", JOptionPane.WARNING_MESSAGE);
+    /**
+     * Chuyển bệnh nhân đã chọn vào hàng đợi.
+     */
+    private void transferToQueue() {
+        int selectedRow = table.getSelectedRow();
+        if (selectedRow < 0) {
+            JOptionPane.showMessageDialog(this,
+                    "Vui lòng chọn bệnh nhân cần chuyển vào hàng đợi.",
+                    "Chú ý", JOptionPane.WARNING_MESSAGE);
             return;
         }
-        int year = (int) spnBirthYear.getValue();
-        // Tao Patient voi model cua main (DB-backed)
-        Patient p = new Patient();
-        p.setFullName(name);
-        String genderStr = (String) cbGender.getSelectedItem();
-        p.setGender("Nữ".equals(genderStr) ? Patient.Gender.FEMALE : Patient.Gender.MALE);
-        p.setDateOfBirth(LocalDate.of(year, 1, 1));
-        p.setPhone(phone);
-        p.setAddress(txtAddress.getText().trim());
-        p.setActive(true);
+
+        if (selectedRow >= patientIds.size()) return;
+
+        int patientId = patientIds.get(selectedRow);
+        Patient patient = patientBUS.findById(patientId);
+        if (patient == null) {
+            JOptionPane.showMessageDialog(this, "Không tìm thấy bệnh nhân.",
+                    "Lỗi", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
         try {
-            bus.insert(p);
-            // Đưa bệnh nhân vào hàng đợi khám (persist xuống DB)
-            String examType = txtExamType.getText().trim();
-            if (examType.isEmpty()) {
-                examType = "Khám tổng quát";
+            // Xác định priority
+            Priority priority = Priority.NORMAL;
+            if (patient.getPatientType() == Patient.PatientType.EMERGENCY) {
+                priority = Priority.EMERGENCY;
+            } else if (patient.getAge() >= 60) {
+                priority = Priority.ELDERLY;
             }
-            // Sử dụng doctor_id mặc định = 1 (bác sĩ duy nhất)
-            // TODO: Cho phép chọn bác sĩ từ form
-            queueBUS.enqueue(p.getId(), 1, examType);
-            loadTable(bus.findAll());
-            clearForm();
-            JOptionPane.showMessageDialog(this, "Đã thêm bệnh nhân thành công.", "Thành công", JOptionPane.INFORMATION_MESSAGE);
-        } catch (BusinessException e) {
-            JOptionPane.showMessageDialog(this, e.getMessage(), "Lỗi nghiệp vụ", JOptionPane.ERROR_MESSAGE);
-        } catch (DataAccessException e) {
-            JOptionPane.showMessageDialog(this, "Lỗi hệ thống: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+
+            QueueEntry entry = queueBUS.addToQueue(patientId, priority);
+            JOptionPane.showMessageDialog(this,
+                    "Đã chuyển vào hàng đợi!\n" +
+                    "Bệnh nhân: " + patient.getFullName() + "\n" +
+                    "Số thứ tự: " + entry.getQueueNumber() + "\n" +
+                    "Ưu tiên: " + entry.getPriorityDisplay(),
+                    "Thành công", JOptionPane.INFORMATION_MESSAGE);
+        } catch (BusinessException ex) {
+            JOptionPane.showMessageDialog(this, ex.getMessage(),
+                    "Lỗi nghiệp vụ", JOptionPane.ERROR_MESSAGE);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Lỗi: " + ex.getMessage(),
+                    "Lỗi hệ thống", JOptionPane.ERROR_MESSAGE);
         }
     }
 
-    private void deleteSelected() {
-        int row = table.getSelectedRow();
-        if (row < 0) { JOptionPane.showMessageDialog(this, "Vui lòng chọn một bệnh nhân."); return; }
-        int confirm = JOptionPane.showConfirmDialog(this, "Xóa bệnh nhân đã chọn?", "Xác nhận", JOptionPane.YES_NO_OPTION);
-        if (confirm == JOptionPane.YES_OPTION) {
+    /**
+     * Tìm kiếm bệnh nhân.
+     */
+    private void searchPatients() {
+        String keyword = txtSearch.getText().trim();
+        if (keyword.isEmpty()) {
+            loadTodayPatients();
+            return;
+        }
+
+        try {
+            List<Patient> results = patientDAO.searchPatients(keyword);
+            populateTable(results);
+        } catch (Exception ex) {
+            JOptionPane.showMessageDialog(this, "Lỗi tìm kiếm: " + ex.getMessage(),
+                    "Lỗi", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    // ══════════════════════════════════════════════════════════
+    //  DATA
+    // ══════════════════════════════════════════════════════════
+
+    /**
+     * Load danh sách bệnh nhân đã đăng ký hôm nay.
+     */
+    private void loadTodayPatients() {
+        try {
+            List<Patient> patients = patientDAO.findTodayRegistered();
+            populateTable(patients);
+        } catch (Exception e) {
+            // Fallback: show all patients
             try {
-                String code = (String) tableModel.getValueAt(row, 0);
-                bus.findAll().stream()
-                    .filter(p -> p.getPatientCode().equals(code))
-                    .findFirst()
-                    .ifPresent(p -> { bus.delete(p.getId()); loadTable(bus.findAll()); });
-            } catch (BusinessException e) {
-                JOptionPane.showMessageDialog(this, e.getMessage(), "Lỗi nghiệp vụ", JOptionPane.WARNING_MESSAGE);
-            } catch (DataAccessException e) {
-                JOptionPane.showMessageDialog(this, "Lỗi hệ thống: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
-            }
+                List<Patient> all = patientBUS.findAll();
+                populateTable(all);
+            } catch (Exception ignored) {}
         }
     }
 
-    private void populateForm(int row) {
-        txtName.setText((String) tableModel.getValueAt(row, 1));
-        txtPhone.setText((String) tableModel.getValueAt(row, 4));
-        cbGender.setSelectedItem(tableModel.getValueAt(row, 3));
+    private void populateTable(List<Patient> patients) {
+        tableModel.setRowCount(0);
+        patientIds.clear();
+
+        int idx = 0;
+        for (Patient p : patients) {
+            idx++;
+            patientIds.add(p.getId());
+
+            String dob = p.getDateOfBirth() != null ? p.getDateOfBirth().format(dateFmt) : "";
+            String gender = p.getGender() != null ? p.getGender().getDisplayName() : "";
+            String type = p.getPatientType() != null ? p.getPatientType().getDisplayName() : "Khám lần đầu";
+            String regTime = p.getCreatedAt() != null ? p.getCreatedAt().format(dateTimeFmt) : "";
+
+            tableModel.addRow(new Object[]{
+                    idx,
+                    p.getPatientCode(),
+                    p.getFullName(),
+                    p.getPhone(),
+                    p.getCccd() != null ? p.getCccd() : "",
+                    dob,
+                    gender,
+                    type,
+                    regTime
+            });
+        }
+
+        lblCount.setText(patients.size() + " bệnh nhân");
     }
 
-    private void clearForm() {
-        txtName.setText(""); txtPhone.setText("");
-        txtAddress.setText(""); txtExamType.setText("");
-        cbGender.setSelectedIndex(0);
-        spnBirthYear.setValue(1990);
-        table.clearSelection();
+    // ══════════════════════════════════════════════════════════
+    //  EVENT SUBSCRIPTION
+    // ══════════════════════════════════════════════════════════
+
+    private void subscribeEvents() {
+        EventBus.getInstance().subscribe(PatientRegisteredEvent.class, event -> {
+            loadTodayPatients();
+        });
     }
 }

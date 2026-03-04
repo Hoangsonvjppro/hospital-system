@@ -441,7 +441,7 @@ CREATE INDEX idx_patient_phone   ON Patient(phone);
 CREATE INDEX idx_patient_id_card ON Patient(id_card);
 
 -- Dị ứng
-CREATE INDEX idx_allergy_patient ON PatientAllergy(patient_id);
+CREATE INDEX idx_allergy_patient ON PatientAllergy(patient_id);}
 
 -- Thành phần thuốc (join với PatientAllergy để cảnh báo)
 CREATE INDEX idx_ingredient_name ON MedicineIngredient(ingredient_name);

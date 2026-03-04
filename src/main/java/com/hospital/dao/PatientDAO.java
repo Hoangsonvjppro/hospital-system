@@ -193,8 +193,8 @@ public class PatientDAO implements BaseDAO<Patient> {
 
         String sql = """
                 INSERT INTO Patient
-                (full_name, gender, date_of_birth, phone, address, id_card, allergy_note, is_active)
-                VALUES (?,?,?,?,?,?,?,?)
+                (full_name, gender, date_of_birth, phone, address, id_card, allergy_note, patient_type, is_active)
+                VALUES (?,?,?,?,?,?,?,?,?)
                 """;
         Connection conn = null;
         try {
@@ -217,7 +217,13 @@ public class PatientDAO implements BaseDAO<Patient> {
                 if (entity.getCccd() != null) ps.setString(6, entity.getCccd()); else ps.setNull(6, Types.VARCHAR);
                 // allergy note
                 if (entity.getAllergyHistory() != null) ps.setString(7, entity.getAllergyHistory()); else ps.setNull(7, Types.VARCHAR);
-                ps.setBoolean(8, entity.isActive());
+                // patient_type
+                if (entity.getPatientType() != null) {
+                    ps.setString(8, entity.getPatientType().name());
+                } else {
+                    ps.setString(8, "FIRST_VISIT");
+                }
+                ps.setBoolean(9, entity.isActive());
 
                 int rows = ps.executeUpdate();
                 if (rows > 0) {
@@ -248,6 +254,7 @@ public class PatientDAO implements BaseDAO<Patient> {
                     address=?,
                     id_card=?,
                     allergy_note=?,
+                    patient_type=?,
                     is_active=?
                 WHERE patient_id=?
                 """;
@@ -272,8 +279,14 @@ public class PatientDAO implements BaseDAO<Patient> {
                 if (entity.getCccd() != null) ps.setString(6, entity.getCccd()); else ps.setNull(6, Types.VARCHAR);
                 // allergy_note
                 if (entity.getAllergyHistory() != null) ps.setString(7, entity.getAllergyHistory()); else ps.setNull(7, Types.VARCHAR);
-                ps.setBoolean(8, entity.isActive());
-                ps.setInt(9, entity.getId());
+                // patient_type
+                if (entity.getPatientType() != null) {
+                    ps.setString(8, entity.getPatientType().name());
+                } else {
+                    ps.setString(8, "FIRST_VISIT");
+                }
+                ps.setBoolean(9, entity.isActive());
+                ps.setInt(10, entity.getId());
                 return ps.executeUpdate() > 0;
             }
         } catch (SQLException e) {
@@ -282,6 +295,67 @@ public class PatientDAO implements BaseDAO<Patient> {
         } finally {
             closeIfOwned(conn);
         }
+    }
+
+    /**
+     * Tìm kiếm bệnh nhân theo tên / SĐT / CCCD (LIKE query).
+     */
+    public List<Patient> searchPatients(String keyword) {
+        List<Patient> list = new ArrayList<>();
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return findAll();
+        }
+        String sql = """
+                SELECT * FROM Patient
+                WHERE is_active = true
+                  AND (full_name LIKE ? OR phone LIKE ? OR id_card LIKE ?)
+                ORDER BY full_name
+                """;
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                String like = "%" + keyword.trim() + "%";
+                ps.setString(1, like);
+                ps.setString(2, like);
+                ps.setString(3, like);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        list.add(mapResultSet(rs));
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi tìm kiếm bệnh nhân: " + keyword, e);
+            throw new DataAccessException("Lỗi tìm kiếm bệnh nhân", e);
+        } finally {
+            closeIfOwned(conn);
+        }
+        return list;
+    }
+
+    /**
+     * Lấy danh sách bệnh nhân đã tiếp nhận trong ngày hôm nay.
+     */
+    public List<Patient> findTodayRegistered() {
+        List<Patient> list = new ArrayList<>();
+        String sql = "SELECT * FROM Patient WHERE DATE(created_at) = CURDATE() AND is_active = true ORDER BY created_at DESC";
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql);
+                 ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    list.add(mapResultSet(rs));
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi truy vấn bệnh nhân hôm nay", e);
+            throw new DataAccessException("Lỗi truy vấn bệnh nhân hôm nay", e);
+        } finally {
+            closeIfOwned(conn);
+        }
+        return list;
     }
 
     @Override
@@ -385,15 +459,13 @@ public class PatientDAO implements BaseDAO<Patient> {
             p.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
         }
 
-        // Optional columns: cccd, allergy_history, notes — không bắt buộc tồn tại trong mọi schema
+        // Optional columns — không bắt buộc tồn tại trong mọi schema
         try {
             rs.findColumn("id_card");
             p.setCccd(rs.getString("id_card"));
-        } catch (SQLException ignored) {
-        }
+        } catch (SQLException ignored) {}
 
         try {
-            // prefer allergy_note (init SQL uses this), fallback to allergy_history
             try {
                 rs.findColumn("allergy_note");
                 p.setAllergyHistory(rs.getString("allergy_note"));
@@ -401,14 +473,20 @@ public class PatientDAO implements BaseDAO<Patient> {
                 rs.findColumn("allergy_history");
                 p.setAllergyHistory(rs.getString("allergy_history"));
             }
-        } catch (SQLException ignored) {
-        }
+        } catch (SQLException ignored) {}
 
         try {
             rs.findColumn("notes");
             p.setNotes(rs.getString("notes"));
-        } catch (SQLException ignored) {
-        }
+        } catch (SQLException ignored) {}
+
+        // patient_type
+        try {
+            String ptStr = rs.getString("patient_type");
+            if (ptStr != null) {
+                p.setPatientType(Patient.PatientType.valueOf(ptStr));
+            }
+        } catch (SQLException | IllegalArgumentException ignored) {}
 
         return p;
     }

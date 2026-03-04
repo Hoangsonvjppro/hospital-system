@@ -49,29 +49,24 @@ public class PatientBUS extends BaseBUS<Patient> {
             }
         } catch (BusinessException be) { throw be; } catch (Exception ignored) {}
 
-        // CCCD: bắt buộc và phải là 12 chữ số
-        if (AppUtils.isNullOrEmpty(entity.getCccd())) {
-            throw new BusinessException("CCCD không được để trống.");
-        }
-        if (!entity.getCccd().matches("\\d{12}")) {
-            throw new BusinessException("CCCD phải là 12 chữ số.");
-        }
-
-        // Kiểm tra CCCD không trùng với bệnh nhân khác
-        try {
-            com.hospital.model.Patient byCccd = ((PatientDAO) dao).findByCccd(entity.getCccd());
-            if (byCccd != null && byCccd.getId() != entity.getId()) {
-                throw new BusinessException("CCCD đã tồn tại cho bệnh nhân khác.");
+        // CCCD: không bắt buộc, nhưng nếu có phải là 12 chữ số
+        if (!AppUtils.isNullOrEmpty(entity.getCccd())) {
+            if (!entity.getCccd().matches("\\d{12}")) {
+                throw new BusinessException("CCCD phải là 12 chữ số.");
             }
-        } catch (BusinessException be) { throw be; } catch (Exception ignored) {}
+            // Kiểm tra CCCD không trùng với bệnh nhân khác
+            try {
+                com.hospital.model.Patient byCccd = ((PatientDAO) dao).findByCccd(entity.getCccd());
+                if (byCccd != null && byCccd.getId() != entity.getId()) {
+                    throw new BusinessException("CCCD đã tồn tại cho bệnh nhân khác.");
+                }
+            } catch (BusinessException be) { throw be; } catch (Exception ignored) {}
+        }
 
-        // Tuổi hợp lệ nếu có ngày sinh
-        // Ngày sinh bắt buộc theo schema DB
-        if (entity.getDateOfBirth() == null) {
-            throw new BusinessException("Ngày sinh không được để trống.");
-        } else {
+        // Ngày sinh: nếu có thì tuổi phải hợp lệ
+        if (entity.getDateOfBirth() != null) {
             int age = entity.getAge();
-            if (age <= 0 || age > 150) {
+            if (age < 0 || age > 150) {
                 throw new BusinessException("Tuổi không hợp lệ.");
             }
         }
