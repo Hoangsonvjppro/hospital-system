@@ -1,6 +1,7 @@
 package com.hospital.gui.panels;
 
 import com.hospital.gui.UIConstants;
+import com.hospital.gui.components.RoundedPanel;
 import com.hospital.model.MedicalRecord;
 
 import javax.swing.*;
@@ -28,13 +29,20 @@ public class SymptomsPanel extends JPanel {
     }
 
     private void initComponents() {
+        RoundedPanel card = new RoundedPanel(12);
+        card.setBackground(UIConstants.CARD_BG);
+        card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
+        card.setAlignmentX(Component.LEFT_ALIGNMENT);
+        card.setBorder(new EmptyBorder(20, 24, 20, 24));
+        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 450));
+
         txtSymptoms = new JTextArea(4, 0);
-        add(createTextSection("Triệu chứng (Symptoms)", SYMPTOMS_PLACEHOLDER, txtSymptoms));
-        add(Box.createVerticalStrut(16));
+        card.add(createTextSection("Triệu chứng (Symptoms)", SYMPTOMS_PLACEHOLDER, txtSymptoms));
+        card.add(Box.createVerticalStrut(16));
 
         txtDiagnosis = new JTextArea(4, 0);
-        add(createTextSection("Chẩn đoán (Diagnosis)", DIAGNOSIS_PLACEHOLDER, txtDiagnosis));
-        add(Box.createVerticalStrut(16));
+        card.add(createTextSection("Chẩn đoán (Diagnosis)", DIAGNOSIS_PLACEHOLDER, txtDiagnosis));
+        card.add(Box.createVerticalStrut(16));
 
         JPanel fieldsRow = new JPanel(new GridLayout(1, 3, 16, 0));
         fieldsRow.setOpaque(false);
@@ -49,7 +57,9 @@ public class SymptomsPanel extends JPanel {
         fieldsRow.add(createLabeledField("Ghi chú bác sĩ", txtDoctorNotes));
         fieldsRow.add(createLabeledField("Ngày tái khám (dd/MM/yyyy)", txtFollowUpDate));
 
-        add(fieldsRow);
+        card.add(fieldsRow);
+        
+        add(card);
     }
 
     private JTextField createTextField() {

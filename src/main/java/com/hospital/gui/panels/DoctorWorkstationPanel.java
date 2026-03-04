@@ -76,6 +76,7 @@ public class DoctorWorkstationPanel extends JPanel {
 
     private int activeTab = 0;
     private JPanel tabBar;
+    private JPanel bottomBar;
 
     private javax.swing.Timer refreshTimer;
 
@@ -363,7 +364,8 @@ public class DoctorWorkstationPanel extends JPanel {
         rightContentPanel.setBorder(new EmptyBorder(20, 28, 20, 28));
         right.add(rightContentPanel, BorderLayout.CENTER);
 
-        right.add(createBottomBar(), BorderLayout.SOUTH);
+        bottomBar = createBottomBar();
+        right.add(bottomBar, BorderLayout.SOUTH);
 
         List<Patient> waiting = queueBUS.getWaitingPatients();
         if (!waiting.isEmpty()) {
@@ -374,6 +376,7 @@ public class DoctorWorkstationPanel extends JPanel {
             updateRightPanel();
         } else {
             showEmptyState();
+            updateBottomBar();
         }
 
         return right;
@@ -501,6 +504,7 @@ public class DoctorWorkstationPanel extends JPanel {
         }
         rightContentPanel.revalidate();
         rightContentPanel.repaint();
+        updateBottomBar();
     }
 
     private void showEmptyState() {
@@ -876,7 +880,7 @@ public class DoctorWorkstationPanel extends JPanel {
     }
 
     // ==========================================================================
-    //  BOTTOM BAR
+    //  BOTTOM BAR & ACTIONS
     // ==========================================================================
 
     private JPanel createBottomBar() {
@@ -885,32 +889,77 @@ public class DoctorWorkstationPanel extends JPanel {
         bar.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createMatteBorder(1, 0, 0, 0, UIConstants.BORDER_COLOR),
                 new EmptyBorder(14, 24, 14, 24)));
+        return bar;
+    }
 
-        JLabel status = new JLabel("Tr\u1EA1ng th\u00E1i: \u0110ang kh\u00E1m...");
+    private void updateBottomBar() {
+        if (bottomBar == null) return;
+        bottomBar.removeAll();
+
+        JLabel status = new JLabel("Tr\u1EA1ng th\u00E1i: " + (selectedPatient != null && "EXAMINING".equals(selectedPatient.getStatus()) ? "\u0110ang kh\u00E1m..." : "Ch\u1EDD kh\u00E1m"));
         status.setFont(UIConstants.FONT_ITALIC);
-        status.setForeground(UIConstants.STATUS_EXAMINING);
-        bar.add(status, BorderLayout.WEST);
+        status.setForeground(selectedPatient != null && "EXAMINING".equals(selectedPatient.getStatus()) ? UIConstants.STATUS_EXAMINING : UIConstants.STATUS_WAITING);
+        bottomBar.add(status, BorderLayout.WEST);
 
         JPanel btns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 0));
         btns.setOpaque(false);
 
-        RoundedButton btnSaveVitals = new RoundedButton("L\u01B0u sinh hi\u1EC7u", UIConstants.ACCENT_BLUE, UIConstants.ACCENT_BLUE_DARK, 8);
-        btnSaveVitals.setPreferredSize(new Dimension(140, 40));
-        btnSaveVitals.addActionListener(e -> onSaveVitals());
-
-        RoundedButton btnSave = new RoundedButton("Ho\u00E0n t\u1EA5t kh\u00E1m", UIConstants.SUCCESS_GREEN, UIConstants.SUCCESS_GREEN_DARK, 8);
-        btnSave.setPreferredSize(new Dimension(160, 40));
-        btnSave.addActionListener(e -> onSaveAndComplete());
-
-        btns.add(btnSaveVitals);
-        btns.add(btnSave);
-        bar.add(btns, BorderLayout.EAST);
-        return bar;
+        if (selectedPatient != null) {
+            if (activeTab == 0) {
+                RoundedButton btnSaveVitals = new RoundedButton("L\u01B0u sinh hi\u1EC7u", UIConstants.ACCENT_BLUE, UIConstants.ACCENT_BLUE_DARK, 8);
+                btnSaveVitals.setPreferredSize(new Dimension(140, 40));
+                btnSaveVitals.addActionListener(e -> onSaveVitals());
+                btns.add(btnSaveVitals);
+            } else if (activeTab == 1) {
+                RoundedButton btnSaveExam = new RoundedButton("L\u01B0u kh\u00E1m b\u1EC7nh", UIConstants.ACCENT_BLUE, UIConstants.ACCENT_BLUE_DARK, 8);
+                btnSaveExam.setPreferredSize(new Dimension(150, 40));
+                btnSaveExam.addActionListener(e -> onSaveExamination());
+                btns.add(btnSaveExam);
+            } else if (activeTab == 2) {
+                RoundedButton btnSave = new RoundedButton("Ho\u00E0n t\u1EA5t kh\u00E1m", UIConstants.SUCCESS_GREEN, UIConstants.SUCCESS_GREEN_DARK, 8);
+                btnSave.setPreferredSize(new Dimension(160, 40));
+                btnSave.addActionListener(e -> onSaveAndComplete());
+                btns.add(btnSave);
+            }
+        }
+        
+        bottomBar.add(btns, BorderLayout.EAST);
+        bottomBar.revalidate();
+        bottomBar.repaint();
     }
 
-    // ==========================================================================
-    //  ACTIONS
-    // ==========================================================================
+    private void onSaveExamination() {
+        if (selectedPatient == null || selectedRecordId <= 0) {
+            JOptionPane.showMessageDialog(this, "Vui l\u00F2ng ch\u1ECDn b\u1EC7nh nh\u00E2n.", "Th\u00F4ng b\u00E1o", JOptionPane.WARNING_MESSAGE); return;
+        }
+        try {
+            captureCurrentTabState(); // Ensure we have latest data
+            Map<String, Object> symptomsMap = tabStates.containsKey(1) ? tabStates.get(1) : symptomsPanel.captureState();
+
+            String symptoms = (String) symptomsMap.getOrDefault("symptoms", "");
+            String diagnosis = (String) symptomsMap.getOrDefault("diagnosis", "");
+            String diagnosisCode = (String) symptomsMap.getOrDefault("diagnosisCode", "");
+            String doctorNotes = (String) symptomsMap.getOrDefault("doctorNotes", "");
+            String followUpStr = (String) symptomsMap.getOrDefault("followUpDate", "");
+
+            LocalDate followUpDate = null;
+            if (!followUpStr.isEmpty()) {
+                try { followUpDate = LocalDate.parse(followUpStr, DateTimeFormatter.ofPattern("dd/MM/yyyy")); }
+                catch (Exception ex) {
+                    JOptionPane.showMessageDialog(this, "Ng\u00E0y t\u00E1i kh\u00E1m kh\u00F4ng h\u1EE3p l\u1EC7. S\u1EED d\u1EE5ng dd/MM/yyyy", "L\u1ED7i", JOptionPane.ERROR_MESSAGE); return;
+                }
+            }
+
+            medicalRecordBUS.updateFullExamination(selectedRecordId,
+                    diagnosis, symptoms,
+                    diagnosisCode.isEmpty() ? null : diagnosisCode, doctorNotes.isEmpty() ? null : doctorNotes, followUpDate);
+            JOptionPane.showMessageDialog(this, "\u0110\u00E3 l\u01B0u kh\u00E1m b\u1EC7nh cho: " + selectedPatient.getFullName(), "Th\u00E0nh c\u00F4ng", JOptionPane.INFORMATION_MESSAGE);
+        } catch (BusinessException e) {
+            JOptionPane.showMessageDialog(this, e.getMessage(), "L\u1ED7i nghi\u1EC7p v\u1EE5", JOptionPane.ERROR_MESSAGE);
+        } catch (DataAccessException e) {
+            JOptionPane.showMessageDialog(this, "L\u1ED7i h\u1EC7 th\u1ED1ng: " + e.getMessage(), "L\u1ED7i", JOptionPane.ERROR_MESSAGE);
+        }
+    }
 
     private void onSaveVitals() {
         if (selectedPatient == null || selectedRecordId <= 0) {
@@ -933,7 +982,7 @@ public class DoctorWorkstationPanel extends JPanel {
         } catch (DataAccessException e) {
             JOptionPane.showMessageDialog(this, "L\u1ED7i h\u1EC7 th\u1ED1ng: " + e.getMessage(), "L\u1ED7i", JOptionPane.ERROR_MESSAGE);
         } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "Sinh hi\u1EC7u ph\u1EA3i l\u00E0 s\u1ED1 h\u1EE3p l\u1EC7.", "L\u1ED7i", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(this, e.getMessage(), "L\u1ED7i d\u1EEF li\u1EC7u", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -950,40 +999,11 @@ public class DoctorWorkstationPanel extends JPanel {
         }
         try {
             captureCurrentTabState(); // Make sure latest inputs from any open tab are saved to tabStates
-            Map<String, Object> vitals = tabStates.containsKey(0) ? tabStates.get(0) : vitalSignsPanel.captureState();
-            Map<String, Object> symptomsMap = tabStates.containsKey(1) ? tabStates.get(1) : symptomsPanel.captureState();
 
-            // 1. Save vitals
-            double weight = parseDoubleFromMap(vitals, "weight", "C\u00E2n n\u1EB7ng");
-            double height = parseDoubleFromMap(vitals, "height", "Chi\u1EC1u cao");
-            String bp = (String) vitals.getOrDefault("bp", "");
-            int pulse = parseIntFromMap(vitals, "pulse", "M\u1EA1ch");
-            double temp = parseDoubleFromMapOrZero(vitals, "temp");
-            int spo2Val = parseIntFromMapOrZero(vitals, "spo2");
-            medicalRecordBUS.updateVitalSigns(selectedRecordId, weight, height, bp, pulse, temp, spo2Val);
-
-            // 2. Save examination
-            String symptoms = (String) symptomsMap.getOrDefault("symptoms", "");
-            String diagnosis = (String) symptomsMap.getOrDefault("diagnosis", "");
-            String diagnosisCode = (String) symptomsMap.getOrDefault("diagnosisCode", "");
-            String doctorNotes = (String) symptomsMap.getOrDefault("doctorNotes", "");
-            String followUpStr = (String) symptomsMap.getOrDefault("followUpDate", "");
-
-            LocalDate followUpDate = null;
-            if (!followUpStr.isEmpty()) {
-                try { followUpDate = LocalDate.parse(followUpStr, DateTimeFormatter.ofPattern("dd/MM/yyyy")); }
-                catch (Exception ex) {
-                    JOptionPane.showMessageDialog(this, "Ng\u00E0y t\u00E1i kh\u00E1m kh\u00F4ng h\u1EE3p l\u1EC7. S\u1EED d\u1EE5ng dd/MM/yyyy", "L\u1ED7i", JOptionPane.ERROR_MESSAGE); return;
-                }
-            }
-
-            if (!symptoms.isEmpty() || !diagnosis.isEmpty()) {
-                medicalRecordBUS.updateFullExamination(selectedRecordId,
-                        diagnosis, symptoms,
-                        diagnosisCode.isEmpty() ? null : diagnosisCode, doctorNotes.isEmpty() ? null : doctorNotes, followUpDate);
-            }
-
-            // 3. Create prescription if items exist
+            // Ensure DB has at least empty examination if not previously saved
+            medicalRecordBUS.findById(selectedRecordId); // check exists
+            
+            // Generate Prescription
             boolean hasPrescription = !prescriptionItems.isEmpty();
             if (hasPrescription) {
                 List<Integer> medIds = prescriptionItems.stream().map(PrescriptionDetail::getMedicineId).toList();
@@ -997,7 +1017,7 @@ public class DoctorWorkstationPanel extends JPanel {
                 prescriptionBUS.createPrescription(selectedRecordId, prescriptionItems);
             }
 
-            // 4. Status: PRESCRIBED if has prescription, else COMPLETED
+            // Status: PRESCRIBED if has prescription, else COMPLETED
             String newStatus = hasPrescription ? MedicalRecord.STATUS_PRESCRIBED : MedicalRecord.STATUS_COMPLETED;
             queueBUS.updateQueueStatus(selectedRecordId, newStatus);
 
@@ -1011,8 +1031,6 @@ public class DoctorWorkstationPanel extends JPanel {
             JOptionPane.showMessageDialog(this, e.getMessage(), "L\u1ED7i nghi\u1EC7p v\u1EE5", JOptionPane.ERROR_MESSAGE);
         } catch (DataAccessException e) {
             JOptionPane.showMessageDialog(this, "L\u1ED7i h\u1EC7 th\u1ED1ng: " + e.getMessage(), "L\u1ED7i", JOptionPane.ERROR_MESSAGE);
-        } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this, "Sinh hi\u1EC7u ph\u1EA3i l\u00E0 s\u1ED1 h\u1EE3p l\u1EC7.", "L\u1ED7i", JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -1029,14 +1047,22 @@ public class DoctorWorkstationPanel extends JPanel {
 
     private double parseDoubleFromMap(Map<String, Object> map, String key, String name) {
         String text = (String) map.getOrDefault(key, "");
-        if (text.isEmpty()) throw new NumberFormatException(name + " empty");
-        return Double.parseDouble(text);
+        if (text.isEmpty()) return 0.0;
+        try {
+            return Double.parseDouble(text);
+        } catch (NumberFormatException e) {
+            throw new NumberFormatException(name + " ph\u1EA3i l\u00E0 s\u1ED1 h\u1EE3p l\u1EC7.");
+        }
     }
 
     private int parseIntFromMap(Map<String, Object> map, String key, String name) {
         String text = (String) map.getOrDefault(key, "");
-        if (text.isEmpty()) throw new NumberFormatException(name + " empty");
-        return Integer.parseInt(text);
+        if (text.isEmpty()) return 0;
+        try {
+            return Integer.parseInt(text);
+        } catch (NumberFormatException e) {
+            throw new NumberFormatException(name + " ph\u1EA3i l\u00E0 s\u1ED1 h\u1EE3p l\u1EC7 nguyen.");
+        }
     }
 
     private double parseDoubleFromMapOrZero(Map<String, Object> map, String key) {
