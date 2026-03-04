@@ -3,6 +3,7 @@ services:
     image: docker.io/library/mysql:8.0
     container_name: clinic-mysql
     restart: unless-stopped
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     environment:
       MYSQL_ROOT_PASSWORD: 123456
       MYSQL_DATABASE: clinic_management
@@ -12,7 +13,8 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./src/main/resources/sql/init_database.sql:/docker-entrypoint-initdb.d/01-init.sql:ro,z
+      - ./src/main/resources/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro,z
+      - ./src/main/resources/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql:ro,z
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p123456"]
       interval: 10s

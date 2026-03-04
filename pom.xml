@@ -17,6 +17,8 @@
         <maven.compiler.source>25</maven.compiler.source>
         <maven.compiler.target>25</maven.compiler.target>
         <mysql.version>9.2.0</mysql.version>
+        <hikari.version>6.2.1</hikari.version>
+        <junit.version>5.11.4</junit.version>
         <exec.mainClass>com.hospital.Main</exec.mainClass>
     </properties>
 
@@ -54,6 +56,29 @@
             <groupId>org.jfree</groupId>
             <artifactId>jfreechart</artifactId>
             <version>1.5.5</version>
+        </dependency>
+
+        <!-- HikariCP — Connection Pool -->
+        <dependency>
+            <groupId>com.zaxxer</groupId>
+            <artifactId>HikariCP</artifactId>
+            <version>${hikari.version}</version>
+        </dependency>
+
+        <!-- JUnit 5 — Unit Testing -->
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- H2 — In-memory DB for Testing -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <version>2.3.232</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 
@@ -95,6 +120,13 @@
                         </manifest>
                     </archive>
                 </configuration>
+            </plugin>
+
+            <!-- Surefire — Chạy unit tests -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.2.5</version>
             </plugin>
         </plugins>
     </build>

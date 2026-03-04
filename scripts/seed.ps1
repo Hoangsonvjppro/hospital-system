@@ -8,7 +8,7 @@
 #
 # Tùy chọn:
 #   -Mode local|container   Ép dùng MySQL local hoặc container
-#   -Reset                  Chạy lại init_database.sql trước khi seed
+#   -Reset                  XÓA database và tạo lại toàn bộ
 # ============================================================
 param(
     [ValidateSet('auto','local','container')]
@@ -25,13 +25,13 @@ $ProjectDir = Split-Path -Parent $ScriptDir
 $DbContainer = "clinic-mysql"
 $DbUser      = "root"
 $DbPass      = "123456"
+$DbName      = "clinic_management"
 $DbHost      = "localhost"
 $DbPort      = "3306"
 
-$SqlDir      = Join-Path $ProjectDir "src/main/resources/sql"
-$SqlInit     = Join-Path $SqlDir "init_database.sql"
-$SqlUsers    = Join-Path $SqlDir "seed_demo_users.sql"
-$SqlTestData = Join-Path $SqlDir "seed_test_data.sql"
+$SqlDir      = Join-Path $ProjectDir "src/main/resources"
+$SqlSchema   = Join-Path $SqlDir "schema.sql"
+$SqlSeed     = Join-Path $SqlDir "seed.sql"
 
 # ── Detect container runtime (podman hoặc docker) ────────
 $ContainerCmd = $null
@@ -83,7 +83,7 @@ function Find-MysqlMode {
     }
 }
 
-# ── Hàm chạy SQL file ────────────────────────────────────
+# ── Hàm chạy SQL file (với UTF-8 charset) ────────────────
 function Invoke-SqlFile {
     param([string]$SqlFile, [string]$Description)
 
@@ -93,14 +93,31 @@ function Invoke-SqlFile {
     }
 
     try {
+        # Đọc file với encoding UTF-8
+        $content = Get-Content $SqlFile -Raw -Encoding UTF8
         if ($MysqlMode -eq 'container') {
-            Get-Content $SqlFile -Raw | & $ContainerCmd exec -i $DbContainer mysql -u $DbUser -p"$DbPass" 2>$null
+            # --default-character-set=utf8mb4 để fix lỗi phông chữ tiếng Việt
+            $content | & $ContainerCmd exec -i $DbContainer mysql --default-character-set=utf8mb4 -u $DbUser -p"$DbPass" 2>$null
         } else {
-            Get-Content $SqlFile -Raw | mysql -h $DbHost -P $DbPort -u $DbUser -p"$DbPass" 2>$null
+            $content | mysql --default-character-set=utf8mb4 -h $DbHost -P $DbPort -u $DbUser -p"$DbPass" 2>$null
         }
         return $true
     } catch {
         return $false
+    }
+}
+
+# ── Hàm chạy SQL command (inline) ────────────────────────
+function Invoke-SqlCmd {
+    param([string]$Sql)
+    try {
+        if ($MysqlMode -eq 'container') {
+            $Sql | & $ContainerCmd exec -i $DbContainer mysql --default-character-set=utf8mb4 -u $DbUser -p"$DbPass" 2>$null
+        } else {
+            $Sql | mysql --default-character-set=utf8mb4 -h $DbHost -P $DbPort -u $DbUser -p"$DbPass" 2>$null
+        }
+    } catch {
+        # ignore
     }
 }
 
@@ -122,68 +139,55 @@ if ($MysqlMode -eq 'container') {
 Write-Host "  User       : $DbUser" -ForegroundColor Gray
 Write-Host ""
 
-# ── Bước 0 (tùy chọn): Reset database ────────────────────
+# ── Bước 1: Drop & tạo lại database (nếu -Reset) ────────
 if ($Reset) {
-    Write-Host "[0/4] ⚠️  RESET DATABASE (xóa & tạo lại toàn bộ)..." -ForegroundColor Red
-    if (Invoke-SqlFile $SqlInit "init_database") {
-        Write-Host "  ✅ Reset database hoàn tất." -ForegroundColor Green
-    } else {
-        Write-Host "  ❌ Lỗi reset database!" -ForegroundColor Red
-        exit 1
-    }
-    Write-Host ""
-}
-
-# ── Bước 1: Chạy SQL seed users ───────────────────────────
-Write-Host "[1/4] Chạy SQL seed users (tạo user demo)..." -ForegroundColor Yellow
-if (Invoke-SqlFile $SqlUsers "seed_demo_users") {
-    Write-Host "  ✅ SQL seed users hoàn tất." -ForegroundColor Green
+    Write-Host "[1/4] ⚠️  RESET DATABASE (xóa & tạo lại toàn bộ)..." -ForegroundColor Red
+    Invoke-SqlCmd "DROP DATABASE IF EXISTS $DbName;"
+    Write-Host "  ✅ Database cũ đã xóa." -ForegroundColor Green
 } else {
-    Write-Host "  ❌ Lỗi: Không thể chạy SQL seed users." -ForegroundColor Red
-    Write-Host "     Kiểm tra kết nối MySQL và database đã tồn tại." -ForegroundColor Red
+    Write-Host "[1/4] Kiểm tra database..." -ForegroundColor Yellow
+}
+Write-Host ""
+
+# ── Bước 2: Chạy schema.sql (tạo bảng) ───────────────────
+Write-Host "[2/4] Chạy schema.sql (tạo/cập nhật bảng)..." -ForegroundColor Yellow
+if (Invoke-SqlFile $SqlSchema "schema") {
+    Write-Host "  ✅ Schema hoàn tất." -ForegroundColor Green
+} else {
+    Write-Host "  ❌ Lỗi tạo schema!" -ForegroundColor Red
     exit 1
 }
 Write-Host ""
 
-# ── Bước 2: Chạy SQL seed test data ───────────────────────
-Write-Host "[2/4] Chạy SQL seed test data (bệnh nhân, thuốc, bệnh án...)..." -ForegroundColor Yellow
-if (Invoke-SqlFile $SqlTestData "seed_test_data") {
-    Write-Host "  ✅ SQL seed test data hoàn tất." -ForegroundColor Green
+# ── Bước 3: Chạy seed.sql (dữ liệu mẫu) ─────────────────
+Write-Host "[3/4] Chạy seed.sql (bệnh nhân, thuốc, bệnh án...)..." -ForegroundColor Yellow
+if (Invoke-SqlFile $SqlSeed "seed") {
+    Write-Host "  ✅ Seed data hoàn tất." -ForegroundColor Green
 } else {
-    Write-Host "  ⚠️  Lỗi seed test data (có thể dữ liệu đã tồn tại). Tiếp tục..." -ForegroundColor DarkYellow
+    Write-Host "  ⚠️  Lỗi seed data (có thể dữ liệu đã tồn tại). Tiếp tục..." -ForegroundColor DarkYellow
 }
 Write-Host ""
 
-# ── Bước 3: Compile project ───────────────────────────────
-Write-Host "[3/4] Compile project..." -ForegroundColor Yellow
+# ── Bước 4: Compile & chạy DataSeeder (BCrypt hash) ──────
+Write-Host "[4/4] Compile & cập nhật password hash BCrypt..." -ForegroundColor Yellow
 try {
     mvn compile -q -f "$ProjectDir/pom.xml" 2>$null
-    Write-Host "  ✅ Compile thành công." -ForegroundColor Green
+    mvn exec:java "-Dexec.mainClass=com.hospital.util.DataSeeder" -f "$ProjectDir/pom.xml" 2>$null
+    Write-Host "  ✅ DataSeeder hoàn tất." -ForegroundColor Green
 } catch {
-    Write-Host "  ❌ Lỗi compile! Chạy 'mvn compile' để xem chi tiết." -ForegroundColor Red
-    exit 1
+    Write-Host "  ⚠️  Lỗi compile. Chạy 'mvn compile' để xem chi tiết." -ForegroundColor DarkYellow
 }
-Write-Host ""
-
-# ── Bước 4: Chạy DataSeeder (cập nhật BCrypt hash) ────────
-Write-Host "[4/4] Chạy DataSeeder (cập nhật password hash BCrypt)..." -ForegroundColor Yellow
-mvn exec:java "-Dexec.mainClass=com.hospital.util.DataSeeder" -f "$ProjectDir/pom.xml" 2>$null
 Write-Host ""
 
 Write-Host "╔══════════════════════════════════════════════════════════════╗" -ForegroundColor Green
 Write-Host "║   ✅ SEED HOÀN TẤT                                        ║" -ForegroundColor Green
 Write-Host "║                                                            ║" -ForegroundColor Green
 Write-Host "║   Dữ liệu test:                                           ║" -ForegroundColor Green
-Write-Host "║   • 10 bệnh nhân  • 2 bác sĩ  • 15 loại thuốc            ║" -ForegroundColor Green
+Write-Host "║   • 10 bệnh nhân  • 2 bác sĩ  • 20 loại thuốc            ║" -ForegroundColor Green
 Write-Host "║   • 5 lịch hẹn    • 6 bệnh án • 3 đơn thuốc              ║" -ForegroundColor Green
 Write-Host "║                                                            ║" -ForegroundColor Green
 Write-Host "║   Tài khoản (password cho tất cả: password):               ║" -ForegroundColor Green
-Write-Host "║   • admin          (Quản trị)                              ║" -ForegroundColor Green
-Write-Host "║   • doctor         (Bác sĩ - Nội tổng quát)               ║" -ForegroundColor Green
-Write-Host "║   • doctor2        (Bác sĩ - Nhi khoa)                    ║" -ForegroundColor Green
-Write-Host "║   • letan          (Lễ tân)                                ║" -ForegroundColor Green
-Write-Host "║   • ketoan         (Kế toán)                               ║" -ForegroundColor Green
-Write-Host "║   • duocsi         (Dược sĩ)                               ║" -ForegroundColor Green
+Write-Host "║   • admin / doctor / doctor2 / letan / ketoan / duocsi     ║" -ForegroundColor Green
 Write-Host "║                                                            ║" -ForegroundColor Green
 Write-Host "║   Cách dùng:                                               ║" -ForegroundColor Green
 Write-Host "║   • Seed thường:  pwsh scripts/seed.ps1                    ║" -ForegroundColor Green

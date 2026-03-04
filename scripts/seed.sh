@@ -10,7 +10,7 @@
 # Tùy chọn:
 #   --local     Ép dùng MySQL local (bỏ qua detect container)
 #   --container Ép dùng MySQL container
-#   --reset     Chạy lại init_database.sql trước khi seed (XÓA HẾT dữ liệu cũ)
+#   --reset     XÓA database và tạo lại toàn bộ (schema + seed)
 # ============================================================
 set -euo pipefail
 
@@ -25,10 +25,9 @@ DB_NAME="clinic_management"
 DB_HOST="localhost"
 DB_PORT="3306"
 
-SQL_DIR="$PROJECT_DIR/src/main/resources/sql"
-SQL_INIT="$SQL_DIR/init_database.sql"
-SQL_USERS="$SQL_DIR/seed_demo_users.sql"
-SQL_TEST_DATA="$SQL_DIR/seed_test_data.sql"
+SQL_DIR="$PROJECT_DIR/src/main/resources"
+SQL_SCHEMA="$SQL_DIR/schema.sql"
+SQL_SEED="$SQL_DIR/seed.sql"
 
 # ── Parse arguments ───────────────────────────────────────
 FORCE_MODE=""   # "", "local", "container"
@@ -83,7 +82,7 @@ detect_mysql() {
     fi
 }
 
-# ── Hàm chạy SQL file ────────────────────────────────────
+# ── Hàm chạy SQL file (với UTF-8 charset) ────────────────
 run_sql_file() {
     local sql_file="$1"
     local description="$2"
@@ -94,9 +93,28 @@ run_sql_file() {
     fi
 
     if [[ "$MYSQL_MODE" == "container" ]]; then
-        $CONTAINER_CMD exec -i "$DB_CONTAINER" mysql -u "$DB_USER" -p"$DB_PASS" < "$sql_file" 2>/dev/null
+        # --default-character-set=utf8mb4 để fix lỗi phông chữ tiếng Việt
+        $CONTAINER_CMD exec -i "$DB_CONTAINER" \
+            mysql --default-character-set=utf8mb4 \
+            -u "$DB_USER" -p"$DB_PASS" < "$sql_file" 2>/dev/null
     else
-        mysql -h "$DB_HOST" -P "$DB_PORT" -u "$DB_USER" -p"$DB_PASS" < "$sql_file" 2>/dev/null
+        mysql --default-character-set=utf8mb4 \
+            -h "$DB_HOST" -P "$DB_PORT" \
+            -u "$DB_USER" -p"$DB_PASS" < "$sql_file" 2>/dev/null
+    fi
+}
+
+# ── Hàm chạy SQL command (inline) ────────────────────────
+run_sql_cmd() {
+    local sql="$1"
+    if [[ "$MYSQL_MODE" == "container" ]]; then
+        echo "$sql" | $CONTAINER_CMD exec -i "$DB_CONTAINER" \
+            mysql --default-character-set=utf8mb4 \
+            -u "$DB_USER" -p"$DB_PASS" 2>/dev/null
+    else
+        echo "$sql" | mysql --default-character-set=utf8mb4 \
+            -h "$DB_HOST" -P "$DB_PORT" \
+            -u "$DB_USER" -p"$DB_PASS" 2>/dev/null
     fi
 }
 
@@ -117,66 +135,54 @@ fi
 echo "  User       : $DB_USER"
 echo ""
 
-# ── Bước 0 (tùy chọn): Reset database ────────────────────
+# ── Bước 1: Drop & tạo lại database (nếu --reset) ───────
 if $DO_RESET; then
-    echo "[0/4] ⚠️  RESET DATABASE (xóa & tạo lại toàn bộ)..."
-    if run_sql_file "$SQL_INIT" "init_database"; then
-        echo "  ✅ Reset database hoàn tất."
-    else
-        echo "  ❌ Lỗi reset database!"
-        exit 1
-    fi
-    echo ""
-fi
-
-# ── Bước 1: Chạy SQL seed users ───────────────────────────
-echo "[1/4] Chạy SQL seed users (tạo user demo)..."
-if run_sql_file "$SQL_USERS" "seed_demo_users"; then
-    echo "  ✅ SQL seed users hoàn tất."
+    echo "[1/4] ⚠️  RESET DATABASE (xóa & tạo lại toàn bộ)..."
+    run_sql_cmd "DROP DATABASE IF EXISTS $DB_NAME;"
+    echo "  ✅ Database cũ đã xóa."
 else
-    echo "  ❌ Lỗi: Không thể chạy SQL seed users."
-    echo "     Kiểm tra kết nối MySQL và database '$DB_NAME' đã tồn tại."
+    echo "[1/4] Kiểm tra database..."
+fi
+echo ""
+
+# ── Bước 2: Chạy schema.sql (tạo bảng) ───────────────────
+echo "[2/4] Chạy schema.sql (tạo/cập nhật bảng)..."
+if run_sql_file "$SQL_SCHEMA" "schema"; then
+    echo "  ✅ Schema hoàn tất."
+else
+    echo "  ❌ Lỗi tạo schema!"
     exit 1
 fi
 echo ""
 
-# ── Bước 2: Chạy SQL seed test data ───────────────────────
-echo "[2/4] Chạy SQL seed test data (bệnh nhân, thuốc, bệnh án...)..."
-if run_sql_file "$SQL_TEST_DATA" "seed_test_data"; then
-    echo "  ✅ SQL seed test data hoàn tất."
+# ── Bước 3: Chạy seed.sql (dữ liệu mẫu) ─────────────────
+echo "[3/4] Chạy seed.sql (bệnh nhân, thuốc, bệnh án...)..."
+if run_sql_file "$SQL_SEED" "seed"; then
+    echo "  ✅ Seed data hoàn tất."
 else
-    echo "  ⚠️  Lỗi seed test data (có thể dữ liệu đã tồn tại). Tiếp tục..."
+    echo "  ⚠️  Lỗi seed data (có thể dữ liệu đã tồn tại). Tiếp tục..."
 fi
 echo ""
 
-# ── Bước 3: Compile project ───────────────────────────────
-echo "[3/4] Compile project..."
-if ! mvn compile -q -f "$PROJECT_DIR/pom.xml" 2>/dev/null; then
-    echo "  ❌ Lỗi compile! Chạy 'mvn compile' để xem chi tiết."
-    exit 1
+# ── Bước 4: Compile & chạy DataSeeder (BCrypt hash) ──────
+echo "[4/4] Compile & cập nhật password hash BCrypt..."
+if mvn compile -q -f "$PROJECT_DIR/pom.xml" 2>/dev/null; then
+    mvn exec:java -Dexec.mainClass="com.hospital.util.DataSeeder" -f "$PROJECT_DIR/pom.xml" 2>/dev/null
+    echo "  ✅ DataSeeder hoàn tất."
+else
+    echo "  ⚠️  Lỗi compile. Chạy 'mvn compile' để xem chi tiết."
 fi
-echo "  ✅ Compile thành công."
-echo ""
-
-# ── Bước 4: Chạy DataSeeder (cập nhật BCrypt hash) ────────
-echo "[4/4] Chạy DataSeeder (cập nhật password hash BCrypt)..."
-mvn exec:java -Dexec.mainClass="com.hospital.util.DataSeeder" -f "$PROJECT_DIR/pom.xml" 2>/dev/null
 echo ""
 
 echo "╔══════════════════════════════════════════════════════════════╗"
 echo "║   ✅ SEED HOÀN TẤT                                        ║"
 echo "║                                                            ║"
 echo "║   Dữ liệu test:                                           ║"
-echo "║   • 10 bệnh nhân  • 2 bác sĩ  • 15 loại thuốc            ║"
+echo "║   • 10 bệnh nhân  • 2 bác sĩ  • 20 loại thuốc            ║"
 echo "║   • 5 lịch hẹn    • 6 bệnh án • 3 đơn thuốc              ║"
 echo "║                                                            ║"
 echo "║   Tài khoản (password cho tất cả: password):               ║"
-echo "║   • admin          (Quản trị)                              ║"
-echo "║   • doctor         (Bác sĩ - Nội tổng quát)               ║"
-echo "║   • doctor2        (Bác sĩ - Nhi khoa)                    ║"
-echo "║   • letan          (Lễ tân)                                ║"
-echo "║   • ketoan         (Kế toán)                               ║"
-echo "║   • duocsi         (Dược sĩ)                               ║"
+echo "║   • admin / doctor / doctor2 / letan / ketoan / duocsi     ║"
 echo "║                                                            ║"
 echo "║   Cách dùng:                                               ║"
 echo "║   • Seed thường:   bash scripts/seed.sh                   ║"
