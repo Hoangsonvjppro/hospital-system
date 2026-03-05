@@ -54,6 +54,12 @@ public class DoctorFrame extends BaseFrame {
 
         addMenuItem("⚠", "Dị ứng bệnh nhân",
                 () -> showPanel(new PatientAllergyPanel()));
+
+        addSeparator();
+        addSectionLabel("Hoàn tất");
+
+        addMenuItem("✅", "Kết thúc khám",
+                () -> showPanel(new com.hospital.gui.panels.CompletionPanel()));
     }
 
     @Override

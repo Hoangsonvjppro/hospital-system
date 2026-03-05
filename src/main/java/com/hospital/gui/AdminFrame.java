@@ -39,8 +39,12 @@ public class AdminFrame extends BaseFrame {
 
         addMenuItem("💊", "Kho thuốc",
                 () -> showPanel(new MedicinePanel()));
+        addMenuItem("�", "Phát thuốc",
+                () -> showPanel(new com.hospital.gui.panels.PharmacyPanel()));
         addMenuItem("💰", "Thanh toán",
                 () -> showPanel(new PaymentPanel()));
+        addMenuItem("✅", "Kết thúc khám",
+                () -> showPanel(new com.hospital.gui.panels.CompletionPanel()));
 
         addSeparator();
         addSectionLabel("Báo cáo");

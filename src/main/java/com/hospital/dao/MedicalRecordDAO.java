@@ -498,6 +498,38 @@ public class MedicalRecordDAO {
     }
 
     /**
+     * Lấy danh sách bệnh án hôm nay theo trạng thái (vd: DISPENSED, PAID).
+     */
+    public java.util.List<com.hospital.model.MedicalRecord> getTodayByStatus(String status) {
+        java.util.List<com.hospital.model.MedicalRecord> list = new java.util.ArrayList<>();
+        String sql = """
+            SELECT *
+              FROM MedicalRecord
+             WHERE queue_status = ?
+               AND DATE(visit_date) = CURRENT_DATE
+             ORDER BY updated_at DESC
+        """;
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, status);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        list.add(mapResultSet(rs));
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi lấy bệnh án theo trạng thái " + status, e);
+            throw new DataAccessException("Lỗi lấy bệnh án theo trạng thái", e);
+        } finally {
+            closeIfOwned(conn);
+        }
+        return list;
+    }
+
+    /**
      * Update priority of a record (e.g., to EMERGENCY) and set updated_at.
      */
     public boolean updatePriority(long recordId, String priority) {

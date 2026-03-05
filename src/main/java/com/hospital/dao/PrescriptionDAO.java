@@ -171,6 +171,28 @@ public class PrescriptionDAO {
     }
 
     /**
+     * Lấy Prescription theo ID.
+     */
+    public Prescription findById(long prescriptionId) {
+        String sql = "SELECT * FROM Prescription WHERE prescription_id = ?";
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setLong(1, prescriptionId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) return mapPrescription(rs);
+                }
+            }
+        } catch (SQLException e) {
+            throw new DataAccessException("Không thể lấy đơn thuốc ID=" + prescriptionId, e);
+        } finally {
+            closeIfOwned(conn);
+        }
+        return null;
+    }
+
+    /**
      * Cập nhật trạng thái đơn thuốc.
      */
     public boolean updateStatus(long prescriptionId, String newStatus) {

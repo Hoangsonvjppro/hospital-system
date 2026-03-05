@@ -55,6 +55,7 @@ public class PaymentPanel extends JPanel {
     private JTable detailTable;
     private JLabel lblExamFee, lblMedicineFee, lblServiceFee, lblDiscount, lblTotal;
     private JTextField txtPaidAmount;
+    private JTextField txtDiscountAmount, txtDiscountReason;
     private JLabel lblChange;
     private RoundedButton btnPay, btnCancel;
     private JPanel paymentFormPanel;
@@ -421,6 +422,39 @@ public class PaymentPanel extends JPanel {
         paymentFormPanel.setBorder(BorderFactory.createEmptyBorder(12, 0, 0, 0));
 
         if ("PENDING".equals(inv.getStatus())) {
+            // Giảm giá (nhập tay)
+            JPanel discountInputRow = new JPanel(new BorderLayout(8, 0));
+            discountInputRow.setOpaque(false);
+            discountInputRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+            JLabel lblDiscLabel = new JLabel("Giảm giá (VNĐ):");
+            lblDiscLabel.setFont(UIConstants.FONT_BODY);
+            txtDiscountAmount = new JTextField();
+            txtDiscountAmount.setFont(UIConstants.FONT_BODY);
+            txtDiscountAmount.setHorizontalAlignment(JTextField.RIGHT);
+            txtDiscountAmount.putClientProperty("JTextField.placeholderText", "0");
+            txtDiscountAmount.setText(inv.getDiscount() > 0 ? String.valueOf((long) inv.getDiscount()) : "");
+            txtDiscountAmount.addKeyListener(new KeyAdapter() {
+                @Override public void keyReleased(KeyEvent e) { updateTotalAfterDiscount(); }
+            });
+            discountInputRow.add(lblDiscLabel, BorderLayout.WEST);
+            discountInputRow.add(txtDiscountAmount, BorderLayout.CENTER);
+
+            JPanel discReasonRow = new JPanel(new BorderLayout(8, 0));
+            discReasonRow.setOpaque(false);
+            discReasonRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+            JLabel lblReasonLabel = new JLabel("Lý do giảm:");
+            lblReasonLabel.setFont(UIConstants.FONT_BODY);
+            txtDiscountReason = new JTextField();
+            txtDiscountReason.setFont(UIConstants.FONT_BODY);
+            txtDiscountReason.putClientProperty("JTextField.placeholderText", "Nhập lý do (nếu có)...");
+            discReasonRow.add(lblReasonLabel, BorderLayout.WEST);
+            discReasonRow.add(txtDiscountReason, BorderLayout.CENTER);
+
+            paymentFormPanel.add(discountInputRow);
+            paymentFormPanel.add(Box.createVerticalStrut(4));
+            paymentFormPanel.add(discReasonRow);
+            paymentFormPanel.add(Box.createVerticalStrut(8));
+
             // Tiền khách đưa
             JPanel paidRow = new JPanel(new BorderLayout(8, 0));
             paidRow.setOpaque(false);
@@ -628,6 +662,19 @@ public class PaymentPanel extends JPanel {
         if (method == null) return;
 
         try {
+            // Lưu giảm giá + lý do trước khi thanh toán
+            double discount = selectedInvoice.getDiscount();
+            if (discount > 0) {
+                String reason = (txtDiscountReason != null ? txtDiscountReason.getText().trim() : "");
+                String existingNotes = selectedInvoice.getNotes() != null ? selectedInvoice.getNotes() : "";
+                String newNotes = existingNotes;
+                if (!reason.isEmpty()) {
+                    newNotes = (existingNotes.isEmpty() ? "" : existingNotes + " | ") + "Giảm giá: " + reason;
+                }
+                selectedInvoice.setNotes(newNotes);
+                bus.update(selectedInvoice);
+            }
+
             boolean ok = bus.markAsPaid(selectedInvoice.getId(), method, paid, change);
             if (ok) {
                 // Cập nhật trạng thái bệnh án → PAID
@@ -718,6 +765,28 @@ public class PaymentPanel extends JPanel {
             JOptionPane.showMessageDialog(this,
                     "Lỗi xuất PDF: " + msg, "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+    private void updateTotalAfterDiscount() {
+        if (selectedInvoice == null) return;
+        try {
+            String text = txtDiscountAmount.getText().trim().replace(".", "").replace(",", "");
+            double discountVal = text.isEmpty() ? 0 : Double.parseDouble(text);
+            if (discountVal < 0) discountVal = 0;
+
+            double subtotal = selectedInvoice.getExamFee() + selectedInvoice.getMedicineFee()
+                    + selectedInvoice.getOtherFee();
+            if (discountVal > subtotal) discountVal = subtotal;
+
+            double newTotal = subtotal - discountVal;
+            selectedInvoice.setDiscount(discountVal);
+            selectedInvoice.setTotalAmount(newTotal);
+
+            lblDiscount.setText(moneyFmt.format(discountVal) + " đ");
+            lblTotal.setText(moneyFmt.format(newTotal) + " đ");
+
+            updateChange();
+        } catch (NumberFormatException ignored) {}
     }
 
     private void updateChange() {
