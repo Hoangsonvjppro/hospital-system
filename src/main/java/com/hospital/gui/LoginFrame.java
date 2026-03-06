@@ -3,6 +3,7 @@ package com.hospital.gui;
 import com.hospital.bus.AccountBUS;
 import com.hospital.gui.components.RoundedBorder;
 import com.hospital.gui.components.RoundedPanel;
+import com.formdev.flatlaf.FlatClientProperties;
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -49,8 +50,8 @@ public class LoginFrame extends JFrame {
 
     private void initFrame() {
         setTitle("Đăng nhập — Phòng Mạch Tư");
-        setSize(830, 580);
-        setMinimumSize(new Dimension(600, 500));
+        setSize(950, 650);
+        setMinimumSize(new Dimension(700, 550));
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         setResizable(false);
@@ -68,8 +69,8 @@ public class LoginFrame extends JFrame {
         JPanel card = new RoundedPanel(24);
         card.setBackground(UIConstants.CARD_BG);
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
-        card.setBorder(new EmptyBorder(40, 50, 35, 50));
-        card.setPreferredSize(new Dimension(420, 460));
+        card.setBorder(new EmptyBorder(45, 55, 40, 55));
+        card.setPreferredSize(new Dimension(460, 520));
 
         // ── Icon ──────────────────────────────────────────────
         JLabel iconLabel = createIconLabel();
@@ -108,60 +109,39 @@ public class LoginFrame extends JFrame {
 
         txtUsername = new JTextField();
         txtUsername.putClientProperty("JTextField.placeholderText", "Nhập tên đăng nhập");
-        JPanel usernameField = createInputField(txtUsername, "\uD83D\uDC64");
+        JPanel usernameField = createInputField(txtUsername);
         card.add(usernameField);
 
         lblUsernameError = createErrorLabel();
         card.add(lblUsernameError);
         card.add(Box.createVerticalStrut(8));
 
-        // ── Password field ────────────────────────────────────
+        // ── Password field ────────────────────────────────────────
         JLabel lblPassword = createFieldLabel("Mật khẩu");
         card.add(lblPassword);
         card.add(Box.createVerticalStrut(6));
 
         txtPassword = new JPasswordField();
         txtPassword.putClientProperty("JTextField.placeholderText", "Nhập mật khẩu");
-        JPanel passwordField = createInputField(txtPassword, "\uD83D\uDD12");
 
-        // ── Toggle show/hide password (eye icon) ──────────────
-        JLabel eyeToggle = new JLabel("\uD83D\uDC41");
-        eyeToggle.setFont(new Font(UIConstants.FONT_NAME, Font.PLAIN, 16));
-        eyeToggle.setForeground(UIConstants.ICON_MUTED);
-        eyeToggle.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        eyeToggle.setPreferredSize(new Dimension(28, 24));
-        eyeToggle.setToolTipText("Hiện/Ẩn mật khẩu");
-        eyeToggle.addMouseListener(new MouseAdapter() {
-            private boolean visible = false;
-
-            @Override
-            public void mouseClicked(MouseEvent e) {
-                visible = !visible;
-                if (visible) {
-                    txtPassword.setEchoChar((char) 0); // Hiện mật khẩu
-                    eyeToggle.setText("\uD83D\uDC41");  // 👁
-                    eyeToggle.setForeground(UIConstants.PRIMARY);
-                } else {
-                    txtPassword.setEchoChar('•');       // Ẩn mật khẩu
-                    eyeToggle.setText("\uD83D\uDC41");  // 👁
-                    eyeToggle.setForeground(UIConstants.ICON_MUTED);
-                }
-            }
-
-            @Override
-            public void mouseEntered(MouseEvent e) {
-                eyeToggle.setForeground(UIConstants.PRIMARY);
-            }
-
-            @Override
-            public void mouseExited(MouseEvent e) {
-                if (txtPassword.getEchoChar() != (char) 0) {
-                    eyeToggle.setForeground(UIConstants.ICON_MUTED);
-                }
+        // ── Custom eye toggle button (vẽ bằng Graphics2D) ────
+        JToggleButton btnEye = new JToggleButton(new EyeCrossedIcon());
+        btnEye.setContentAreaFilled(false);
+        btnEye.setBorder(null);
+        btnEye.setFocusPainted(false);
+        btnEye.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+        btnEye.addActionListener(ev -> {
+            if (btnEye.isSelected()) {
+                txtPassword.setEchoChar((char) 0);
+                btnEye.setIcon(new EyeIcon());
+            } else {
+                txtPassword.setEchoChar('\u2022');
+                btnEye.setIcon(new EyeCrossedIcon());
             }
         });
-        passwordField.add(eyeToggle, BorderLayout.EAST);
+        txtPassword.putClientProperty(FlatClientProperties.TEXT_FIELD_TRAILING_COMPONENT, btnEye);
 
+        JPanel passwordField = createInputField(txtPassword);
         card.add(passwordField);
 
         lblPasswordError = createErrorLabel();
@@ -203,7 +183,7 @@ public class LoginFrame extends JFrame {
         add(card, new GridBagConstraints());
 
         // ── Footer ────────────────────────────────────────────
-        JLabel footer = new JLabel("© 2024 Phòng Mạch Tư, Version 2.4.1");
+        JLabel footer = new JLabel("© 2026 Phòng Mạch Tư");
         footer.setFont(UIConstants.FONT_SMALL);
         footer.setForeground(UIConstants.TEXT_MUTED);
         footer.setHorizontalAlignment(SwingConstants.CENTER);
@@ -258,10 +238,10 @@ public class LoginFrame extends JFrame {
      */
     private JLabel createFieldLabel(String text) {
         JLabel lbl = new JLabel(text);
-        lbl.setFont(UIConstants.FONT_LABEL);
+        lbl.setFont(UIConstants.FONT_BODY);
         lbl.setForeground(UIConstants.TEXT_PRIMARY);
         lbl.setAlignmentX(Component.CENTER_ALIGNMENT);
-        lbl.setMaximumSize(new Dimension(Integer.MAX_VALUE, 20));
+        lbl.setMaximumSize(new Dimension(Integer.MAX_VALUE, 22));
         return lbl;
     }
 
@@ -278,9 +258,9 @@ public class LoginFrame extends JFrame {
     }
 
     /**
-     * Tạo ô nhập liệu có icon bên trái và bo tròn.
+     * Tạo ô nhập liệu bo tròn.
      */
-    private JPanel createInputField(JComponent field, String iconText) {
+    private JPanel createInputField(JComponent field) {
         JPanel wrapper = new RoundedPanel(12) {
             private boolean focused = false;
 
@@ -291,21 +271,14 @@ public class LoginFrame extends JFrame {
                         new EmptyBorder(0, 12, 0, 12)
                 ));
                 setLayout(new BorderLayout(8, 0));
-                setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
-                setPreferredSize(new Dimension(320, 44));
+                setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
+                setPreferredSize(new Dimension(360, 50));
                 setAlignmentX(Component.CENTER_ALIGNMENT);
-
-                // Icon
-                JLabel icon = new JLabel(iconText);
-                icon.setFont(new Font(UIConstants.FONT_NAME, Font.PLAIN, 16));
-                icon.setForeground(UIConstants.ICON_MUTED);
-                icon.setPreferredSize(new Dimension(24, 24));
-                add(icon, BorderLayout.WEST);
 
                 // Field styling
                 field.setOpaque(false);
                 field.setBorder(null);
-                field.setFont(UIConstants.FONT_BODY);
+                field.setFont(UIConstants.FONT_SUBTITLE);
                 if (field instanceof JTextField) {
                     ((JTextField) field).setCaretColor(UIConstants.TEXT_PRIMARY);
                 }
@@ -317,7 +290,7 @@ public class LoginFrame extends JFrame {
                     public void focusGained(FocusEvent e) {
                         focused = true;
                         setBorder(BorderFactory.createCompoundBorder(
-                                new RoundedBorder(12, UIConstants.PRIMARY),
+                                new RoundedBorder(12, UIConstants.ACCENT_BLUE),
                                 new EmptyBorder(0, 12, 0, 12)
                         ));
                         repaint();
@@ -352,8 +325,8 @@ public class LoginFrame extends JFrame {
                 setForeground(Color.WHITE);
                 setFont(UIConstants.FONT_SUBTITLE);
                 setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-                setMaximumSize(new Dimension(Integer.MAX_VALUE, 44));
-                setPreferredSize(new Dimension(320, 44));
+                setMaximumSize(new Dimension(Integer.MAX_VALUE, 50));
+                setPreferredSize(new Dimension(360, 50));
                 setAlignmentX(Component.CENTER_ALIGNMENT);
 
                 addMouseListener(new MouseAdapter() {
@@ -497,6 +470,62 @@ public class LoginFrame extends JFrame {
                 }
             }
         }.execute();
+    }
+
+    // ══════════════════════════════════════════════════════════
+    //  CUSTOM EYE ICONS (vẽ bằng Graphics2D)
+    // ══════════════════════════════════════════════════════════
+
+    /** Icon mắt mở — hiển thị khi mật khẩu đang HIỆN. */
+    private static class EyeIcon implements Icon {
+        private static final int W = 20, H = 16;
+
+        @Override public int getIconWidth()  { return W; }
+        @Override public int getIconHeight() { return H; }
+
+        @Override
+        public void paintIcon(Component c, Graphics g, int x, int y) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.translate(x, y);
+            g2.setColor(UIConstants.TEXT_SECONDARY);
+            g2.setStroke(new BasicStroke(1.6f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            // Viền mắt (2 cung)
+            g2.drawArc(1, 2, W - 2, H - 4, 0, 180);
+            g2.drawArc(1, 2, W - 2, H - 4, 0, -180);
+            // Con ngươi
+            int cx = W / 2, cy = H / 2;
+            g2.fillOval(cx - 3, cy - 3, 6, 6);
+            g2.dispose();
+        }
+    }
+
+    /** Icon mắt gạch chéo — hiển thị khi mật khẩu đang ẨN. */
+    private static class EyeCrossedIcon implements Icon {
+        private static final int W = 20, H = 16;
+
+        @Override public int getIconWidth()  { return W; }
+        @Override public int getIconHeight() { return H; }
+
+        @Override
+        public void paintIcon(Component c, Graphics g, int x, int y) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.translate(x, y);
+            g2.setColor(UIConstants.TEXT_SECONDARY);
+            g2.setStroke(new BasicStroke(1.6f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            // Viền mắt
+            g2.drawArc(1, 2, W - 2, H - 4, 0, 180);
+            g2.drawArc(1, 2, W - 2, H - 4, 0, -180);
+            // Con ngươi
+            int cx = W / 2, cy = H / 2;
+            g2.fillOval(cx - 3, cy - 3, 6, 6);
+            // Đường gạch chéo
+            g2.setColor(UIConstants.TEXT_SECONDARY);
+            g2.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            g2.drawLine(3, H - 2, W - 3, 2);
+            g2.dispose();
+        }
     }
 
 }

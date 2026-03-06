@@ -118,6 +118,7 @@ public abstract class BaseFrame extends JFrame {
         sidebar.setLayout(new BoxLayout(sidebar, BoxLayout.Y_AXIS));
         sidebar.setPreferredSize(new Dimension(UIConstants.SIDEBAR_WIDTH, 0));
         sidebar.setBackground(UIConstants.SIDEBAR_BG);
+        sidebar.setBorder(BorderFactory.createMatteBorder(0, 0, 0, 1, UIConstants.SIDEBAR_SEPARATOR));
 
         // ── Header: icon + tên + vai trò ─────────────────────
         sidebar.add(createSidebarHeader());
@@ -140,36 +141,46 @@ public abstract class BaseFrame extends JFrame {
     }
 
     private JPanel createSidebarHeader() {
-        JPanel header = new JPanel();
-        header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
+        JPanel header = new JPanel(new BorderLayout());
         header.setBackground(UIConstants.SIDEBAR_HEADER_BG);
         header.setBorder(new EmptyBorder(24, 20, 24, 20));
         header.setMaximumSize(new Dimension(Integer.MAX_VALUE, 130));
 
         JLabel lblIcon = new JLabel(roleIcon);
         lblIcon.setFont(UIConstants.FONT_ICON);
-        lblIcon.setAlignmentX(Component.CENTER_ALIGNMENT);
-        header.add(lblIcon);
-        header.add(Box.createVerticalStrut(8));
+        lblIcon.setHorizontalAlignment(SwingConstants.CENTER);
+        header.add(lblIcon, BorderLayout.NORTH);
+
+        // Tên + vai trò căn phải
+        JPanel infoPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 2));
+        infoPanel.setOpaque(false);
+
+        JPanel textCol = new JPanel();
+        textCol.setLayout(new BoxLayout(textCol, BoxLayout.Y_AXIS));
+        textCol.setOpaque(false);
 
         JLabel lblName = new JLabel(account.getFullName());
         lblName.setFont(UIConstants.FONT_SIDEBAR_HEADER);
-        lblName.setForeground(UIConstants.SIDEBAR_TEXT_ACTIVE);
-        lblName.setAlignmentX(Component.CENTER_ALIGNMENT);
-        header.add(lblName);
+        lblName.setForeground(Color.WHITE);
+        lblName.setAlignmentX(Component.RIGHT_ALIGNMENT);
+        textCol.add(lblName);
 
         JLabel lblRole = new JLabel(roleName);
         lblRole.setFont(UIConstants.FONT_SIDEBAR_ROLE);
-        lblRole.setForeground(UIConstants.TEXT_MUTED);
-        lblRole.setAlignmentX(Component.CENTER_ALIGNMENT);
-        header.add(lblRole);
+        lblRole.setForeground(new Color(200, 220, 255));
+        lblRole.setAlignmentX(Component.RIGHT_ALIGNMENT);
+        textCol.add(lblRole);
+
+        infoPanel.add(textCol);
+        header.add(infoPanel, BorderLayout.SOUTH);
 
         return header;
     }
 
     private JPanel createLogoutButton() {
-        JButton btnLogout = createSidebarBtn("🚪  Đăng xuất");
+        JButton btnLogout = createSidebarBtn("\u279C", "Đăng xuất");
         btnLogout.setBackground(UIConstants.LOGOUT_COLOR);
+        btnLogout.setForeground(Color.WHITE);
         btnLogout.addMouseListener(new MouseAdapter() {
             @Override public void mouseEntered(MouseEvent e) {
                 btnLogout.setBackground(UIConstants.LOGOUT_HOVER);
@@ -205,7 +216,7 @@ public abstract class BaseFrame extends JFrame {
      * @param action hành động khi click (thường là showPanel)
      */
     protected void addMenuItem(String icon, String label, Runnable action) {
-        JButton btn = createSidebarBtn(icon + "  " + label);
+        JButton btn = createSidebarBtn(icon, label);
         btn.addActionListener(e -> {
             setActiveButton(btn);
             action.run();
@@ -216,6 +227,7 @@ public abstract class BaseFrame extends JFrame {
         if (activeButton == null) {
             activeButton = btn;
             btn.setBackground(UIConstants.SIDEBAR_BTN_ACTIVE);
+            btn.setForeground(UIConstants.SIDEBAR_TEXT_ACTIVE);
         }
     }
 
@@ -223,7 +235,7 @@ public abstract class BaseFrame extends JFrame {
      * Thêm menu item bị vô hiệu hóa (disabled / sắp ra mắt).
      */
     protected void addDisabledMenuItem(String icon, String label) {
-        JButton btn = createSidebarBtn(icon + "  " + label);
+        JButton btn = createSidebarBtn(icon, label);
         btn.setEnabled(false);
         btn.setForeground(UIConstants.SIDEBAR_SEPARATOR);
         addSidebarItemToPanel(btn);
@@ -252,7 +264,7 @@ public abstract class BaseFrame extends JFrame {
     protected void addSectionLabel(String text) {
         JLabel lbl = new JLabel("    " + text.toUpperCase());
         lbl.setFont(UIConstants.FONT_SIDEBAR_SECTION);
-        lbl.setForeground(UIConstants.SIDEBAR_SEPARATOR);
+        lbl.setForeground(UIConstants.SIDEBAR_SECTION_TEXT);
         lbl.setAlignmentX(Component.LEFT_ALIGNMENT);
         lbl.setMaximumSize(new Dimension(Integer.MAX_VALUE, 20));
         sidebarMenu.add(lbl);
@@ -277,30 +289,41 @@ public abstract class BaseFrame extends JFrame {
     //  INTERNAL — tạo & quản lý sidebar button
     // ══════════════════════════════════════════════════════════
 
-    private JButton createSidebarBtn(String text) {
-        JButton btn = new JButton(text) {
+    private JButton createSidebarBtn(String iconText, String labelText) {
+        JButton btn = new JButton("") {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                g2.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+                // Nền bo tròn
                 g2.setColor(getBackground());
                 g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(),
                         UIConstants.BTN_RADIUS, UIConstants.BTN_RADIUS));
+                // Icon (emoji font)
+                g2.setColor(getForeground());
+                g2.setFont(UIConstants.FONT_SIDEBAR_ICON);
+                FontMetrics fmIcon = g2.getFontMetrics();
+                int y = (getHeight() + fmIcon.getAscent() - fmIcon.getDescent()) / 2;
+                g2.drawString(iconText, 20, y);
+                int iconWidth = fmIcon.stringWidth(iconText);
+                // Label text (regular font)
+                g2.setFont(UIConstants.FONT_SIDEBAR_BTN);
+                FontMetrics fmText = g2.getFontMetrics();
+                y = (getHeight() + fmText.getAscent() - fmText.getDescent()) / 2;
+                g2.drawString(labelText, 20 + iconWidth + 10, y);
                 g2.dispose();
-                super.paintComponent(g);
             }
         };
         btn.setContentAreaFilled(false);
         btn.setFocusPainted(false);
         btn.setBorderPainted(false);
-        btn.setForeground(UIConstants.SIDEBAR_TEXT_ACTIVE);
+        btn.setForeground(UIConstants.SIDEBAR_TEXT);
         btn.setFont(UIConstants.FONT_SIDEBAR_BTN);
         btn.setBackground(UIConstants.SIDEBAR_BTN_DEFAULT);
         btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-        btn.setHorizontalAlignment(SwingConstants.LEFT);
         btn.setMaximumSize(new Dimension(Integer.MAX_VALUE, UIConstants.SIDEBAR_BTN_H));
         btn.setPreferredSize(new Dimension(200, UIConstants.SIDEBAR_BTN_H));
-        btn.setBorder(new EmptyBorder(0, 20, 0, 10));
         btn.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         // Hover effect
@@ -331,8 +354,10 @@ public abstract class BaseFrame extends JFrame {
     private void setActiveButton(JButton btn) {
         if (activeButton != null) {
             activeButton.setBackground(UIConstants.SIDEBAR_BTN_DEFAULT);
+            activeButton.setForeground(UIConstants.SIDEBAR_TEXT);
         }
         activeButton = btn;
         btn.setBackground(UIConstants.SIDEBAR_BTN_ACTIVE);
+        btn.setForeground(UIConstants.SIDEBAR_TEXT_ACTIVE);
     }
 }

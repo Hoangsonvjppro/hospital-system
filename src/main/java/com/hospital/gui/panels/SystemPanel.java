@@ -25,7 +25,7 @@ public class SystemPanel extends JPanel {
         header.setOpaque(false);
         JLabel title = new JLabel("Hệ thống");
         title.setFont(UIConstants.FONT_TITLE);
-        title.setForeground(UIConstants.PRIMARY_RED);
+        title.setForeground(UIConstants.PRIMARY);
         header.add(title, BorderLayout.WEST);
         add(header, BorderLayout.NORTH);
 

@@ -201,4 +201,5 @@ public class ClinicConfigPanel extends JPanel {
                     "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
     }
+
 }

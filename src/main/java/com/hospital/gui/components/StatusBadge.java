@@ -37,6 +37,8 @@ public class StatusBadge extends JLabel {
             case "Mới"         -> UIConstants.STATUS_EXAMINING;
             case "Đã thanh toán" -> UIConstants.STATUS_DONE;
             case "Chờ thanh toán"-> UIConstants.STATUS_WAITING;
+            case "Hoạt động"   -> UIConstants.STATUS_DONE;
+            case "Vô hiệu"    -> UIConstants.STATUS_CANCEL;
             default            -> UIConstants.TEXT_SECONDARY;
         };
     }
