@@ -17,13 +17,23 @@ import com.hospital.model.PrescriptionDetail;
 import com.hospital.util.AppUtils;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.icons.FlatSearchIcon;
+import org.apache.poi.hssf.usermodel.HSSFWorkbook;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
+import javax.swing.table.TableModel;
+import javax.swing.text.DateFormatter;
 import java.awt.*;
+import java.awt.Color;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
@@ -40,8 +50,9 @@ public class MedicinePanel extends JPanel {
     private JTable table;
     private DefaultTableModel model;
     private JTextField txtSearch;
-    private JButton btnNhapThuocMoi;
+    private JButton btnNhapThuocMoi,btnNhapExcel,btnXuatExcel;
     private JLabel lblTongThuoc, lblTongTonKho, lblSapHetHan, lblSapHetHang;
+
     //
     private final MedicineBUS medicineBUS = new MedicineBUS();
     private final MedicalRecordBUS medicalRecordBUS = new MedicalRecordBUS();
@@ -52,7 +63,7 @@ public class MedicinePanel extends JPanel {
     //
     private final DecimalFormat formatter = new DecimalFormat("###,###,###");
     private final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-
+    private DataFormatter dataFormatter=new DataFormatter();
 
     //Component tab 2:
     private JTabbedPane tabbedPane;
@@ -138,12 +149,13 @@ public class MedicinePanel extends JPanel {
         pnlFilterLeft.add(btnHetHang);
         JPanel pnlFilterRight = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         pnlFilterRight.setOpaque(false);
-        //JButton btnXuatExcel = new JButton("Xuất Excel");
         String btnStyle = "background: #ffffff; arc: 10; borderWidth: 1; borderColor: #dddddd";
-        //btnBoLoc.putClientProperty(FlatClientProperties.STYLE, btnStyle);
-        //btnXuatExcel.putClientProperty(FlatClientProperties.STYLE, btnStyle);
-//        pnlFilterRight.add(btnBoLoc);
-//        pnlFilterRight.add(btnXuatExcel);
+        btnNhapExcel=new JButton("Nhập Excel");
+        btnXuatExcel=new JButton("Xuất Excel");
+        btnNhapExcel.putClientProperty(FlatClientProperties.STYLE, btnStyle);
+        btnXuatExcel.putClientProperty(FlatClientProperties.STYLE, btnStyle);
+        pnlFilterRight.add(btnNhapExcel);
+        pnlFilterRight.add(btnXuatExcel);
 
         pnlFilter.add(pnlFilterLeft, BorderLayout.WEST);
         pnlFilter.add(pnlFilterRight, BorderLayout.EAST);
@@ -419,6 +431,99 @@ public class MedicinePanel extends JPanel {
                 }
             }
         });
+        btnXuatExcel.addActionListener(e->{
+            String[] columns = {"MÃ","TÊN THUỐC", "ĐƠN VỊ TÍNH", "GIÁ BÁN", "SỐ LƯỢNG TỒN", "HẠN SỬ DỤNG", "TRẠNG THÁI"};
+            JFileChooser fileChooser=new JFileChooser();
+            fileChooser.setDialogTitle("Chọn nơi lưu");
+            int choice=fileChooser.showSaveDialog(null);
+            if(choice==JFileChooser.APPROVE_OPTION){
+                File file=fileChooser.getSelectedFile();
+                String filepath=file.getAbsolutePath();
+                if(!filepath.endsWith(".xlsx")){
+                    filepath+=".xlsx";
+                }
+                try(Workbook workbook=new XSSFWorkbook()){
+                    Sheet sheet=workbook.createSheet("Thuốc");
+                    Row headerRow=sheet.createRow(0);
+
+                    for(int i=0;i<columns.length;i++) {
+                        headerRow.createCell(i).setCellValue(columns[i]);//tạo header
+                    }
+                    int rowIndex=1;
+                    for (Medicine med : currentList) {
+                        Row row = sheet.createRow(rowIndex++);
+                        row.createCell(0).setCellValue("MED" + med.getId());
+                        row.createCell(1).setCellValue(med.getMedicineName());
+                        row.createCell(2).setCellValue(med.getUnit());
+                        row.createCell(3).setCellValue(med.getSellPrice());
+                        row.createCell(4).setCellValue(med.getStockQty());
+                        row.createCell(5).setCellValue(med.getExpiryDate() != null ? med.getExpiryDate().format(dateFormatter) : "");
+                        String status = "Còn hàng";
+                        if (med.getStockQty() <= 0) status = "Hết hàng";
+                        else if (med.getStockQty() <= med.getMinThreshold()) status = "Sắp hết hàng";
+                        row.createCell(6).setCellValue(status);
+                    }
+                    workbook.write(new FileOutputStream(filepath));
+                    workbook.close();
+                }catch (IOException ex){
+                    JOptionPane.showMessageDialog(this, "Vui lòng nhập số nguyên hợp lệ!", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
+        btnNhapExcel.addActionListener(e -> {
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setDialogTitle("Chọn file Excel nhập thuốc");
+            fileChooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("Excel Files (*.xlsx, *.xls)", "xlsx", "xls"));
+            if (fileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+                File file = fileChooser.getSelectedFile();
+                try (java.io.InputStream fis = new java.io.FileInputStream(file);
+                     Workbook workbook = org.apache.poi.ss.usermodel.WorkbookFactory.create(fis)) {
+                    Sheet sheet = workbook.getSheetAt(0);
+                    int countSuccess = 0;
+                    int countError = 0;
+                    for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+                        Row row = sheet.getRow(i);
+                        if (row == null || row.getCell(0) == null) continue;
+                        try {
+                            Medicine med = new Medicine();
+                            // Đọc trực tiếp và format thành String ngay tại chỗ
+                            med.setMedicineCode(dataFormatter.formatCellValue(row.getCell(0)));
+                            med.setMedicineName(dataFormatter.formatCellValue(row.getCell(1)));
+                            med.setGenericName(dataFormatter.formatCellValue(row.getCell(2)));
+                            med.setUnit(dataFormatter.formatCellValue(row.getCell(3)));
+
+                            String costStr = dataFormatter.formatCellValue(row.getCell(4)).replaceAll("[^\\d.]", "");
+                            med.setCostPrice(costStr.isEmpty() ? 0 : Double.parseDouble(costStr));
+
+                            String sellStr = dataFormatter.formatCellValue(row.getCell(5)).replaceAll("[^\\d.]", "");
+                            med.setSellPrice(sellStr.isEmpty() ? 0 : Double.parseDouble(sellStr));
+
+                            String stockStr = dataFormatter.formatCellValue(row.getCell(6)).replaceAll("[^\\d]", "");
+                            med.setStockQty(stockStr.isEmpty() ? 0 : Integer.parseInt(stockStr));
+
+                            String thresholdStr = dataFormatter.formatCellValue(row.getCell(7)).replaceAll("[^\\d]", "");
+                            med.setMinThreshold(thresholdStr.isEmpty() ? 0 : Integer.parseInt(thresholdStr));
+
+                            med.setManufacturer(dataFormatter.formatCellValue(row.getCell(8)));
+
+                            String dateStr = dataFormatter.formatCellValue(row.getCell(9));
+                            if (!dateStr.isEmpty()) {
+                                med.setExpiryDate(LocalDate.parse(dateStr, dateFormatter));
+                            }
+                            med.setDescription(dataFormatter.formatCellValue(row.getCell(10)));
+
+                            if (medicineBUS.insert(med)) countSuccess++; else countError++;
+                        } catch (Exception ex) {
+                            countError++;
+                            LOGGER.warning("Lỗi dòng " +(i+1) + ": " + ex.getMessage());
+                        }
+                    }
+                    loadMedicineData();
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(this, "Lỗi đọc file: " + ex.getMessage(), "Lỗi Hệ Thống", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        });
 
         //tab 2
         tablePendingRecords.getSelectionModel().addListSelectionListener(e ->{
@@ -465,8 +570,8 @@ public class MedicinePanel extends JPanel {
                 String invoiceMsg = invoice != null ? "\nMã hóa đơn: " + invoice.getId() : "";
                 JOptionPane.showMessageDialog(null, "Đã phát thuốc thành công!" + invoiceMsg + "\nHóa đơn đã được chuyển sang bộ phận Kế toán.", "Thành công", JOptionPane.INFORMATION_MESSAGE);
 
-                loadMedicineData(); // Update tồn kho ở Tab 1
-                loadPendingPrescriptions(); // Cập nhật lại list ở Tab 2
+                loadMedicineData();
+                loadPendingPrescriptions();
                 modelPrescriptionDetails.setRowCount(0);
                 btnPhatThuoc.setEnabled(false);
             } catch (BusinessException ex) {
@@ -476,7 +581,6 @@ public class MedicinePanel extends JPanel {
             }
         });
         }
-
     private void loadPendingPrescriptions(){
         modelPendingRecords.setRowCount(0);
         try {
