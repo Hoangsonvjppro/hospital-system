@@ -23,8 +23,6 @@ public class ReceptionistFrame extends BaseFrame {
         addMenuItem("📋", "Tiếp nhận",
                 () -> showPanel(new PatientPanel()));
 
-        addMenuItem("🏥", "Tiếp nhận BN",
-                () -> showPanel(new ReceptionPanel()));
 
         addSeparator();
         addSectionLabel("Thu ngân");
