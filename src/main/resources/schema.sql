@@ -465,6 +465,38 @@ CREATE TABLE IF NOT EXISTS ClinicConfig (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================
+-- H. TƯƠNG TÁC THUỐC
+-- ============================================================
+
+-- 24. Bảng DrugInteraction — Cặp thuốc có tương tác
+CREATE TABLE IF NOT EXISTS DrugInteraction (
+    interaction_id  BIGINT AUTO_INCREMENT PRIMARY KEY,
+    medicine_id_1   BIGINT       NOT NULL,
+    medicine_id_2   BIGINT       NOT NULL,
+    severity        ENUM('MINOR','MODERATE','SEVERE','CONTRAINDICATED') NOT NULL DEFAULT 'MODERATE',
+    description     TEXT         NOT NULL COMMENT 'Mô tả tương tác',
+    recommendation  TEXT         COMMENT 'Khuyến nghị xử trí',
+    created_at      DATETIME     DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (medicine_id_1) REFERENCES Medicine(medicine_id),
+    FOREIGN KEY (medicine_id_2) REFERENCES Medicine(medicine_id),
+    UNIQUE KEY uq_drug_pair (medicine_id_1, medicine_id_2),
+    CHECK (medicine_id_1 < medicine_id_2)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================
+-- I. DANH MỤC ICD-10
+-- ============================================================
+
+-- 25. Bảng Icd10Code — Mã bệnh quốc tế
+CREATE TABLE IF NOT EXISTS Icd10Code (
+    icd_id    BIGINT AUTO_INCREMENT PRIMARY KEY,
+    code      VARCHAR(10)  NOT NULL UNIQUE,
+    name_vi   VARCHAR(500) NOT NULL COMMENT 'Tên bệnh tiếng Việt',
+    name_en   VARCHAR(500) COMMENT 'Tên bệnh tiếng Anh',
+    category  VARCHAR(200) COMMENT 'Nhóm bệnh'
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================
 -- VIEW — Tổng hợp hóa đơn
 -- ============================================================
 
@@ -555,3 +587,8 @@ CREATE INDEX idx_dispensingitem_disp     ON DispensingItem(dispensing_id);
 CREATE INDEX idx_followup_date    ON FollowUp(follow_up_date);
 CREATE INDEX idx_followup_patient ON FollowUp(patient_id);
 CREATE INDEX idx_followup_status  ON FollowUp(status, follow_up_date);
+
+CREATE INDEX idx_drug_interaction_med1 ON DrugInteraction(medicine_id_1);
+CREATE INDEX idx_drug_interaction_med2 ON DrugInteraction(medicine_id_2);
+CREATE INDEX idx_icd10_code            ON Icd10Code(code);
+CREATE INDEX idx_icd10_name_vi         ON Icd10Code(name_vi);

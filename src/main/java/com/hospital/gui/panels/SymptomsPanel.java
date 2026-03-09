@@ -1,23 +1,37 @@
 package com.hospital.gui.panels;
 
+import com.hospital.dao.Icd10CodeDAO;
 import com.hospital.gui.UIConstants;
 import com.hospital.gui.components.RoundedPanel;
+import com.hospital.model.Icd10Code;
 import com.hospital.model.MedicalRecord;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import java.awt.*;
 import java.awt.event.FocusAdapter;
 import java.awt.event.FocusEvent;
 import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class SymptomsPanel extends JPanel {
+
+    private static final Logger LOGGER = Logger.getLogger(SymptomsPanel.class.getName());
 
     private JTextArea txtSymptoms, txtDiagnosis;
     private JTextField txtDiagnosisCode, txtDoctorNotes;
     private JTextField txtFollowUpDate;
+
+    // ICD-10 autocomplete
+    private final Icd10CodeDAO icd10Dao = new Icd10CodeDAO();
+    private JPopupMenu icd10Popup;
+    private javax.swing.Timer icd10Timer;
 
     private static final String SYMPTOMS_PLACEHOLDER = "Nhập triệu chứng của bệnh nhân...";
     private static final String DIAGNOSIS_PLACEHOLDER = "Nhập chẩn đoán...";
@@ -52,6 +66,8 @@ public class SymptomsPanel extends JPanel {
         txtDiagnosisCode = createTextField();
         txtDoctorNotes = createTextField();
         txtFollowUpDate = createTextField();
+
+        setupIcd10Autocomplete(txtDiagnosisCode);
 
         fieldsRow.add(createLabeledField("Mã ICD-10", txtDiagnosisCode));
         fieldsRow.add(createLabeledField("Ghi chú bác sĩ", txtDoctorNotes));
@@ -214,4 +230,62 @@ public class SymptomsPanel extends JPanel {
     public String getDiagnosisCode() { return txtDiagnosisCode.getText(); }
     public String getDoctorNotes() { return txtDoctorNotes.getText(); }
     public String getFollowUpDate() { return txtFollowUpDate.getText(); }
+
+    // ════════════════════════════════════════════════════════════
+    //  ICD-10 AUTOCOMPLETE
+    // ════════════════════════════════════════════════════════════
+
+    private void setupIcd10Autocomplete(JTextField field) {
+        field.putClientProperty("JTextField.placeholderText", "Gõ mã hoặc tên bệnh...");
+        icd10Popup = new JPopupMenu();
+        icd10Popup.setFocusable(false);
+
+        field.getDocument().addDocumentListener(new DocumentListener() {
+            @Override public void insertUpdate(DocumentEvent e) { scheduleSearch(); }
+            @Override public void removeUpdate(DocumentEvent e) { scheduleSearch(); }
+            @Override public void changedUpdate(DocumentEvent e) { scheduleSearch(); }
+        });
+    }
+
+    private void scheduleSearch() {
+        if (icd10Timer != null && icd10Timer.isRunning()) icd10Timer.stop();
+        icd10Timer = new javax.swing.Timer(300, e -> searchIcd10());
+        icd10Timer.setRepeats(false);
+        icd10Timer.start();
+    }
+
+    private void searchIcd10() {
+        String keyword = txtDiagnosisCode.getText().trim();
+        if (keyword.length() < 2) {
+            icd10Popup.setVisible(false);
+            return;
+        }
+
+        try {
+            List<Icd10Code> results = icd10Dao.search(keyword);
+            icd10Popup.removeAll();
+
+            if (results.isEmpty()) {
+                icd10Popup.setVisible(false);
+                return;
+            }
+
+            for (Icd10Code code : results) {
+                JMenuItem item = new JMenuItem(code.getDisplayText());
+                item.setFont(UIConstants.FONT_LABEL);
+                item.addActionListener(e -> {
+                    txtDiagnosisCode.setText(code.getCode());
+                    icd10Popup.setVisible(false);
+                });
+                icd10Popup.add(item);
+            }
+
+            icd10Popup.show(txtDiagnosisCode, 0, txtDiagnosisCode.getHeight());
+            icd10Popup.setPopupSize(Math.max(400, txtDiagnosisCode.getWidth()),
+                    Math.min(300, results.size() * 28 + 4));
+            txtDiagnosisCode.requestFocusInWindow();
+        } catch (Exception ex) {
+            LOGGER.log(Level.FINE, "Lỗi tìm kiếm ICD-10", ex);
+        }
+    }
 }

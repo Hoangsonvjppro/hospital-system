@@ -14,8 +14,10 @@ import com.hospital.model.*;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.*;
+import com.hospital.util.MedicalRecordPrinter;
+
 import java.awt.*;
-import java.awt.print.PrinterException;
+import java.io.File;
 import java.text.DecimalFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -612,102 +614,30 @@ public class CompletionPanel extends JPanel {
     }
 
     private void printSummary(MedicalRecord record) {
-        // Build summary HTML for JTextPane → print
-        StringBuilder html = new StringBuilder();
-        html.append("<html><body style='font-family:Segoe UI; padding:20px;'>");
-        html.append("<h1 style='text-align:center; color:#C0392B;'>PHÒNG MẠCH TƯ</h1>");
-        html.append("<h2 style='text-align:center;'>BỆNH ÁN TÓM TẮT</h2>");
-        html.append("<hr/>");
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle("Lưu bệnh án tóm tắt PDF");
+        chooser.setSelectedFile(new File("BenhAn_" + record.getId() + ".pdf"));
+        chooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("PDF Files", "pdf"));
 
-        // Patient
-        try {
-            Patient patient = patientBUS.findById((int) record.getPatientId());
-            if (patient != null) {
-                html.append("<h3>Thông tin bệnh nhân</h3>");
-                html.append("<p><b>Họ tên:</b> ").append(patient.getFullName()).append("</p>");
-                html.append("<p><b>SĐT:</b> ").append(patient.getPhone() != null ? patient.getPhone() : "—").append("</p>");
-                html.append("<p><b>Ngày sinh:</b> ").append(patient.getDateOfBirth() != null ? patient.getDateOfBirth().format(DATE_FMT) : "—").append("</p>");
-            }
-        } catch (Exception ignored) {}
+        if (chooser.showSaveDialog(this) != JFileChooser.APPROVE_OPTION) return;
 
-        // Doctor
-        try {
-            Doctor doctor = doctorDAO.findById((int) record.getDoctorId());
-            html.append("<p><b>Bác sĩ khám:</b> ").append(doctor != null ? doctor.getFullName() : "—").append("</p>");
-        } catch (Exception ignored) {}
-
-        html.append("<p><b>Ngày khám:</b> ").append(record.getVisitDate() != null
-                ? record.getVisitDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")) : "—").append("</p>");
-
-        // Vitals
-        html.append("<h3>Sinh hiệu</h3>");
-        html.append("<p>Cân nặng: ").append(record.getWeight() > 0 ? record.getWeight() + " kg" : "—");
-        html.append(" | Chiều cao: ").append(record.getHeight() > 0 ? record.getHeight() + " cm" : "—");
-        html.append(" | Huyết áp: ").append(record.getBloodPressure() != null ? record.getBloodPressure() : "—");
-        html.append(" | Mạch: ").append(record.getPulse() > 0 ? record.getPulse() + " bpm" : "—");
-        html.append(" | Nhiệt độ: ").append(record.getTemperature() > 0 ? record.getTemperature() + "°C" : "—");
-        html.append("</p>");
-
-        // Diagnosis
-        html.append("<h3>Chẩn đoán</h3>");
-        html.append("<p><b>Triệu chứng:</b> ").append(record.getSymptoms() != null ? record.getSymptoms() : "—").append("</p>");
-        html.append("<p><b>Chẩn đoán:</b> ").append(record.getDiagnosis() != null ? record.getDiagnosis() : "—").append("</p>");
-
-        // Prescription
-        try {
-            List<Prescription> prescriptions = prescriptionBUS.getByMedicalRecordId(record.getId());
-            if (!prescriptions.isEmpty()) {
-                html.append("<h3>Đơn thuốc</h3>");
-                html.append("<table border='1' cellpadding='4' cellspacing='0' width='100%'>");
-                html.append("<tr><th>Thuốc</th><th>Liều dùng</th><th>SL</th><th>Đơn giá</th><th>Thành tiền</th></tr>");
-                for (Prescription presc : prescriptions) {
-                    List<PrescriptionDetail> details = prescriptionBUS.getDetails(presc.getId());
-                    for (PrescriptionDetail d : details) {
-                        double lineTotal = d.getQuantity() * d.getUnitPrice();
-                        html.append("<tr>");
-                        html.append("<td>").append(d.getMedicineName()).append("</td>");
-                        html.append("<td>").append(d.getDosage() != null ? d.getDosage() : "").append("</td>");
-                        html.append("<td align='center'>").append(d.getQuantity()).append("</td>");
-                        html.append("<td align='right'>").append(MONEY_FMT.format(d.getUnitPrice())).append(" đ</td>");
-                        html.append("<td align='right'>").append(MONEY_FMT.format(lineTotal)).append(" đ</td>");
-                        html.append("</tr>");
-                    }
-                }
-                html.append("</table>");
-            }
-        } catch (Exception ignored) {}
-
-        // Follow-up
-        if (record.getFollowUpDate() != null) {
-            html.append("<h3>Hẹn tái khám</h3>");
-            html.append("<p><b>Ngày tái khám:</b> ").append(record.getFollowUpDate().format(DATE_FMT)).append("</p>");
+        File dest = chooser.getSelectedFile();
+        if (!dest.getName().toLowerCase().endsWith(".pdf")) {
+            dest = new File(dest.getAbsolutePath() + ".pdf");
         }
 
-        html.append("<hr/>");
-        html.append("<p style='text-align:center; font-style:italic;'>Chúc bạn sớm khỏe!</p>");
-        html.append("</body></html>");
-
-        // Display in JEditorPane dialog with print
-        JEditorPane editor = new JEditorPane("text/html", html.toString());
-        editor.setEditable(false);
-        editor.setPreferredSize(new Dimension(600, 700));
-
-        JScrollPane scrollPane = new JScrollPane(editor);
-        scrollPane.setPreferredSize(new Dimension(620, 720));
-
-        Object[] options = {"🖨 In", "Đóng"};
-        int result = JOptionPane.showOptionDialog(this, scrollPane,
-                "Bệnh án tóm tắt — #" + record.getId(),
-                JOptionPane.DEFAULT_OPTION, JOptionPane.PLAIN_MESSAGE,
-                null, options, options[0]);
-
-        if (result == 0) {
-            try {
-                editor.print();
-            } catch (PrinterException e) {
-                JOptionPane.showMessageDialog(this,
-                        "Lỗi in: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+        try {
+            MedicalRecordPrinter.exportPdf(record, dest.getAbsolutePath());
+            int open = JOptionPane.showConfirmDialog(this,
+                    "Xuất PDF thành công!\n" + dest.getAbsolutePath() + "\n\nMở file ngay?",
+                    "Thành công", JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE);
+            if (open == JOptionPane.YES_OPTION) {
+                java.awt.Desktop.getDesktop().open(dest);
             }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Lỗi xuất PDF bệnh án #" + record.getId(), e);
+            JOptionPane.showMessageDialog(this,
+                    "Lỗi xuất PDF: " + e.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
         }
     }
 

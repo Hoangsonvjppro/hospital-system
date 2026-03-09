@@ -1,5 +1,6 @@
 package com.hospital.gui.dialogs;
 
+import com.hospital.bus.ClinicConfigBUS;
 import com.hospital.bus.PatientBUS;
 import com.hospital.bus.QueueBUS;
 import com.hospital.bus.event.EventBus;
@@ -16,6 +17,7 @@ import com.hospital.model.QueueEntry.Priority;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.text.DecimalFormat;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -24,15 +26,18 @@ import java.time.format.DateTimeParseException;
  * Dialog đăng ký / tiếp nhận bệnh nhân.
  * <p>
  * - Không có BHYT
- * - Không thu phí khám (phí ở bước Thanh toán)
+ * - Hỗ trợ thu phí khám trước hoặc ghi nợ
  * - Form: Họ tên*, SĐT*, CCCD, Ngày sinh, Giới tính, Địa chỉ, Tiền sử dị ứng
  * - Nút Tìm kiếm bên cạnh SĐT → auto-fill nếu BN cũ
  * - Radio buttons: Khám lần đầu / Tái khám / Cấp cứu
  */
 public class PatientRegistrationDialog extends JDialog {
 
+    private static final DecimalFormat MONEY_FMT = new DecimalFormat("#,### đ");
+
     private final PatientBUS patientBUS = new PatientBUS();
     private final QueueBUS queueBUS = new QueueBUS();
+    private final ClinicConfigBUS configBUS = new ClinicConfigBUS();
     private final DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     // Form fields
@@ -48,6 +53,13 @@ public class PatientRegistrationDialog extends JDialog {
     private JRadioButton rbFirstVisit;
     private JRadioButton rbRevisit;
     private JRadioButton rbEmergency;
+
+    // Exam fee collection
+    private JCheckBox chkCollectFee;
+    private JLabel lblExamFee;
+    private JComboBox<String> cmbPaymentMethod;
+    private double examFeeAmount;
+    private boolean examFeePrepaid = false;
 
     // Existing patient (dùng khi tìm thấy BN cũ)
     private Patient existingPatient;
@@ -153,6 +165,45 @@ public class PatientRegistrationDialog extends JDialog {
         typePanel.add(rbRevisit);
         typePanel.add(rbEmergency);
         addField(form, gbc, row++, typePanel);
+
+        // ── Phí khám ──
+        addLabel(form, gbc, row, "Phí khám:");
+        JPanel feePanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
+        feePanel.setOpaque(false);
+
+        // Load exam fee from config
+        try {
+            examFeeAmount = configBUS.getDefaultExamFee();
+        } catch (Exception e) {
+            examFeeAmount = 150_000;
+        }
+
+        chkCollectFee = new JCheckBox("Thu trước");
+        chkCollectFee.setFont(UIConstants.FONT_BODY);
+        chkCollectFee.setOpaque(false);
+
+        lblExamFee = new JLabel(MONEY_FMT.format(examFeeAmount));
+        lblExamFee.setFont(UIConstants.FONT_BOLD);
+        lblExamFee.setForeground(UIConstants.PRIMARY);
+
+        cmbPaymentMethod = new JComboBox<>(new String[]{"Tiền mặt", "Chuyển khoản"});
+        cmbPaymentMethod.setFont(UIConstants.FONT_BODY);
+        cmbPaymentMethod.setEnabled(false);
+
+        JLabel lblDefer = new JLabel("(Ghi nợ nếu không thu trước)");
+        lblDefer.setFont(UIConstants.FONT_CAPTION);
+        lblDefer.setForeground(UIConstants.TEXT_MUTED);
+
+        chkCollectFee.addActionListener(e -> {
+            cmbPaymentMethod.setEnabled(chkCollectFee.isSelected());
+            lblDefer.setVisible(!chkCollectFee.isSelected());
+        });
+
+        feePanel.add(lblExamFee);
+        feePanel.add(chkCollectFee);
+        feePanel.add(cmbPaymentMethod);
+        feePanel.add(lblDefer);
+        addField(form, gbc, row++, feePanel);
 
         content.add(form, BorderLayout.CENTER);
 
@@ -277,6 +328,16 @@ public class PatientRegistrationDialog extends JDialog {
             // Thêm vào hàng đợi
             QueueEntry entry = queueBUS.addToQueue(patient.getId(), priority);
 
+            // Ghi nhận thu phí khám trước
+            examFeePrepaid = chkCollectFee.isSelected();
+            String feeInfo;
+            if (examFeePrepaid) {
+                String method = cmbPaymentMethod.getSelectedItem().toString();
+                feeInfo = "Đã thu phí khám: " + MONEY_FMT.format(examFeeAmount) + " (" + method + ")";
+            } else {
+                feeInfo = "Phí khám: Ghi nợ (thu khi thanh toán)";
+            }
+
             // Fire event
             EventBus.getInstance().publish(new PatientRegisteredEvent(patient.getId(), patient));
 
@@ -285,7 +346,8 @@ public class PatientRegistrationDialog extends JDialog {
                     "Đăng ký thành công!\n" +
                     "Bệnh nhân: " + patient.getFullName() + "\n" +
                     "Số thứ tự: " + entry.getQueueNumber() + "\n" +
-                    "Ưu tiên: " + entry.getPriorityDisplay(),
+                    "Ưu tiên: " + entry.getPriorityDisplay() + "\n" +
+                    feeInfo,
                     "Thành công", JOptionPane.INFORMATION_MESSAGE);
             dispose();
 
@@ -363,6 +425,18 @@ public class PatientRegistrationDialog extends JDialog {
 
     public boolean isRegistered() {
         return registered;
+    }
+
+    public boolean isExamFeePrepaid() {
+        return examFeePrepaid;
+    }
+
+    public double getExamFeeAmount() {
+        return examFeeAmount;
+    }
+
+    public String getPaymentMethod() {
+        return chkCollectFee.isSelected() ? cmbPaymentMethod.getSelectedItem().toString() : null;
     }
 
     // ── Layout helpers ────────────────────────────────────────

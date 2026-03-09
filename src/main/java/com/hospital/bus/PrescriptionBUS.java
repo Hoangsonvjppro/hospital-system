@@ -1,10 +1,12 @@
 package com.hospital.bus;
 
 import com.hospital.config.DatabaseConfig;
+import com.hospital.dao.DrugInteractionDAO;
 import com.hospital.dao.MedicineDAO;
 import com.hospital.dao.PrescriptionDAO;
 import com.hospital.exception.BusinessException;
 import com.hospital.exception.DataAccessException;
+import com.hospital.model.DrugInteraction;
 import com.hospital.model.Medicine;
 import com.hospital.model.Prescription;
 import com.hospital.model.PrescriptionDetail;
@@ -23,6 +25,7 @@ public class PrescriptionBUS {
 
     private final PrescriptionDAO prescriptionDAO = new PrescriptionDAO();
     private final MedicineDAO medicineDAO = new MedicineDAO();
+    private final DrugInteractionDAO interactionDAO = new DrugInteractionDAO();
 
     /**
      * Tạo đơn thuốc + chi tiết (transaction).
@@ -134,6 +137,40 @@ public class PrescriptionBUS {
         } catch (SQLException e) {
             // Log but don't block prescription
             LOGGER.warning("Lỗi kiểm tra dị ứng: " + e.getMessage());
+        }
+        return warnings;
+    }
+
+    /**
+     * Kiểm tra tương tác thuốc-thuốc trong danh sách thuốc.
+     *
+     * @param medicineIds danh sách ID thuốc cần kiểm tra
+     * @return danh sách cảnh báo tương tác (empty nếu không có)
+     */
+    public List<String> checkDrugInteractions(List<Integer> medicineIds) {
+        List<String> warnings = new ArrayList<>();
+        if (medicineIds == null || medicineIds.size() < 2) return warnings;
+
+        try {
+            List<DrugInteraction> interactions = interactionDAO.findInteractions(medicineIds);
+            for (DrugInteraction di : interactions) {
+                String icon = switch (di.getSeverity()) {
+                    case DrugInteraction.LEVEL_CONTRAINDICATED -> "🚫";
+                    case DrugInteraction.LEVEL_SEVERE -> "⛔";
+                    case DrugInteraction.LEVEL_MODERATE -> "⚠";
+                    default -> "ℹ";
+                };
+                String warning = String.format("%s TƯƠNG TÁC THUỐC [%s]: '%s' ↔ '%s' — %s",
+                        icon, di.getSeverityDisplay(),
+                        di.getMedicineName1(), di.getMedicineName2(),
+                        di.getDescription());
+                if (di.getRecommendation() != null && !di.getRecommendation().isEmpty()) {
+                    warning += "\n   → Khuyến nghị: " + di.getRecommendation();
+                }
+                warnings.add(warning);
+            }
+        } catch (Exception e) {
+            LOGGER.warning("Lỗi kiểm tra tương tác thuốc: " + e.getMessage());
         }
         return warnings;
     }

@@ -162,6 +162,17 @@ if run_sql_file "$SQL_SEED" "seed"; then
 else
     echo "  ⚠️  Lỗi seed data (có thể dữ liệu đã tồn tại). Tiếp tục..."
 fi
+
+# Seed ICD-10 codes
+SQL_ICD10="$SQL_DIR/sql/seed_icd10.sql"
+if [[ -f "$SQL_ICD10" ]]; then
+    echo "  → Chạy seed_icd10.sql (mã ICD-10)..."
+    if run_sql_file "$SQL_ICD10" "icd10"; then
+        echo "  ✅ ICD-10 hoàn tất."
+    else
+        echo "  ⚠️  Lỗi seed ICD-10 (có thể dữ liệu đã tồn tại). Tiếp tục..."
+    fi
+fi
 echo ""
 
 # ── Bước 4: Compile & chạy DataSeeder (BCrypt hash) ──────

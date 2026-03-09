@@ -573,6 +573,26 @@ public class PrescriptionPanel extends JPanel {
             }
         }
 
+        // Check drug interactions with existing prescriptions
+        if (!prescriptionItems.isEmpty()) {
+            try {
+                List<Integer> allMedIds = new ArrayList<>(prescriptionItems.stream()
+                        .map(PrescriptionDetail::getMedicineId).toList());
+                allMedIds.add(selectedMedicine.getId());
+                List<String> interactionWarnings = prescriptionBUS.checkDrugInteractions(allMedIds);
+                if (!interactionWarnings.isEmpty()) {
+                    showInteractionWarning(interactionWarnings);
+                    int choice = JOptionPane.showConfirmDialog(this,
+                            "CẢNH BÁO TƯƠNG TÁC THUỐC:\n" + String.join("\n", interactionWarnings)
+                                    + "\n\nBạn có muốn tiếp tục thêm thuốc?",
+                            "CẢNH BÁO TƯƠNG TÁC", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+                    if (choice != JOptionPane.YES_OPTION) return;
+                }
+            } catch (Exception ex) {
+                LOGGER.log(Level.WARNING, "Lỗi kiểm tra tương tác thuốc", ex);
+            }
+        }
+
         // Check stock
         if (selectedMedicine.getStockQty() < qty) {
             showStockWarning(selectedMedicine.getMedicineName(), qty, selectedMedicine.getStockQty());
@@ -659,6 +679,20 @@ public class PrescriptionPanel extends JPanel {
             }
         } catch (Exception ex) {
             LOGGER.log(Level.WARNING, "Lỗi kiểm tra dị ứng", ex);
+        }
+
+        // Final drug interaction check
+        try {
+            List<String> interactionWarnings = prescriptionBUS.checkDrugInteractions(new ArrayList<>(medIds));
+            if (!interactionWarnings.isEmpty()) {
+                int choice = JOptionPane.showConfirmDialog(this,
+                        "CẢNH BÁO TƯƠNG TÁC THUỐC:\n" + String.join("\n", interactionWarnings)
+                                + "\n\nTiếp tục lưu đơn thuốc?",
+                        "CẢNH BÁO TƯƠNG TÁC", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
+                if (choice != JOptionPane.YES_OPTION) return;
+            }
+        } catch (Exception ex) {
+            LOGGER.log(Level.WARNING, "Lỗi kiểm tra tương tác thuốc", ex);
         }
 
         try {
@@ -758,6 +792,21 @@ public class PrescriptionPanel extends JPanel {
         lbl.setBorder(BorderFactory.createEmptyBorder(6, 12, 6, 12));
         warningPanel.add(lbl);
         warningPanel.add(Box.createVerticalStrut(4));
+        warningPanel.revalidate();
+        warningPanel.repaint();
+    }
+
+    private void showInteractionWarning(List<String> warnings) {
+        for (String w : warnings) {
+            JLabel lbl = new JLabel("<html>" + w.replace("\n", "<br>") + "</html>");
+            lbl.setFont(UIConstants.FONT_BOLD);
+            lbl.setForeground(Color.WHITE);
+            lbl.setOpaque(true);
+            lbl.setBackground(new Color(142, 68, 173)); // Purple for interactions
+            lbl.setBorder(BorderFactory.createEmptyBorder(6, 12, 6, 12));
+            warningPanel.add(lbl);
+            warningPanel.add(Box.createVerticalStrut(4));
+        }
         warningPanel.revalidate();
         warningPanel.repaint();
     }
