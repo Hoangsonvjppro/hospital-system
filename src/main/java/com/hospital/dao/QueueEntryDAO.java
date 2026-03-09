@@ -258,6 +258,33 @@ public class QueueEntryDAO {
         return 0;
     }
 
+    // ── isPatientInTodayQueue ─────────────────────────────────
+    /**
+     * Kiểm tra xem bệnh nhân đã có trong hàng đợi hôm nay chưa.
+     * Trả về true nếu bệnh nhân đã có trong queue (bất kể status).
+     */
+    public boolean isPatientInTodayQueue(int patientId) {
+        String sql = "SELECT COUNT(*) FROM QueueEntry WHERE patient_id = ? AND DATE(created_at) = CURDATE()";
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setInt(1, patientId);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) {
+                        return rs.getInt(1) > 0;
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi kiểm tra bệnh nhân trong hàng đợi", e);
+            throw new DataAccessException("Lỗi kiểm tra bệnh nhân trong hàng đợi", e);
+        } finally {
+            closeIfOwned(conn);
+        }
+        return false;
+    }
+
     // ── Helpers ───────────────────────────────────────────────
 
     private List<QueueEntry> queryList(String sql) {

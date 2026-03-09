@@ -6,6 +6,7 @@ import com.hospital.bus.PrescriptionBUS;
 import com.hospital.bus.QueueBUS;
 import com.hospital.bus.event.EventBus;
 import com.hospital.bus.event.LabResultReadyEvent;
+import com.hospital.bus.event.QueueUpdatedEvent;
 import com.hospital.exception.BusinessException;
 import com.hospital.exception.DataAccessException;
 import com.hospital.gui.UIConstants;
@@ -108,6 +109,11 @@ public class DoctorWorkstationPanel extends JPanel {
             if (selectedPatient != null && activeTab == 3) {
                 // Lab result ready - user can see updates in LabOrderPanel
             }
+        });
+
+        // Subscribe to queue updated events - refresh list when receptionist adds patient
+        EventBus.getInstance().subscribe(QueueUpdatedEvent.class, evt -> {
+            SwingUtilities.invokeLater(() -> loadPatientList());
         });
         
         JPanel mainPanel = new JPanel(new BorderLayout(0, 0));

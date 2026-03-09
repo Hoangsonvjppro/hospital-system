@@ -2,6 +2,7 @@ package com.hospital.bus;
 
 import com.hospital.bus.event.EventBus;
 import com.hospital.bus.event.QueueUpdatedEvent;
+import com.hospital.dao.PatientDAO;
 import com.hospital.dao.QueueDAO;
 import com.hospital.dao.QueueEntryDAO;
 import com.hospital.exception.BusinessException;
@@ -21,10 +22,12 @@ public class QueueBUS {
 
     private final QueueDAO queueDAO;
     private final QueueEntryDAO queueEntryDAO;
+    private final PatientDAO patientDAO;
 
     public QueueBUS() {
         this.queueDAO = new QueueDAO();
         this.queueEntryDAO = new QueueEntryDAO();
+        this.patientDAO = new PatientDAO();
     }
 
     // ══════════════════════════════════════════════════════════
@@ -41,6 +44,11 @@ public class QueueBUS {
     public QueueEntry addToQueue(int patientId, Priority priority) {
         if (patientId <= 0) {
             throw new BusinessException("Patient ID không hợp lệ");
+        }
+
+        // Kiểm tra xem bệnh nhân đã có trong hàng đợi hôm nay chưa
+        if (queueEntryDAO.isPatientInTodayQueue(patientId)) {
+            throw new BusinessException("Bệnh nhân đã có trong hàng đợi khám hôm nay. Không thể thêm lại.");
         }
 
         QueueEntry entry = new QueueEntry();
@@ -157,7 +165,34 @@ public class QueueBUS {
      * Lấy danh sách bệnh nhân đang chờ khám + đang khám (ngày hôm nay).
      */
     public List<Patient> getWaitingPatients() {
-        return queueDAO.findByQueueStatus("WAITING", "EXAMINING");
+        // Đọc từ QueueEntry (hệ thống mới) - lấy cả WAITING và IN_PROGRESS (đang khám)
+        List<QueueEntry> queueEntries = queueEntryDAO.getTodayQueue();
+        List<Patient> patients = new java.util.ArrayList<>();
+        
+        for (QueueEntry entry : queueEntries) {
+            // Only include WAITING and IN_PROGRESS, skip COMPLETED and CANCELLED
+            if (entry.getStatus() == QueueEntry.QueueStatus.COMPLETED || 
+                entry.getStatus() == QueueEntry.QueueStatus.CANCELLED) {
+                continue;
+            }
+            
+            try {
+                Patient p = patientDAO.findById(entry.getPatientId());
+                if (p != null) {
+                    // Set transient fields for display
+                    p.setPatientCode(p.getPatientCode()); // BN00X format
+                    p.setStatus(entry.getStatus() != null ? entry.getStatus().name() : "WAITING");
+                    p.setArrivalTime(entry.getCreatedAt() != null ? 
+                        entry.getCreatedAt().toLocalTime().toString() : "");
+                    p.setExamType("Khám tổng quát");
+                    patients.add(p);
+                }
+            } catch (Exception e) {
+                // Skip invalid entries
+            }
+        }
+        
+        return patients;
     }
 
     /**
