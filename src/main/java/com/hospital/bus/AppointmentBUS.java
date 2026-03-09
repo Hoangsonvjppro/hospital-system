@@ -25,7 +25,7 @@ public class AppointmentBUS extends BaseBUS<Appointment> {
             throw new com.hospital.exception.BusinessException("T\u00ean b\u1ec7nh nh\u00e2n kh\u00f4ng \u0111\u01b0\u1ee3c \u0111\u1ec3 tr\u1ed1ng");
         if (a.getDoctorName() == null || a.getDoctorName().trim().isEmpty())
             throw new com.hospital.exception.BusinessException("T\u00ean b\u00e1c s\u0129 kh\u00f4ng \u0111\u01b0\u1ee3c \u0111\u1ec3 tr\u1ed1ng");
-        if (a.getDate() == null)
+        if (a.getAppointmentDate() == null)
             throw new com.hospital.exception.BusinessException("Ng\u00e0y h\u1eb9n kh\u00f4ng \u0111\u01b0\u1ee3c \u0111\u1ec3 tr\u1ed1ng");
     }
 

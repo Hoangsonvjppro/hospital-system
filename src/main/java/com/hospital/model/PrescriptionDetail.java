@@ -1,29 +1,39 @@
 package com.hospital.model;
 
+/**
+ * Entity chi tiết đơn thuốc — ánh xạ bảng PrescriptionDetail trong CSDL v4.
+ * line_total là cột GENERATED (quantity * unit_price) → chỉ đọc từ DB.
+ */
 public class PrescriptionDetail {
 
     private long id;
     private long prescriptionId;
-    private int medicineId;
+    private long medicineId;
+    private Long batchId;           // FK → MedicineBatch (FEFO)
     private int quantity;
-    private String dosage;       // "2 viên x 3 lần/ngày"
-    private String frequency;    // Cách dùng: "Ngày 3 lần, mỗi lần 1 viên"
-    private int duration;        // Số ngày dùng thuốc
-    private String instruction;  // "Uống sau ăn"
-    private double unitPrice;    // Đơn giá tại thời điểm kê
-    private double totalAmount;  // Tổng tiền cho dòng này
-    private String medicineName; // Transient — for display
-    private String unit;         // Transient — đơn vị tính
+    private String dosage;          // "1 viên × 3 lần/ngày"
+    private String instruction;     // "Uống sau ăn"
+    private String frequency;       // "Ngày 3 lần"
+    private int durationDays;       // Số ngày dùng thuốc
+    private double unitPrice;
+    private double lineTotal;       // GENERATED — read-only
+
+    // Transient — for display
+    private String medicineName;
+    private String unit;
+
+    // ── Constructors ─────────────────────────────────────────
 
     public PrescriptionDetail() {}
 
-    public PrescriptionDetail(int medicineId, int quantity, String dosage) {
+    public PrescriptionDetail(long medicineId, int quantity, String dosage) {
         this.medicineId = medicineId;
         this.quantity = quantity;
         this.dosage = dosage;
     }
 
-    public PrescriptionDetail(int medicineId, int quantity, String dosage, String instruction, double unitPrice) {
+    public PrescriptionDetail(long medicineId, int quantity, String dosage,
+                              String instruction, double unitPrice) {
         this.medicineId = medicineId;
         this.quantity = quantity;
         this.dosage = dosage;
@@ -31,103 +41,56 @@ public class PrescriptionDetail {
         this.unitPrice = unitPrice;
     }
 
-    public long getId() {
-        return id;
-    }
+    // ── Getters & Setters ────────────────────────────────────
 
-    public void setId(long id) {
-        this.id = id;
-    }
+    public long getId()                              { return id; }
+    public void setId(long id)                       { this.id = id; }
 
-    public long getPrescriptionId() {
-        return prescriptionId;
-    }
+    public long getPrescriptionId()                  { return prescriptionId; }
+    public void setPrescriptionId(long v)            { this.prescriptionId = v; }
 
-    public void setPrescriptionId(long prescriptionId) {
-        this.prescriptionId = prescriptionId;
-    }
+    public long getMedicineId()                      { return medicineId; }
+    public void setMedicineId(long v)                { this.medicineId = v; }
 
-    public int getMedicineId() {
-        return medicineId;
-    }
+    public Long getBatchId()                         { return batchId; }
+    public void setBatchId(Long v)                   { this.batchId = v; }
 
-    public void setMedicineId(int medicineId) {
-        this.medicineId = medicineId;
-    }
+    public int getQuantity()                         { return quantity; }
+    public void setQuantity(int v)                   { this.quantity = v; }
 
-    public int getQuantity() {
-        return quantity;
-    }
+    public String getDosage()                        { return dosage; }
+    public void setDosage(String v)                  { this.dosage = v; }
 
-    public void setQuantity(int quantity) {
-        this.quantity = quantity;
-    }
+    public String getInstruction()                   { return instruction; }
+    public void setInstruction(String v)             { this.instruction = v; }
 
-    public String getDosage() {
-        return dosage;
-    }
+    public String getFrequency()                     { return frequency; }
+    public void setFrequency(String v)               { this.frequency = v; }
 
-    public void setDosage(String dosage) {
-        this.dosage = dosage;
-    }
+    public int getDurationDays()                     { return durationDays; }
+    public void setDurationDays(int v)               { this.durationDays = v; }
 
-    public String getInstruction() {
-        return instruction;
-    }
+    /** Backward-compatible alias */
+    public int getDuration()                         { return durationDays; }
+    public void setDuration(int v)                   { this.durationDays = v; }
 
-    public void setInstruction(String instruction) {
-        this.instruction = instruction;
-    }
+    public double getUnitPrice()                     { return unitPrice; }
+    public void setUnitPrice(double v)               { this.unitPrice = v; }
 
-    public double getUnitPrice() {
-        return unitPrice;
-    }
-
-    public void setUnitPrice(double unitPrice) {
-        this.unitPrice = unitPrice;
-    }
-
+    /** GENERATED column — falls back to calculation if not loaded from DB */
     public double getLineTotal() {
-        return quantity * unitPrice;
+        return (lineTotal > 0) ? lineTotal : (double) quantity * unitPrice;
     }
+    public void setLineTotal(double v)               { this.lineTotal = v; }
 
-    public String getMedicineName() {
-        return medicineName;
-    }
+    /** Backward-compatible alias */
+    public double getTotalAmount()                   { return getLineTotal(); }
+    public void setTotalAmount(double v)             { this.lineTotal = v; }
 
-    public void setMedicineName(String medicineName) {
-        this.medicineName = medicineName;
-    }
+    // Transient
+    public String getMedicineName()                  { return medicineName; }
+    public void setMedicineName(String v)            { this.medicineName = v; }
 
-    public String getFrequency() {
-        return frequency;
-    }
-
-    public void setFrequency(String frequency) {
-        this.frequency = frequency;
-    }
-
-    public int getDuration() {
-        return duration;
-    }
-
-    public void setDuration(int duration) {
-        this.duration = duration;
-    }
-
-    public double getTotalAmount() {
-        return totalAmount;
-    }
-
-    public void setTotalAmount(double totalAmount) {
-        this.totalAmount = totalAmount;
-    }
-
-    public String getUnit() {
-        return unit;
-    }
-
-    public void setUnit(String unit) {
-        this.unit = unit;
-    }
+    public String getUnit()                          { return unit; }
+    public void setUnit(String v)                    { this.unit = v; }
 }

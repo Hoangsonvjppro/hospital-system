@@ -49,8 +49,8 @@ public class FollowUpDAO {
      */
     public long scheduleFollowUp(FollowUp followUp) {
         String sql = """
-            INSERT INTO FollowUp (patient_id, record_id, follow_up_date, reason, status, reminder_sent)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO FollowUp (patient_id, record_id, doctor_id, follow_up_date, reason, status, reminder_sent, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """;
         Connection conn = null;
         try {
@@ -58,10 +58,13 @@ public class FollowUpDAO {
             try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
                 ps.setLong(1, followUp.getPatientId());
                 ps.setLong(2, followUp.getRecordId());
-                ps.setDate(3, Date.valueOf(followUp.getFollowUpDate()));
-                ps.setString(4, followUp.getReason());
-                ps.setString(5, followUp.getStatus());
-                ps.setBoolean(6, followUp.isReminderSent());
+                if (followUp.getDoctorId() != null) ps.setLong(3, followUp.getDoctorId());
+                else ps.setNull(3, Types.BIGINT);
+                ps.setDate(4, Date.valueOf(followUp.getFollowUpDate()));
+                ps.setString(5, followUp.getReason());
+                ps.setString(6, followUp.getStatus());
+                ps.setBoolean(7, followUp.isReminderSent());
+                ps.setString(8, followUp.getFollowUpNotes());
                 ps.executeUpdate();
                 try (ResultSet rs = ps.getGeneratedKeys()) {
                     if (rs.next()) {
@@ -218,15 +221,15 @@ public class FollowUpDAO {
     // ═══════════════════════════════════════════════════════════
 
     private static final String BASE_SELECT = """
-        SELECT f.follow_up_id, f.patient_id, f.record_id, f.follow_up_date,
-               f.reason, f.status, f.reminder_sent, f.created_at, f.updated_at,
+        SELECT f.follow_up_id, f.patient_id, f.record_id, f.doctor_id, f.follow_up_date,
+               f.reason, f.status, f.reminder_sent, f.notes, f.created_at, f.updated_at,
                p.full_name AS patient_name, p.phone AS patient_phone,
                u.full_name AS doctor_name,
                mr.diagnosis
         FROM FollowUp f
         JOIN Patient p ON f.patient_id = p.patient_id
         LEFT JOIN MedicalRecord mr ON f.record_id = mr.record_id
-        LEFT JOIN Doctor d ON mr.doctor_id = d.doctor_id
+        LEFT JOIN Doctor d ON f.doctor_id = d.doctor_id
         LEFT JOIN `User` u ON d.user_id = u.user_id
         """;
 
@@ -255,11 +258,14 @@ public class FollowUpDAO {
         f.setId(rs.getInt("follow_up_id"));
         f.setPatientId(rs.getLong("patient_id"));
         f.setRecordId(rs.getLong("record_id"));
+        long doctorId = rs.getLong("doctor_id");
+        f.setDoctorId(rs.wasNull() ? null : doctorId);
         Date d = rs.getDate("follow_up_date");
         if (d != null) f.setFollowUpDate(d.toLocalDate());
         f.setReason(rs.getString("reason"));
         f.setStatus(rs.getString("status"));
         f.setReminderSent(rs.getBoolean("reminder_sent"));
+        f.setFollowUpNotes(rs.getString("notes"));
         Timestamp createdAt = rs.getTimestamp("created_at");
         if (createdAt != null) f.setCreatedAt(createdAt.toLocalDateTime());
         try { f.setPatientName(rs.getString("patient_name")); } catch (SQLException ignored) {}

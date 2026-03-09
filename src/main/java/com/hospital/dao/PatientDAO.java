@@ -193,8 +193,8 @@ public class PatientDAO implements BaseDAO<Patient> {
 
         String sql = """
                 INSERT INTO Patient
-                (full_name, gender, date_of_birth, phone, address, id_card, allergy_note, patient_type, is_active)
-                VALUES (?,?,?,?,?,?,?,?,?)
+                (full_name, gender, date_of_birth, phone, address, id_card, avatar_url, is_active)
+                VALUES (?,?,?,?,?,?,?,?)
                 """;
         Connection conn = null;
         try {
@@ -214,16 +214,10 @@ public class PatientDAO implements BaseDAO<Patient> {
                 ps.setString(4, entity.getPhone());
                 ps.setString(5, entity.getAddress());
                 // CCCD (id_card)
-                if (entity.getCccd() != null) ps.setString(6, entity.getCccd()); else ps.setNull(6, Types.VARCHAR);
-                // allergy note
-                if (entity.getAllergyHistory() != null) ps.setString(7, entity.getAllergyHistory()); else ps.setNull(7, Types.VARCHAR);
-                // patient_type
-                if (entity.getPatientType() != null) {
-                    ps.setString(8, entity.getPatientType().name());
-                } else {
-                    ps.setString(8, "FIRST_VISIT");
-                }
-                ps.setBoolean(9, entity.isActive());
+                if (entity.getIdCard() != null) ps.setString(6, entity.getIdCard()); else ps.setNull(6, Types.VARCHAR);
+                // avatar_url
+                if (entity.getAvatarUrl() != null) ps.setString(7, entity.getAvatarUrl()); else ps.setNull(7, Types.VARCHAR);
+                ps.setBoolean(8, entity.isActive());
 
                 int rows = ps.executeUpdate();
                 if (rows > 0) {
@@ -253,8 +247,7 @@ public class PatientDAO implements BaseDAO<Patient> {
                     phone=?,
                     address=?,
                     id_card=?,
-                    allergy_note=?,
-                    patient_type=?,
+                    avatar_url=?,
                     is_active=?
                 WHERE patient_id=?
                 """;
@@ -276,17 +269,11 @@ public class PatientDAO implements BaseDAO<Patient> {
                 ps.setString(4, entity.getPhone());
                 ps.setString(5, entity.getAddress());
                 // id_card
-                if (entity.getCccd() != null) ps.setString(6, entity.getCccd()); else ps.setNull(6, Types.VARCHAR);
-                // allergy_note
-                if (entity.getAllergyHistory() != null) ps.setString(7, entity.getAllergyHistory()); else ps.setNull(7, Types.VARCHAR);
-                // patient_type
-                if (entity.getPatientType() != null) {
-                    ps.setString(8, entity.getPatientType().name());
-                } else {
-                    ps.setString(8, "FIRST_VISIT");
-                }
-                ps.setBoolean(9, entity.isActive());
-                ps.setInt(10, entity.getId());
+                if (entity.getIdCard() != null) ps.setString(6, entity.getIdCard()); else ps.setNull(6, Types.VARCHAR);
+                // avatar_url
+                if (entity.getAvatarUrl() != null) ps.setString(7, entity.getAvatarUrl()); else ps.setNull(7, Types.VARCHAR);
+                ps.setBoolean(8, entity.isActive());
+                ps.setInt(9, entity.getId());
                 return ps.executeUpdate() > 0;
             }
         } catch (SQLException e) {
@@ -459,34 +446,9 @@ public class PatientDAO implements BaseDAO<Patient> {
             p.setUpdatedAt(rs.getTimestamp("updated_at").toLocalDateTime());
         }
 
-        // Optional columns — không bắt buộc tồn tại trong mọi schema
-        try {
-            rs.findColumn("id_card");
-            p.setCccd(rs.getString("id_card"));
-        } catch (SQLException ignored) {}
-
-        try {
-            try {
-                rs.findColumn("allergy_note");
-                p.setAllergyHistory(rs.getString("allergy_note"));
-            } catch (SQLException ex) {
-                rs.findColumn("allergy_history");
-                p.setAllergyHistory(rs.getString("allergy_history"));
-            }
-        } catch (SQLException ignored) {}
-
-        try {
-            rs.findColumn("notes");
-            p.setNotes(rs.getString("notes"));
-        } catch (SQLException ignored) {}
-
-        // patient_type
-        try {
-            String ptStr = rs.getString("patient_type");
-            if (ptStr != null) {
-                p.setPatientType(Patient.PatientType.valueOf(ptStr));
-            }
-        } catch (SQLException | IllegalArgumentException ignored) {}
+        // Optional columns
+        try { p.setIdCard(rs.getString("id_card")); } catch (SQLException ignored) {}
+        try { p.setAvatarUrl(rs.getString("avatar_url")); } catch (SQLException ignored) {}
 
         return p;
     }

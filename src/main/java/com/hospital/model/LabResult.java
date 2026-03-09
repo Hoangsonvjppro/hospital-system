@@ -13,6 +13,8 @@ public class LabResult extends BaseModel {
     private String resultValue;
     private String normalRange;
     private String unit;
+    private String resultText;       // Nhận xét / kết luận tự do
+    private Long performedBy;        // FK → User.user_id
     private LocalDateTime testDate;
     private String notes;
 
@@ -49,6 +51,12 @@ public class LabResult extends BaseModel {
 
     public LocalDateTime getTestDate()            { return testDate; }
     public void setTestDate(LocalDateTime v)      { this.testDate = v; }
+
+    public String getResultText()                 { return resultText; }
+    public void setResultText(String v)            { this.resultText = v; }
+
+    public Long getPerformedBy()                  { return performedBy; }
+    public void setPerformedBy(Long v)            { this.performedBy = v; }
 
     public String getNotes()                      { return notes; }
     public void setNotes(String v)                { this.notes = v; }

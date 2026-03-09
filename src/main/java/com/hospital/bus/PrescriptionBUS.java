@@ -2,6 +2,7 @@ package com.hospital.bus;
 
 import com.hospital.config.DatabaseConfig;
 import com.hospital.dao.DrugInteractionDAO;
+import com.hospital.dao.MedicineBatchDAO;
 import com.hospital.dao.MedicineDAO;
 import com.hospital.dao.PrescriptionDAO;
 import com.hospital.exception.BusinessException;
@@ -25,6 +26,7 @@ public class PrescriptionBUS {
 
     private final PrescriptionDAO prescriptionDAO = new PrescriptionDAO();
     private final MedicineDAO medicineDAO = new MedicineDAO();
+    private final MedicineBatchDAO batchDAO = new MedicineBatchDAO();
     private final DrugInteractionDAO interactionDAO = new DrugInteractionDAO();
 
     /**
@@ -44,20 +46,25 @@ public class PrescriptionBUS {
             if (d.getQuantity() <= 0) {
                 throw new BusinessException("Số lượng thuốc phải > 0");
             }
-            Medicine med = medicineDAO.findById(d.getMedicineId());
+            Medicine med = medicineDAO.findById((int) d.getMedicineId());
             if (med == null) {
                 throw new BusinessException("Không tìm thấy thuốc ID=" + d.getMedicineId());
             }
-            // Auto-fill unit_price from Medicine sell_price if not set
+            // Auto-fill unit_price from available batch sell_price if not set
             if (d.getUnitPrice() <= 0) {
-                d.setUnitPrice(med.getSellPrice());
+                var batches = batchDAO.findAvailableFEFO(d.getMedicineId());
+                if (!batches.isEmpty()) {
+                    d.setUnitPrice(batches.get(0).getSellPrice());
+                }
             }
             d.setMedicineName(med.getMedicineName());
 
-            // Check stock
-            if (med.getStockQty() < d.getQuantity()) {
+            // Check total available stock across batches
+            var availableBatches = batchDAO.findAvailableFEFO(d.getMedicineId());
+            int totalAvailable = availableBatches.stream().mapToInt(b -> b.getCurrentQty()).sum();
+            if (totalAvailable < d.getQuantity()) {
                 stockWarnings.add(String.format("- %s: Cần %d, Tồn kho %d",
-                        med.getMedicineName(), d.getQuantity(), med.getStockQty()));
+                        med.getMedicineName(), d.getQuantity(), totalAvailable));
             }
 
             totalAmount += d.getLineTotal();

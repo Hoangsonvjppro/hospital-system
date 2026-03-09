@@ -151,14 +151,11 @@ public class QueueBUS {
     /**
      * Đưa bệnh nhân vào hàng đợi khám (legacy — MedicalRecord).
      */
-    public long enqueue(long patientId, long doctorId, String examType) {
+    public long enqueue(long patientId, Long doctorId, String visitType) {
         if (patientId <= 0) {
             throw new BusinessException("Patient ID không hợp lệ");
         }
-        if (doctorId <= 0) {
-            throw new BusinessException("Doctor ID không hợp lệ");
-        }
-        return queueDAO.enqueue(patientId, doctorId, examType);
+        return queueDAO.enqueue(patientId, doctorId, visitType);
     }
 
     /**
@@ -182,9 +179,7 @@ public class QueueBUS {
                     // Set transient fields for display
                     p.setPatientCode(p.getPatientCode()); // BN00X format
                     p.setStatus(entry.getStatus() != null ? entry.getStatus().name() : "WAITING");
-                    p.setArrivalTime(entry.getCreatedAt() != null ? 
-                        entry.getCreatedAt().toLocalTime().toString() : "");
-                    p.setExamType("Khám tổng quát");
+                    // examType removed from Patient model
                     patients.add(p);
                 }
             } catch (Exception e) {

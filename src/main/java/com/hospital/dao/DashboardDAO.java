@@ -65,10 +65,10 @@ public class DashboardDAO {
     }
 
     /**
-     * Đếm số thuốc sắp hết hàng (tồn kho <= ngưỡng cảnh báo).
+     * Đếm số lô thuốc sắp hết hàng (tồn kho <= ngưỡng cảnh báo).
      */
     public int countLowStockMedicines() {
-        String sql = "SELECT COUNT(*) FROM Medicine WHERE stock_qty <= min_threshold AND is_active = TRUE";
+        String sql = "SELECT COUNT(*) FROM MedicineBatch WHERE current_qty > 0 AND current_qty <= min_threshold";
         return queryCount(sql);
     }
 
@@ -144,16 +144,17 @@ public class DashboardDAO {
     }
 
     /**
-     * Lấy danh sách thuốc sắp hết hàng (tồn ≤ ngưỡng).
+     * Lấy danh sách lô thuốc sắp hết hàng (tồn ≤ ngưỡng).
      *
-     * @return List of String[] { medicineName, stockQty, minThreshold }
+     * @return List of String[] { medicineName, currentQty, minThreshold }
      */
     public List<String[]> findLowStockMedicines() {
         String sql = """
-            SELECT medicine_name, stock_qty, min_threshold
-            FROM Medicine
-            WHERE stock_qty <= min_threshold AND is_active = TRUE
-            ORDER BY (stock_qty * 1.0 / GREATEST(min_threshold, 1)) ASC
+            SELECT m.medicine_name, mb.current_qty, mb.min_threshold
+            FROM MedicineBatch mb
+            JOIN Medicine m ON mb.medicine_id = m.medicine_id
+            WHERE mb.current_qty > 0 AND mb.current_qty <= mb.min_threshold
+            ORDER BY (mb.current_qty * 1.0 / GREATEST(mb.min_threshold, 1)) ASC
             LIMIT 10
         """;
         List<String[]> result = new ArrayList<>();
@@ -165,7 +166,7 @@ public class DashboardDAO {
                 while (rs.next()) {
                     result.add(new String[]{
                         rs.getString("medicine_name"),
-                        String.valueOf(rs.getInt("stock_qty")),
+                        String.valueOf(rs.getInt("current_qty")),
                         String.valueOf(rs.getInt("min_threshold"))
                     });
                 }
@@ -187,16 +188,13 @@ public class DashboardDAO {
     public List<String[]> findLongWaitingPatients(int thresholdMinutes) {
         String sql = """
             SELECT p.full_name,
-                   TIMESTAMPDIFF(MINUTE, mr.arrival_time,
-                       CONVERT(CURTIME(), TIME)) AS wait_mins
+                   TIMESTAMPDIFF(MINUTE, mr.created_at, NOW()) AS wait_mins
             FROM MedicalRecord mr
             JOIN Patient p ON mr.patient_id = p.patient_id
             WHERE mr.queue_status = 'WAITING'
               AND DATE(mr.visit_date) = CURDATE()
-              AND mr.arrival_time IS NOT NULL
-              AND TIMESTAMPDIFF(MINUTE, mr.arrival_time,
-                      CONVERT(CURTIME(), TIME)) >= ?
-            ORDER BY mr.arrival_time ASC
+              AND TIMESTAMPDIFF(MINUTE, mr.created_at, NOW()) >= ?
+            ORDER BY mr.created_at ASC
             LIMIT 10
         """;
         List<String[]> result = new ArrayList<>();

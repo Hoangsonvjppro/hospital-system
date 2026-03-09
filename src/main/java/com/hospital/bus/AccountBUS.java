@@ -2,7 +2,6 @@ package com.hospital.bus;
 
 import com.hospital.dao.AccountDAO;
 import com.hospital.model.Account;
-import org.mindrot.jbcrypt.BCrypt;
 
 import java.util.logging.Logger;
 
@@ -14,7 +13,7 @@ import java.util.logging.Logger;
  * - Kế thừa BaseBUS để có sẵn CRUD (findById, findAll, update, delete).
  * - Dùng AccountDAO (cast từ parent) để gọi các method đặc biệt
  *   như findByUsername(), existsByUsername().
- * - BCrypt hash/verify password được thực hiện ở đây, KHÔNG ở DAO.
+ * - Mật khẩu được lưu và so sánh dạng plaintext (không hash).
  */
 public class AccountBUS extends BaseBUS<Account> {
 
@@ -56,7 +55,7 @@ public class AccountBUS extends BaseBUS<Account> {
     /**
      * Xác thực đăng nhập.
      *
-     * Flow: DAO lấy Account theo username → BUS so sánh BCrypt hash.
+     * Flow: DAO lấy Account theo username → BUS so sánh mật khẩu plaintext.
      *
      * @param username tên đăng nhập
      * @param password mật khẩu (plaintext) người dùng nhập
@@ -80,8 +79,8 @@ public class AccountBUS extends BaseBUS<Account> {
             return null;
         }
 
-        // So sánh BCrypt hash ở tầng BUS
-        if (!BCrypt.checkpw(password, account.getPasswordHash())) {
+        // So sánh mật khẩu plaintext
+        if (!password.equals(account.getPassword())) {
             LOGGER.warning("Mật khẩu không chính xác!");
             return null;
         }
@@ -113,9 +112,8 @@ public class AccountBUS extends BaseBUS<Account> {
             throw new com.hospital.exception.BusinessException("Mật khẩu không đủ mạnh! Yêu cầu ít nhất 8 ký tự, gồm chữ hoa, chữ thường và số.");
         }
 
-        // 4. Hash mật khẩu bằng BCrypt rồi gán vào entity
-        String hashedPassword = BCrypt.hashpw(password, BCrypt.gensalt(10));
-        account.setPasswordHash(hashedPassword);
+        // 4. Gán mật khẩu plaintext vào entity
+        account.setPassword(password);
 
         // 5. Gọi DAO insert
         return accountDAO.insert(account);
@@ -157,8 +155,7 @@ public class AccountBUS extends BaseBUS<Account> {
     public boolean resetPassword(int accountId) {
         Account acc = accountDAO.findById(accountId);
         if (acc == null) throw new com.hospital.exception.BusinessException("Không tìm thấy tài khoản");
-        String hash = BCrypt.hashpw("password", BCrypt.gensalt(10));
-        acc.setPasswordHash(hash);
+        acc.setPassword("password");
         return accountDAO.update(acc);
     }
 
@@ -171,8 +168,7 @@ public class AccountBUS extends BaseBUS<Account> {
         }
         Account acc = accountDAO.findById(accountId);
         if (acc == null) throw new com.hospital.exception.BusinessException("Không tìm thấy tài khoản");
-        String hash = BCrypt.hashpw(newPassword, BCrypt.gensalt(10));
-        acc.setPasswordHash(hash);
+        acc.setPassword(newPassword);
         return accountDAO.update(acc);
     }
 }

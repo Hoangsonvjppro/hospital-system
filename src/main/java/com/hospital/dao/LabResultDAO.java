@@ -50,6 +50,9 @@ public class LabResultDAO {
         r.setResultValue(rs.getString("result_value"));
         r.setNormalRange(rs.getString("normal_range"));
         r.setUnit(rs.getString("unit"));
+        r.setResultText(rs.getString("result_text"));
+        long performedBy = rs.getLong("performed_by");
+        r.setPerformedBy(rs.wasNull() ? null : performedBy);
         Timestamp ts = rs.getTimestamp("test_date");
         if (ts != null) r.setTestDate(ts.toLocalDateTime());
         r.setNotes(rs.getString("notes"));
@@ -150,8 +153,8 @@ public class LabResultDAO {
     public boolean insert(LabResult r) {
         String sql = """
                 INSERT INTO LabResult (record_id, service_order_id, test_name,
-                    result_value, normal_range, unit, test_date, notes)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    result_value, normal_range, unit, result_text, performed_by, test_date, notes)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """;
         Connection conn = null;
         try {
@@ -167,8 +170,11 @@ public class LabResultDAO {
                 ps.setString(4, r.getResultValue());
                 ps.setString(5, r.getNormalRange());
                 ps.setString(6, r.getUnit());
-                ps.setTimestamp(7, Timestamp.valueOf(r.getTestDate()));
-                ps.setString(8, r.getNotes());
+                ps.setString(7, r.getResultText());
+                if (r.getPerformedBy() != null) ps.setLong(8, r.getPerformedBy());
+                else ps.setNull(8, Types.BIGINT);
+                ps.setTimestamp(9, Timestamp.valueOf(r.getTestDate()));
+                ps.setString(10, r.getNotes());
 
                 int rows = ps.executeUpdate();
                 if (rows > 0) {
@@ -190,7 +196,8 @@ public class LabResultDAO {
     public boolean update(LabResult r) {
         String sql = """
                 UPDATE LabResult SET record_id = ?, service_order_id = ?, test_name = ?,
-                    result_value = ?, normal_range = ?, unit = ?, test_date = ?, notes = ?
+                    result_value = ?, normal_range = ?, unit = ?, result_text = ?,
+                    performed_by = ?, test_date = ?, notes = ?
                 WHERE lab_result_id = ?
                 """;
         Connection conn = null;
@@ -207,9 +214,12 @@ public class LabResultDAO {
                 ps.setString(4, r.getResultValue());
                 ps.setString(5, r.getNormalRange());
                 ps.setString(6, r.getUnit());
-                ps.setTimestamp(7, Timestamp.valueOf(r.getTestDate()));
-                ps.setString(8, r.getNotes());
-                ps.setInt(9, r.getId());
+                ps.setString(7, r.getResultText());
+                if (r.getPerformedBy() != null) ps.setLong(8, r.getPerformedBy());
+                else ps.setNull(8, Types.BIGINT);
+                ps.setTimestamp(9, Timestamp.valueOf(r.getTestDate()));
+                ps.setString(10, r.getNotes());
+                ps.setInt(11, r.getId());
                 return ps.executeUpdate() > 0;
             }
         } catch (SQLException e) {

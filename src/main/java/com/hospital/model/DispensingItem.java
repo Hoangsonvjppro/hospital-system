@@ -20,10 +20,11 @@ public class DispensingItem extends BaseModel {
     private int dispensedQuantity;
     private BigDecimal unitPrice;
     private BigDecimal subtotal;     // GENERATED column — read-only từ DB
-    private String batchNumber;
+    private Long batchId;            // FK → MedicineBatch
     private String notes;
 
     // Transient — for display
+    private String batchNumber;      // Mã lô (from JOIN)
     private int stockQty;            // Tồn kho hiện tại
     private String unit;             // Đơn vị tính
 
@@ -84,6 +85,9 @@ public class DispensingItem extends BaseModel {
 
     public BigDecimal getSubtotal()                     { return subtotal; }
     public void setSubtotal(BigDecimal v)               { this.subtotal = v; }
+
+    public Long getBatchId()                             { return batchId; }
+    public void setBatchId(Long v)                      { this.batchId = v; }
 
     public String getBatchNumber()                      { return batchNumber; }
     public void setBatchNumber(String v)                { this.batchNumber = v; }

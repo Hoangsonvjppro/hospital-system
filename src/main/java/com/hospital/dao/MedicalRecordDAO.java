@@ -42,15 +42,15 @@ public class MedicalRecordDAO {
     // ── Tạo bệnh án trống và trả về record_id ──────────────────────────────
     public long createEmptyRecord(long patientId, long doctorId, Long appointmentId) {
         // Delegate to the new overload with defaults (no priority, no queue number)
-        return createEmptyRecord(patientId, doctorId, appointmentId, null, null, null, null);
+        return createEmptyRecord(patientId, (Long) doctorId, appointmentId, null, null, null);
     }
 
     /**
-     * Tạo bệnh án với khả năng lưu priority / queue_number / arrival_time / exam_type.
+     * Tạo bệnh án với khả năng lưu priority / queue_number / visit_type.
      */
-    public long createEmptyRecord(long patientId, long doctorId, Long appointmentId,
+    public long createEmptyRecord(long patientId, Long doctorId, Long appointmentId,
                                   String priority, Integer queueNumber,
-                                  Time arrivalTime, String examType) {
+                                  String visitType) {
 
         String sql = """
             INSERT INTO MedicalRecord (
@@ -58,11 +58,10 @@ public class MedicalRecordDAO {
                 doctor_id,
                 appointment_id,
                 visit_date,
+                visit_type,
                 priority,
-                queue_number,
-                arrival_time,
-                exam_type
-            ) VALUES (?, ?, ?, NOW(), ?, ?, ?, ?)
+                queue_number
+            ) VALUES (?, ?, ?, NOW(), ?, ?, ?)
         """;
 
         Connection conn = null;
@@ -70,7 +69,12 @@ public class MedicalRecordDAO {
             conn = getConnection();
             try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
                 ps.setLong(1, patientId);
-                ps.setLong(2, doctorId);
+
+                if (doctorId != null) {
+                    ps.setLong(2, doctorId);
+                } else {
+                    ps.setNull(2, Types.BIGINT);
+                }
 
                 if (appointmentId != null) {
                     ps.setLong(3, appointmentId);
@@ -78,28 +82,18 @@ public class MedicalRecordDAO {
                     ps.setNull(3, Types.BIGINT);
                 }
 
+                ps.setString(4, visitType != null ? visitType : "FIRST_VISIT");
+
                 if (priority != null) {
-                    ps.setString(4, priority);
+                    ps.setString(5, priority);
                 } else {
-                    ps.setNull(4, Types.VARCHAR);
+                    ps.setNull(5, Types.VARCHAR);
                 }
 
                 if (queueNumber != null) {
-                    ps.setInt(5, queueNumber);
+                    ps.setInt(6, queueNumber);
                 } else {
-                    ps.setNull(5, Types.INTEGER);
-                }
-
-                if (arrivalTime != null) {
-                    ps.setTime(6, arrivalTime);
-                } else {
-                    ps.setNull(6, Types.TIME);
-                }
-
-                if (examType != null) {
-                    ps.setString(7, examType);
-                } else {
-                    ps.setNull(7, Types.VARCHAR);
+                    ps.setNull(6, Types.INTEGER);
                 }
 
                 int rows = ps.executeUpdate();
@@ -255,54 +249,25 @@ public class MedicalRecordDAO {
         com.hospital.model.MedicalRecord r = new com.hospital.model.MedicalRecord();
         r.setId(rs.getInt("record_id"));
         r.setPatientId(rs.getLong("patient_id"));
-        r.setDoctorId(rs.getLong("doctor_id"));
+        r.setDoctorId(rs.getObject("doctor_id") == null ? null : rs.getLong("doctor_id"));
         r.setAppointmentId(rs.getObject("appointment_id") == null ? null : rs.getLong("appointment_id"));
         if (rs.getTimestamp("visit_date") != null) r.setVisitDate(rs.getTimestamp("visit_date").toLocalDateTime());
+        try { r.setVisitType(rs.getString("visit_type")); } catch (SQLException ignored) {}
         r.setSymptoms(rs.getString("symptoms"));
         r.setDiagnosis(rs.getString("diagnosis"));
-        r.setWeight(rs.getDouble("weight"));
-        r.setHeight(rs.getDouble("height"));
-        r.setBloodPressure(rs.getString("blood_pressure"));
-        r.setPulse(rs.getInt("heart_rate"));
-        try { r.setTemperature(rs.getDouble("temperature")); } catch (SQLException ignored) {}
-        try { r.setSpo2(rs.getInt("spo2")); } catch (SQLException ignored) {}
+        try { r.setWeight(rs.getObject("weight") == null ? null : rs.getDouble("weight")); } catch (SQLException ignored) {}
+        try { r.setHeight(rs.getObject("height") == null ? null : rs.getDouble("height")); } catch (SQLException ignored) {}
+        try { r.setBloodPressure(rs.getString("blood_pressure")); } catch (SQLException ignored) {}
+        try { r.setHeartRate(rs.getObject("heart_rate") == null ? null : rs.getInt("heart_rate")); } catch (SQLException ignored) {}
+        try { r.setTemperature(rs.getObject("temperature") == null ? null : rs.getDouble("temperature")); } catch (SQLException ignored) {}
+        try { r.setSpo2(rs.getObject("spo2") == null ? null : rs.getInt("spo2")); } catch (SQLException ignored) {}
         try { r.setDiagnosisCode(rs.getString("diagnosis_code")); } catch (SQLException ignored) {}
+        try { r.setReferralNote(rs.getString("referral_note")); } catch (SQLException ignored) {}
         try { r.setNotes(rs.getString("notes")); } catch (SQLException ignored) {}
-        r.setStatus(rs.getString("queue_status"));
+        r.setQueueStatus(rs.getString("queue_status"));
         try { r.setPriority(rs.getString("priority")); } catch (SQLException ignored) {}
         try { r.setQueueNumber(rs.getObject("queue_number") == null ? null : rs.getInt("queue_number")); } catch (SQLException ignored) {}
-        try { r.setExamTypeField(rs.getString("exam_type")); } catch (SQLException ignored) {}
-        try { java.sql.Time t = rs.getTime("arrival_time"); if (t != null) r.setArrivalTime(t.toLocalTime()); } catch (SQLException ignored) {}
-        try { java.sql.Date d = rs.getDate("follow_up_date"); if (d != null) r.setFollowUpDate(d.toLocalDate()); } catch (SQLException ignored) {}
         return r;
-    }
-
-    /**
-     * List follow-up records scheduled for today (optionally for a specific doctor).
-     */
-    public java.util.List<com.hospital.model.MedicalRecord> listFollowUpsToday(long doctorId) {
-        java.util.List<com.hospital.model.MedicalRecord> list = new java.util.ArrayList<>();
-        String sql = (doctorId > 0)
-                ? "SELECT * FROM MedicalRecord WHERE doctor_id = ? AND DATE(follow_up_date) = CURRENT_DATE ORDER BY follow_up_date ASC"
-                : "SELECT * FROM MedicalRecord WHERE DATE(follow_up_date) = CURRENT_DATE ORDER BY follow_up_date ASC";
-        Connection conn = null;
-        try {
-            conn = getConnection();
-            try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                if (doctorId > 0) ps.setLong(1, doctorId);
-                try (ResultSet rs = ps.executeQuery()) {
-                    while (rs.next()) {
-                        list.add(mapResultSet(rs));
-                    }
-                }
-            }
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Lỗi lấy danh sách tái khám hôm nay", e);
-            throw new DataAccessException("Lỗi lấy danh sách tái khám hôm nay", e);
-        } finally {
-            closeIfOwned(conn);
-        }
-        return list;
     }
 
     // ── Cập nhật chẩn đoán ──────────────────────────────────────────────────
@@ -436,16 +401,16 @@ public class MedicalRecordDAO {
      */
     public boolean updateFullExamination(long recordId, String diagnosis, String symptoms,
                                           String diagnosisCode, String notes,
-                                          java.sql.Date followUpDate) {
+                                          String referralNote) {
         String sql = """
             UPDATE MedicalRecord
-               SET diagnosis      = ?,
-                   symptoms       = ?,
-                   diagnosis_code = ?,
-                   notes          = ?,
-                   follow_up_date = ?,
-                   updated_at     = NOW()
-             WHERE record_id      = ?
+               SET diagnosis       = ?,
+                   symptoms        = ?,
+                   diagnosis_code  = ?,
+                   notes           = ?,
+                   referral_note   = ?,
+                   updated_at      = NOW()
+             WHERE record_id       = ?
         """;
         Connection conn = null;
         try {
@@ -455,11 +420,7 @@ public class MedicalRecordDAO {
                 ps.setString(2, symptoms);
                 ps.setString(3, diagnosisCode);
                 ps.setString(4, notes);
-                if (followUpDate != null) {
-                    ps.setDate(5, followUpDate);
-                } else {
-                    ps.setNull(5, Types.DATE);
-                }
+                ps.setString(5, referralNote);
                 ps.setLong(6, recordId);
                 return ps.executeUpdate() > 0;
             }

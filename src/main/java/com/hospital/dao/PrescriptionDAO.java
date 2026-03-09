@@ -68,7 +68,7 @@ public class PrescriptionDAO {
             conn = getConnection();
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
                 ps.setLong(1, d.getPrescriptionId());
-                ps.setInt(2, d.getMedicineId());
+                ps.setLong(2, d.getMedicineId());
                 ps.setInt(3, d.getQuantity());
                 ps.setString(4, d.getDosage());
                 ps.setString(5, d.getInstruction());
@@ -88,7 +88,7 @@ public class PrescriptionDAO {
     public List<PrescriptionDetail> findDetailsByPrescriptionId(long prescriptionId) {
         List<PrescriptionDetail> result = new ArrayList<>();
         String sql = """
-            SELECT pd.*, m.medicine_name, m.unit, m.sell_price
+            SELECT pd.*, m.medicine_name, m.unit
             FROM PrescriptionDetail pd
             JOIN Medicine m ON pd.medicine_id = m.medicine_id
             WHERE pd.prescription_id = ?
@@ -103,7 +103,7 @@ public class PrescriptionDAO {
                         PrescriptionDetail d = new PrescriptionDetail();
                         d.setId(rs.getLong("detail_id"));
                         d.setPrescriptionId(rs.getLong("prescription_id"));
-                        d.setMedicineId(rs.getInt("medicine_id"));
+                        d.setMedicineId(rs.getLong("medicine_id"));
                         d.setQuantity(rs.getInt("quantity"));
                         d.setDosage(rs.getString("dosage"));
                         try { d.setInstruction(rs.getString("instruction")); } catch (SQLException ignored) {}

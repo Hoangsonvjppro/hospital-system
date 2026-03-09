@@ -7,8 +7,6 @@ import com.hospital.exception.DataAccessException;
 
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.sql.Time;
-import java.time.LocalTime;
 
 /**
  * Business logic layer cho benh an.
@@ -73,9 +71,8 @@ public class MedicalRecordBUS {
      * Nếu bệnh nhân đã có record hôm nay sẽ ném BusinessException.
      * Trả về recordId của MedicalRecord vừa tạo.
      */
-    public long enqueuePatient(long patientId, long doctorId, Long appointmentId, boolean isEmergency, String examType) {
+    public long enqueuePatient(long patientId, Long doctorId, Long appointmentId, boolean isEmergency, String visitType) {
         if (patientId <= 0) throw new BusinessException("Patient ID không hợp lệ");
-        if (doctorId <= 0) throw new BusinessException("Doctor ID không hợp lệ");
 
         try (Connection conn = DatabaseConfig.getInstance().getTransactionalConnection()) {
             MedicalRecordDAO txnRecordDAO = new MedicalRecordDAO(conn);
@@ -97,15 +94,13 @@ public class MedicalRecordBUS {
                 }
             }
 
-        // Xác định số thứ tự: đếm hiện tại +1
-        int nextQueue = txnRecordDAO.countQueueToday(doctorId) + 1;
+            // Xác định số thứ tự
+            long docIdForQueue = doctorId != null ? doctorId : 0;
+            int nextQueue = txnRecordDAO.countQueueToday(docIdForQueue) + 1;
 
-        // arrival time = now (store TIME of arrival when receptionist registers)
-        Time arrival = Time.valueOf(LocalTime.now());
-
-        // Tạo record trong transaction với priority, queue_number và arrival_time
-        long recordId = txnRecordDAO.createEmptyRecord(patientId, doctorId, appointmentId,
-            priority, nextQueue, arrival, examType);
+            // Tạo record trong transaction với priority, queue_number và visit_type
+            long recordId = txnRecordDAO.createEmptyRecord(patientId, doctorId, appointmentId,
+                priority, nextQueue, visitType != null ? visitType : "FIRST_VISIT");
 
             // Đặt trạng thái WAITING explicitly
             txnRecordDAO.updateStatus(recordId, com.hospital.model.MedicalRecord.STATUS_WAITING);
@@ -126,11 +121,11 @@ public class MedicalRecordBUS {
     }
 
     /**
-     * Get follow-up list scheduled for today (optionally for a doctor).
+     * Get follow-up list scheduled for today.
      */
-    public java.util.List<com.hospital.model.MedicalRecord> getFollowUpsToday(long doctorId) {
-        MedicalRecordDAO dao = new MedicalRecordDAO();
-        return dao.listFollowUpsToday(doctorId);
+    public java.util.List<com.hospital.model.FollowUp> getFollowUpsToday() {
+        com.hospital.bus.FollowUpBUS followUpBUS = new com.hospital.bus.FollowUpBUS();
+        return followUpBUS.getTodayFollowUps();
     }
 
     /**
@@ -224,20 +219,19 @@ public class MedicalRecordBUS {
     }
 
     /**
-     * Cập nhật toàn bộ thông tin khám bệnh (chẩn đoán, triệu chứng, mã ICD-10, ghi chú BS, ngày tái khám).
+     * Cập nhật toàn bộ thông tin khám bệnh (chẩn đoán, triệu chứng, mã ICD-10, ghi chú BS, ghi chú chuyển viện).
      */
     public boolean updateFullExamination(long recordId, String diagnosis, String symptoms,
                                           String diagnosisCode, String notes,
-                                          java.time.LocalDate followUpDate) {
+                                          String referralNote) {
         if (recordId <= 0) throw new BusinessException("Record ID không hợp lệ");
         if (diagnosis == null || diagnosis.trim().isEmpty()) throw new BusinessException("Chẩn đoán không được để trống");
         if (symptoms == null || symptoms.trim().isEmpty()) throw new BusinessException("Triệu chứng không được để trống");
 
-        java.sql.Date sqlDate = followUpDate != null ? java.sql.Date.valueOf(followUpDate) : null;
         return dao.updateFullExamination(recordId, diagnosis.trim(), symptoms.trim(),
                 diagnosisCode != null ? diagnosisCode.trim() : null,
                 notes != null ? notes.trim() : null,
-                sqlDate);
+                referralNote != null ? referralNote.trim() : null);
     }
 
     public boolean updateStatus(long recordId, String status) {

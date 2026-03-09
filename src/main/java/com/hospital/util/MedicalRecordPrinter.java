@@ -87,12 +87,9 @@ public class MedicalRecordPrinter {
             addInfoRow(patientTbl, "Ngày sinh:", patient.getDateOfBirth() != null ? patient.getDateOfBirth().format(DATE_FMT) : "—", fBold, fNormal);
             addInfoRow(patientTbl, "SĐT:", safe(patient.getPhone()), fBold, fNormal);
             addInfoRow(patientTbl, "Địa chỉ:", safe(patient.getAddress()), fBold, fNormal);
-            if (patient.getAllergyHistory() != null && !patient.getAllergyHistory().isEmpty()) {
-                addInfoRow(patientTbl, "Dị ứng:", patient.getAllergyHistory(), fBold, fNormal);
-            }
         }
 
-        Doctor doctor = new DoctorDAO().findById((int) record.getDoctorId());
+        Doctor doctor = record.getDoctorId() != null ? new DoctorDAO().findById(record.getDoctorId().intValue()) : null;
         addInfoRow(patientTbl, "Bác sĩ khám:", doctor != null ? doctor.getFullName() : "—", fBold, fNormal);
         addInfoRow(patientTbl, "Ngày khám:", record.getVisitDate() != null
                 ? record.getVisitDate().format(DATETIME_FMT) : "—", fBold, fNormal);
@@ -231,14 +228,7 @@ public class MedicalRecordPrinter {
             doc.add(pTotal);
         }
 
-        // ── 8. HẸN TÁI KHÁM ────────────────────────────────
-        if (record.getFollowUpDate() != null) {
-            doc.add(Chunk.NEWLINE);
-            Paragraph pFollowUp = new Paragraph(
-                    "📅 Hẹn tái khám: " + record.getFollowUpDate().format(DATE_FMT), fBold);
-            pFollowUp.setSpacingBefore(6);
-            doc.add(pFollowUp);
-        }
+        // ── 8. HẸN TÁI KHÁM (managed via FollowUp table now) ────────────────────────────────
 
         // ── 9. FOOTER ───────────────────────────────────────
         doc.add(Chunk.NEWLINE);

@@ -30,19 +30,20 @@ public class Invoice extends BaseModel {
     private LocalDateTime invoiceDate;
 
     private double examFee;        // Phí khám
+    private double serviceFee;     // Phí dịch vụ / xét nghiệm
     private double medicineFee;    // Tổng tiền thuốc
-    private double otherFee;       // Phí khác (xét nghiệm...)
+    private double otherFee;       // Phí khác
     private double discount;       // Giảm giá
     private double totalAmount;    // Tổng cộng
 
     private double paidAmount;     // Số tiền BN đưa
     private double changeAmount;   // Tiền thừa trả lại
 
-    private String status;         // PENDING, PAID, CANCELLED
+    private String status;         // PENDING, PAID, PARTIALLY_PAID, CANCELLED
     private String paymentMethod;  // CASH, TRANSFER, CARD
     private LocalDateTime paymentDate;
     private String notes;
-    private Long createdBy;
+    private Long cashierId;        // FK → User.user_id
 
     // ── Trường hiển thị (transient — từ JOIN / VIEW) ─────────
 
@@ -102,6 +103,7 @@ public class Invoice extends BaseModel {
         return switch (status) {
             case "PENDING"   -> "Chờ thanh toán";
             case "PAID"      -> "Đã thanh toán";
+            case "PARTIALLY_PAID" -> "Thanh toán một phần";
             case "CANCELLED" -> "Đã hủy";
             default          -> status;
         };
@@ -124,7 +126,7 @@ public class Invoice extends BaseModel {
      * Tính lại tổng tiền từ các thành phần.
      */
     public void recalculate() {
-        this.totalAmount = examFee + medicineFee + otherFee - discount;
+        this.totalAmount = examFee + serviceFee + medicineFee + otherFee - discount;
     }
 
     // ══════════════════════════════════════════════════════════
@@ -142,6 +144,9 @@ public class Invoice extends BaseModel {
 
     public double getExamFee()                     { return examFee; }
     public void setExamFee(double v)               { this.examFee = v; }
+
+    public double getServiceFee()                  { return serviceFee; }
+    public void setServiceFee(double v)            { this.serviceFee = v; }
 
     public double getMedicineFee()                 { return medicineFee; }
     public void setMedicineFee(double v)           { this.medicineFee = v; }
@@ -173,8 +178,12 @@ public class Invoice extends BaseModel {
     public String getNotes()                       { return notes; }
     public void setNotes(String v)                 { this.notes = v; }
 
-    public Long getCreatedBy()                     { return createdBy; }
-    public void setCreatedBy(Long v)               { this.createdBy = v; }
+    public Long getCashierId()                     { return cashierId; }
+    public void setCashierId(Long v)               { this.cashierId = v; }
+
+    /** Backward-compatible alias */
+    public Long getCreatedBy()                     { return cashierId; }
+    public void setCreatedBy(Long v)               { this.cashierId = v; }
 
     // ══════════════════════════════════════════════════════════
     //  GETTERS & SETTERS — Trường hiển thị (JOIN)

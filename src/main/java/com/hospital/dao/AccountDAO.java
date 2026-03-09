@@ -90,14 +90,14 @@ public class AccountDAO implements BaseDAO<Account> {
 
     @Override
     public boolean insert(Account account) {
-        String sql = "INSERT INTO `User` (username, password_hash, full_name, email, phone, role_id, is_active) "
+        String sql = "INSERT INTO `User` (username, password, full_name, email, phone, role_id, is_active) "
                    + "VALUES (?, ?, ?, ?, ?, ?, ?)";
         Connection conn = null;
         try {
             conn = getConnection();
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
                 ps.setString(1, account.getUsername());
-                ps.setString(2, account.getPasswordHash());
+                ps.setString(2, account.getPassword());
                 ps.setString(3, account.getFullName());
                 ps.setString(4, account.getEmail());
                 ps.setString(5, account.getPhone());
@@ -114,14 +114,14 @@ public class AccountDAO implements BaseDAO<Account> {
 
     @Override
     public boolean update(Account account) {
-        String sql = "UPDATE `User` SET username = ?, password_hash = ?, full_name = ?, "
+        String sql = "UPDATE `User` SET username = ?, password = ?, full_name = ?, "
                    + "email = ?, phone = ?, role_id = ?, is_active = ? WHERE user_id = ?";
         Connection conn = null;
         try {
             conn = getConnection();
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
                 ps.setString(1, account.getUsername());
-                ps.setString(2, account.getPasswordHash());
+                ps.setString(2, account.getPassword());
                 ps.setString(3, account.getFullName());
                 ps.setString(4, account.getEmail());
                 ps.setString(5, account.getPhone());
@@ -222,7 +222,7 @@ public class AccountDAO implements BaseDAO<Account> {
         Account account = new Account();
         account.setId(rs.getInt("user_id"));
         account.setUsername(rs.getString("username"));
-        account.setPasswordHash(rs.getString("password_hash"));
+        account.setPassword(rs.getString("password"));
         account.setFullName(rs.getString("full_name"));
         account.setEmail(rs.getString("email"));
         account.setPhone(rs.getString("phone"));

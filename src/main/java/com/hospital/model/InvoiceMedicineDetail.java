@@ -21,6 +21,7 @@ public class InvoiceMedicineDetail extends BaseModel {
     private long invoiceId;
     private long medicineId;
     private Long prescriptionDetailId;   // Nullable: FK → PrescriptionDetail
+    private Long batchId;                // FK → MedicineBatch
     private String medicineName;         // Snapshot tên thuốc
     private int quantity;
     private double unitPrice;            // Giá bán snapshot
@@ -61,6 +62,9 @@ public class InvoiceMedicineDetail extends BaseModel {
 
     public Long getPrescriptionDetailId()             { return prescriptionDetailId; }
     public void setPrescriptionDetailId(Long v)       { this.prescriptionDetailId = v; }
+
+    public Long getBatchId()                          { return batchId; }
+    public void setBatchId(Long v)                    { this.batchId = v; }
 
     public String getMedicineName()                   { return medicineName; }
     public void setMedicineName(String v)             { this.medicineName = v; }

@@ -60,14 +60,14 @@ public class QueueDAO {
                 Collections.nCopies(statuses.length, "?"));
         String sql = """
             SELECT p.patient_id, p.full_name, p.gender, p.date_of_birth,
-                   p.phone, p.address, p.user_id, p.is_active,
+                   p.phone, p.address, p.is_active,
                    p.created_at, p.updated_at,
-                   mr.queue_status, mr.exam_type, mr.arrival_time, mr.record_id
+                   mr.queue_status, mr.visit_type, mr.record_id
             FROM MedicalRecord mr
             JOIN Patient p ON mr.patient_id = p.patient_id
             WHERE mr.queue_status IN (%s)
               AND DATE(mr.visit_date) = CURDATE()
-            ORDER BY mr.arrival_time ASC
+            ORDER BY mr.created_at ASC
         """.formatted(placeholders);
 
         List<Patient> result = new ArrayList<>();
@@ -99,15 +99,15 @@ public class QueueDAO {
      * INSERT MedicalRecord với queue_status = 'WAITING'.
      *
      * @param patientId ID bệnh nhân
-     * @param doctorId  ID bác sĩ (có thể là bác sĩ mặc định)
-     * @param examType  Loại khám (vd: "Khám tổng quát")
+     * @param doctorId  ID bác sĩ (có thể null khi chưa gán)
+     * @param visitType Loại khám (FIRST_VISIT/REVISIT/EMERGENCY)
      * @return record_id của MedicalRecord vừa tạo
      */
-    public long enqueue(long patientId, long doctorId, String examType) {
+    public long enqueue(long patientId, Long doctorId, String visitType) {
         String sql = """
             INSERT INTO MedicalRecord
-                (patient_id, doctor_id, visit_date, queue_status, arrival_time, exam_type)
-            VALUES (?, ?, NOW(), 'WAITING', CURTIME(), ?)
+                (patient_id, doctor_id, visit_date, queue_status, visit_type)
+            VALUES (?, ?, NOW(), 'WAITING', ?)
         """;
 
         Connection conn = null;
@@ -115,8 +115,9 @@ public class QueueDAO {
             conn = getConnection();
             try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
                 ps.setLong(1, patientId);
-                ps.setLong(2, doctorId);
-                ps.setString(3, examType);
+                if (doctorId != null) ps.setLong(2, doctorId);
+                else ps.setNull(2, Types.BIGINT);
+                ps.setString(3, visitType != null ? visitType : "FIRST_VISIT");
 
                 ps.executeUpdate();
                 try (ResultSet keys = ps.getGeneratedKeys()) {
@@ -257,13 +258,8 @@ public class QueueDAO {
 
         // Queue workflow fields
         p.setStatus(rs.getString("queue_status"));
-        p.setExamType(rs.getString("exam_type"));
-
-        Time arrivalTime = rs.getTime("arrival_time");
-        if (arrivalTime != null) {
-            p.setArrivalTime(arrivalTime.toLocalTime()
-                    .format(java.time.format.DateTimeFormatter.ofPattern("HH:mm")));
-        }
+        // visit_type stored in status field for backward compat display
+        // p.setExamType removed — Patient no longer has examType
 
         p.setCurrentRecordId(rs.getLong("record_id"));
 

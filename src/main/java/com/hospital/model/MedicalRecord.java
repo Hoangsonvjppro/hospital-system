@@ -3,119 +3,141 @@ package com.hospital.model;
 import java.time.LocalDateTime;
 
 /**
- * Model bệnh án (Medical Record).
+ * Entity lượt khám — ánh xạ bảng MedicalRecord trong CSDL v4.
  */
 public class MedicalRecord extends BaseModel {
 
+    // ── Queue status constants ───────────────────────────────
+    public static final String STATUS_WAITING         = "WAITING";
+    public static final String STATUS_EXAMINING       = "EXAMINING";
+    public static final String STATUS_WAITING_LAB     = "WAITING_LAB";
+    public static final String STATUS_PRESCRIBING     = "PRESCRIBING";
+    public static final String STATUS_WAITING_PAYMENT = "WAITING_PAYMENT";
+    public static final String STATUS_COMPLETED       = "COMPLETED";
+    public static final String STATUS_TRANSFERRED     = "TRANSFERRED";
+    public static final String STATUS_CANCELLED       = "CANCELLED";
+
+    // ── DB fields ────────────────────────────────────────────
     private long patientId;
-    private long doctorId;
+    private Long doctorId;          // NULL khi lễ tân tiếp nhận, gán bác sĩ sau
     private Long appointmentId;
     private LocalDateTime visitDate;
+    private String visitType;       // FIRST_VISIT / REVISIT / EMERGENCY
 
-    // ── Thông tin khám ───────────────────────────────────────────────────────
-    private String symptoms;       // Triệu chứng
-    private String diagnosis;      // Chẩn đoán
+    // Hàng đợi
+    private Integer queueNumber;
+    private String priority;        // NORMAL / ELDERLY / EMERGENCY
+    private String queueStatus;     // WAITING, EXAMINING, WAITING_LAB, ...
 
-    // ── Sinh hiệu (Vital Signs) ─────────────────────────────────────────────
-    private double weight;         // Cân nặng (kg)
-    private double height;         // Chiều cao (cm)
-    private String bloodPressure;  // Huyết áp (vd: "120/80")
-    private int pulse;             // Mạch (bpm)
-    private double temperature;    // Nhiệt độ (°C)
-    private int spo2;              // SpO2 (%)
+    // Sinh hiệu
+    private String bloodPressure;
+    private Integer heartRate;      // schema: heart_rate (was pulse)
+    private Double temperature;
+    private Double weight;
+    private Double height;
+    private Integer spo2;
 
-    private String diagnosisCode;  // Mã ICD-10
-    private String notes;          // Doctor notes
+    // Chẩn đoán
+    private String symptoms;
+    private String diagnosis;
+    private String diagnosisCode;   // FK → Icd10Code.code
+    private String referralNote;
+    private String notes;
 
-    private String status;         // Editing / Completed / Transferred
+    // ── Transient (JOIN) ─────────────────────────────────────
+    private String patientName;
+    private String doctorName;
 
-    // Workflow statuses (mở rộng)
-    public static final String STATUS_WAITING     = "WAITING";
-    public static final String STATUS_IN_PROGRESS = "IN_PROGRESS"; // tương đương EXAMINING
-    public static final String STATUS_PRESCRIBED  = "PRESCRIBED";
-    public static final String STATUS_COMPLETED   = "COMPLETED";
-    public static final String STATUS_PAID        = "PAID";
+    // ── Constructors ─────────────────────────────────────────
 
-    // Queue/workflow fields — synced with DB columns: priority, queue_number, arrival_time, exam_type
-    // Used by QueueDAO, DoctorWorkstationPanel, ExaminationPanel, PatientPanel.
-    private String priority;       // NORMAL / ELDERLY / EMERGENCY — DB column: priority
-    private Integer queueNumber;   // Số thứ tự hôm nay — DB column: queue_number
-    private java.time.LocalTime arrivalTime; // Giờ đến — DB column: arrival_time
-    private String examTypeField;   // Loại khám (vd: "Kham tong quat") — DB column: exam_type
-    private java.time.LocalDate followUpDate; // Ngày hẹn tái khám — set by doctor on completion
+    public MedicalRecord() {
+        this.queueStatus = STATUS_WAITING;
+        this.visitType = "FIRST_VISIT";
+    }
 
-    public MedicalRecord() {}
-
-    public MedicalRecord(int id, long patientId, long doctorId, Long appointmentId) {
+    public MedicalRecord(int id, long patientId, Long doctorId, Long appointmentId) {
         super(id);
         this.patientId = patientId;
         this.doctorId = doctorId;
         this.appointmentId = appointmentId;
         this.visitDate = LocalDateTime.now();
-        this.status = STATUS_WAITING;
+        this.queueStatus = STATUS_WAITING;
+        this.visitType = "FIRST_VISIT";
     }
 
-    // ── Getters & Setters ────────────────────────────────────────────────────
+    // ── Getters & Setters ────────────────────────────────────
 
-    public long getPatientId()                { return patientId; }
-    public void setPatientId(long v)          { this.patientId = v; }
+    public long getPatientId()                    { return patientId; }
+    public void setPatientId(long v)              { this.patientId = v; }
 
-    public long getDoctorId()                 { return doctorId; }
-    public void setDoctorId(long v)           { this.doctorId = v; }
+    public Long getDoctorId()                     { return doctorId; }
+    public void setDoctorId(Long v)               { this.doctorId = v; }
 
-    public Long getAppointmentId()            { return appointmentId; }
-    public void setAppointmentId(Long v)      { this.appointmentId = v; }
+    public Long getAppointmentId()                { return appointmentId; }
+    public void setAppointmentId(Long v)          { this.appointmentId = v; }
 
-    public LocalDateTime getVisitDate()       { return visitDate; }
-    public void setVisitDate(LocalDateTime v) { this.visitDate = v; }
+    public LocalDateTime getVisitDate()           { return visitDate; }
+    public void setVisitDate(LocalDateTime v)     { this.visitDate = v; }
 
-    public String getSymptoms()               { return symptoms; }
-    public void setSymptoms(String v)         { this.symptoms = v; }
+    public String getVisitType()                  { return visitType; }
+    public void setVisitType(String v)            { this.visitType = v; }
 
-    public String getDiagnosis()              { return diagnosis; }
-    public void setDiagnosis(String v)        { this.diagnosis = v; }
+    public Integer getQueueNumber()               { return queueNumber; }
+    public void setQueueNumber(Integer v)         { this.queueNumber = v; }
 
-    public String getPriority()               { return priority; }
-    public void setPriority(String v)         { this.priority = v; }
+    public String getPriority()                   { return priority; }
+    public void setPriority(String v)             { this.priority = v; }
 
-    public Integer getQueueNumber()           { return queueNumber; }
-    public void setQueueNumber(Integer v)     { this.queueNumber = v; }
+    public String getQueueStatus()                { return queueStatus; }
+    public void setQueueStatus(String v)          { this.queueStatus = v; }
 
-    public java.time.LocalTime getArrivalTime() { return arrivalTime; }
-    public void setArrivalTime(java.time.LocalTime v) { this.arrivalTime = v; }
+    /** Backward-compatible alias: getStatus() → getQueueStatus() */
+    public String getStatus()                     { return queueStatus; }
+    public void setStatus(String v)               { this.queueStatus = v; }
 
-    public String getExamTypeField()          { return examTypeField; }
-    public void setExamTypeField(String v)    { this.examTypeField = v; }
+    public String getBloodPressure()              { return bloodPressure; }
+    public void setBloodPressure(String v)        { this.bloodPressure = v; }
 
-    public java.time.LocalDate getFollowUpDate() { return followUpDate; }
-    public void setFollowUpDate(java.time.LocalDate v) { this.followUpDate = v; }
+    public Integer getHeartRate()                 { return heartRate; }
+    public void setHeartRate(Integer v)           { this.heartRate = v; }
 
-    public double getWeight()                 { return weight; }
-    public void setWeight(double v)           { this.weight = v; }
+    /** Backward-compatible alias: getPulse() → getHeartRate() */
+    public int getPulse()                         { return heartRate != null ? heartRate : 0; }
+    public void setPulse(int v)                   { this.heartRate = v; }
 
-    public double getHeight()                 { return height; }
-    public void setHeight(double v)           { this.height = v; }
+    public Double getTemperature()                { return temperature; }
+    public void setTemperature(Double v)          { this.temperature = v; }
 
-    public String getBloodPressure()          { return bloodPressure; }
-    public void setBloodPressure(String v)    { this.bloodPressure = v; }
+    public Double getWeight()                     { return weight; }
+    public void setWeight(Double v)               { this.weight = v; }
 
-    public int getPulse()                     { return pulse; }
-    public void setPulse(int v)               { this.pulse = v; }
+    public Double getHeight()                     { return height; }
+    public void setHeight(Double v)               { this.height = v; }
 
-    public double getTemperature()            { return temperature; }
-    public void setTemperature(double v)      { this.temperature = v; }
+    public Integer getSpo2()                      { return spo2; }
+    public void setSpo2(Integer v)                { this.spo2 = v; }
 
-    public int getSpo2()                      { return spo2; }
-    public void setSpo2(int v)                { this.spo2 = v; }
+    public String getSymptoms()                   { return symptoms; }
+    public void setSymptoms(String v)             { this.symptoms = v; }
 
-    public String getDiagnosisCode()          { return diagnosisCode; }
-    public void setDiagnosisCode(String v)    { this.diagnosisCode = v; }
+    public String getDiagnosis()                  { return diagnosis; }
+    public void setDiagnosis(String v)            { this.diagnosis = v; }
 
-    public String getNotes()                  { return notes; }
-    public void setNotes(String v)            { this.notes = v; }
+    public String getDiagnosisCode()              { return diagnosisCode; }
+    public void setDiagnosisCode(String v)        { this.diagnosisCode = v; }
 
-    public String getStatus()                 { return status; }
-    public void setStatus(String v)           { this.status = v; }
+    public String getReferralNote()               { return referralNote; }
+    public void setReferralNote(String v)         { this.referralNote = v; }
+
+    public String getNotes()                      { return notes; }
+    public void setNotes(String v)                { this.notes = v; }
+
+    // Transient
+    public String getPatientName()                { return patientName; }
+    public void setPatientName(String v)          { this.patientName = v; }
+
+    public String getDoctorName()                 { return doctorName; }
+    public void setDoctorName(String v)           { this.doctorName = v; }
 
     @Override
     public String toString() {

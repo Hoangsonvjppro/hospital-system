@@ -50,7 +50,7 @@ public class DispensingDAO {
      * Tạo phiếu phát thuốc trong transaction:
      * 1. INSERT Dispensing record
      * 2. INSERT từng DispensingItem
-     * 3. UPDATE Medicine.stock_qty (trừ tồn kho)
+     * 3. UPDATE MedicineBatch.current_qty (trừ tồn kho theo lô)
      * 4. INSERT StockTransaction (audit trail)
      *
      * @return dispensing_id vừa tạo
@@ -62,21 +62,21 @@ public class DispensingDAO {
             """;
         String insertItem = """
             INSERT INTO DispensingItem (dispensing_id, prescription_detail_id, medicine_id,
-                                        medicine_name, requested_quantity, dispensed_quantity,
-                                        unit_price, batch_number)
+                                        batch_id, medicine_name, requested_quantity, dispensed_quantity,
+                                        unit_price)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """;
         String updateStock = """
-            UPDATE Medicine SET stock_qty = stock_qty - ?, updated_at = NOW()
-            WHERE medicine_id = ? AND stock_qty >= ?
+            UPDATE MedicineBatch SET current_qty = current_qty - ?
+            WHERE batch_id = ? AND current_qty >= ?
             """;
         String insertStockTx = """
-            INSERT INTO StockTransaction (medicine_id, transaction_type, quantity,
+            INSERT INTO StockTransaction (medicine_id, batch_id, transaction_type, quantity,
                                           stock_before, stock_after,
-                                          reference_type, reference_id, notes, created_by)
-            VALUES (?, 'EXPORT', ?, ?, ?, 'DISPENSING', ?, ?, ?)
+                                          reference_id, notes, created_by)
+            VALUES (?, ?, 'EXPORT_PRESCRIPTION', ?, ?, ?, ?, ?, ?)
             """;
-        String getStock = "SELECT stock_qty FROM Medicine WHERE medicine_id = ?";
+        String getStock = "SELECT current_qty FROM MedicineBatch WHERE batch_id = ?";
 
         Connection conn = null;
         try {
@@ -113,29 +113,30 @@ public class DispensingDAO {
                     ps.setLong(1, dispensingId);
                     ps.setLong(2, item.getPrescriptionDetailId());
                     ps.setLong(3, item.getMedicineId());
-                    ps.setString(4, item.getMedicineName());
-                    ps.setInt(5, item.getRequestedQuantity());
-                    ps.setInt(6, item.getDispensedQuantity());
-                    ps.setBigDecimal(7, item.getUnitPrice());
-                    ps.setString(8, item.getBatchNumber());
+                    if (item.getBatchId() != null) ps.setLong(4, item.getBatchId());
+                    else ps.setNull(4, Types.BIGINT);
+                    ps.setString(5, item.getMedicineName());
+                    ps.setInt(6, item.getRequestedQuantity());
+                    ps.setInt(7, item.getDispensedQuantity());
+                    ps.setBigDecimal(8, item.getUnitPrice());
                     ps.executeUpdate();
                 }
 
-                if (item.getDispensedQuantity() > 0) {
+                if (item.getDispensedQuantity() > 0 && item.getBatchId() != null) {
                     // Get current stock before update
                     int stockBefore;
                     try (PreparedStatement ps = conn.prepareStatement(getStock)) {
-                        ps.setLong(1, item.getMedicineId());
+                        ps.setLong(1, item.getBatchId());
                         try (ResultSet rs = ps.executeQuery()) {
-                            if (!rs.next()) throw new DataAccessException("Không tìm thấy thuốc ID=" + item.getMedicineId(), null);
-                            stockBefore = rs.getInt("stock_qty");
+                            if (!rs.next()) throw new DataAccessException("Không tìm thấy lô thuốc ID=" + item.getBatchId(), null);
+                            stockBefore = rs.getInt("current_qty");
                         }
                     }
 
-                    // Update stock
+                    // Update batch stock
                     try (PreparedStatement ps = conn.prepareStatement(updateStock)) {
                         ps.setInt(1, item.getDispensedQuantity());
-                        ps.setLong(2, item.getMedicineId());
+                        ps.setLong(2, item.getBatchId());
                         ps.setInt(3, item.getDispensedQuantity());
                         int affected = ps.executeUpdate();
                         if (affected == 0) {
@@ -148,15 +149,16 @@ public class DispensingDAO {
                     int stockAfter = stockBefore - item.getDispensedQuantity();
                     try (PreparedStatement ps = conn.prepareStatement(insertStockTx)) {
                         ps.setLong(1, item.getMedicineId());
-                        ps.setInt(2, -item.getDispensedQuantity()); // EXPORT → negative
-                        ps.setInt(3, stockBefore);
-                        ps.setInt(4, stockAfter);
-                        ps.setLong(5, dispensingId);
-                        ps.setString(6, "Phát thuốc đơn #" + d.getPrescriptionId());
+                        ps.setLong(2, item.getBatchId());
+                        ps.setInt(3, -item.getDispensedQuantity());
+                        ps.setInt(4, stockBefore);
+                        ps.setInt(5, stockAfter);
+                        ps.setLong(6, dispensingId);
+                        ps.setString(7, "Phát thuốc đơn #" + d.getPrescriptionId());
                         if (d.getDispensedBy() != null) {
-                            ps.setLong(7, d.getDispensedBy());
+                            ps.setLong(8, d.getDispensedBy());
                         } else {
-                            ps.setNull(7, Types.BIGINT);
+                            ps.setNull(8, Types.BIGINT);
                         }
                         ps.executeUpdate();
                     }
@@ -261,7 +263,7 @@ public class DispensingDAO {
      */
     public List<DispensingItem> getDispensingItems(long dispensingId) {
         String sql = """
-            SELECT di.*, m.stock_qty, m.unit
+            SELECT di.*, m.unit
             FROM DispensingItem di
             JOIN Medicine m ON di.medicine_id = m.medicine_id
             WHERE di.dispensing_id = ?
@@ -289,12 +291,16 @@ public class DispensingDAO {
     }
 
     /**
-     * Lấy danh sách thuốc cần phát cho một đơn (từ PrescriptionDetail + Medicine stock info).
+     * Lấy danh sách thuốc cần phát cho một đơn (từ PrescriptionDetail + MedicineBatch stock info).
      */
     public List<DispensingItem> getItemsForPrescription(long prescriptionId) {
         String sql = """
             SELECT pd.detail_id, pd.medicine_id, pd.quantity, pd.unit_price,
-                   m.medicine_name, m.stock_qty, m.unit, m.expiry_date, m.min_threshold
+                   m.medicine_name, m.unit,
+                   COALESCE((
+                       SELECT SUM(mb.current_qty) FROM MedicineBatch mb
+                       WHERE mb.medicine_id = pd.medicine_id AND mb.current_qty > 0 AND mb.expiry_date > CURDATE()
+                   ), 0) AS available_qty
             FROM PrescriptionDetail pd
             JOIN Medicine m ON pd.medicine_id = m.medicine_id
             WHERE pd.prescription_id = ?
@@ -316,12 +322,13 @@ public class DispensingDAO {
                         item.setDispensedQuantity(rs.getInt("quantity")); // default: phát đủ
                         BigDecimal price = rs.getBigDecimal("unit_price");
                         item.setUnitPrice(price != null ? price : BigDecimal.ZERO);
-                        item.setStockQty(rs.getInt("stock_qty"));
+                        int availableQty = rs.getInt("available_qty");
+                        item.setStockQty(availableQty);
                         item.setUnit(rs.getString("unit"));
 
                         // Tự điều chỉnh nếu tồn kho không đủ
-                        if (item.getStockQty() < item.getRequestedQuantity()) {
-                            item.setDispensedQuantity(item.getStockQty());
+                        if (availableQty < item.getRequestedQuantity()) {
+                            item.setDispensedQuantity(availableQty);
                         }
 
                         list.add(item);
@@ -396,13 +403,13 @@ public class DispensingDAO {
         item.setDispensingId(rs.getLong("dispensing_id"));
         item.setPrescriptionDetailId(rs.getLong("prescription_detail_id"));
         item.setMedicineId(rs.getLong("medicine_id"));
+        long batchId = rs.getLong("batch_id");
+        item.setBatchId(rs.wasNull() ? null : batchId);
         item.setMedicineName(rs.getString("medicine_name"));
         item.setRequestedQuantity(rs.getInt("requested_quantity"));
         item.setDispensedQuantity(rs.getInt("dispensed_quantity"));
         item.setUnitPrice(rs.getBigDecimal("unit_price"));
         item.setSubtotal(rs.getBigDecimal("subtotal"));
-        try { item.setBatchNumber(rs.getString("batch_number")); } catch (SQLException ignored) {}
-        try { item.setStockQty(rs.getInt("stock_qty")); } catch (SQLException ignored) {}
         try { item.setUnit(rs.getString("unit")); } catch (SQLException ignored) {}
         return item;
     }

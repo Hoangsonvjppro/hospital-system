@@ -108,25 +108,26 @@ public class MedicineDAO implements BaseDAO<Medicine> {
 
     @Override
     public boolean insert(Medicine entity) {
-        String sql = "INSERT INTO Medicine (medicine_name, unit, cost_price, sell_price, stock_qty, min_threshold, expiry_date, description, is_active) VALUES (?,?,?,?,?,?,?,?,?)";
+        String sql = "INSERT INTO Medicine (medicine_code, medicine_name, generic_name, unit, dosage_form, manufacturer, description, is_active) VALUES (?,?,?,?,?,?,?,?)";
         Connection conn = null;
         try {
             conn = getConnection();
-            try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                ps.setString(1, entity.getMedicineName());
-                ps.setString(2, entity.getUnit());
-                ps.setDouble(3, entity.getCostPrice());
-                ps.setDouble(4, entity.getSellPrice());
-                ps.setInt(5, entity.getStockQty());
-                ps.setInt(6, entity.getMinThreshold());
-                if (entity.getExpiryDate() != null) {
-                    ps.setDate(7, java.sql.Date.valueOf(entity.getExpiryDate()));
-                } else {
-                    ps.setNull(7, Types.DATE);
+            try (PreparedStatement ps = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+                ps.setString(1, entity.getMedicineCode());
+                ps.setString(2, entity.getMedicineName());
+                ps.setString(3, entity.getGenericName());
+                ps.setString(4, entity.getUnit());
+                ps.setString(5, entity.getDosageForm());
+                ps.setString(6, entity.getManufacturer());
+                ps.setString(7, entity.getDescription());
+                ps.setBoolean(8, entity.isActive());
+                int rows = ps.executeUpdate();
+                if (rows > 0) {
+                    try (ResultSet keys = ps.getGeneratedKeys()) {
+                        if (keys.next()) entity.setId(keys.getInt(1));
+                    }
+                    return true;
                 }
-                ps.setString(8, entity.getDescription());
-                ps.setBoolean(9, entity.isActive());
-                return ps.executeUpdate() > 0;
             }
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Không thể thêm thuốc", e);
@@ -134,29 +135,25 @@ public class MedicineDAO implements BaseDAO<Medicine> {
         } finally {
             closeIfOwned(conn);
         }
+        return false;
     }
 
     @Override
     public boolean update(Medicine entity) {
-        String sql = "UPDATE Medicine SET medicine_name=?, unit=?, cost_price=?, sell_price=?, stock_qty=?, min_threshold=?, expiry_date=?, description=?, is_active=? WHERE medicine_id=?";
+        String sql = "UPDATE Medicine SET medicine_code=?, medicine_name=?, generic_name=?, unit=?, dosage_form=?, manufacturer=?, description=?, is_active=? WHERE medicine_id=?";
         Connection conn = null;
         try {
             conn = getConnection();
             try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                ps.setString(1, entity.getMedicineName());
-                ps.setString(2, entity.getUnit());
-                ps.setDouble(3, entity.getCostPrice());
-                ps.setDouble(4, entity.getSellPrice());
-                ps.setInt(5, entity.getStockQty());
-                ps.setInt(6, entity.getMinThreshold());
-                if (entity.getExpiryDate() != null) {
-                    ps.setDate(7, java.sql.Date.valueOf(entity.getExpiryDate()));
-                } else {
-                    ps.setNull(7, Types.DATE);
-                }
-                ps.setString(8, entity.getDescription());
-                ps.setBoolean(9, entity.isActive());
-                ps.setInt(10, entity.getId());
+                ps.setString(1, entity.getMedicineCode());
+                ps.setString(2, entity.getMedicineName());
+                ps.setString(3, entity.getGenericName());
+                ps.setString(4, entity.getUnit());
+                ps.setString(5, entity.getDosageForm());
+                ps.setString(6, entity.getManufacturer());
+                ps.setString(7, entity.getDescription());
+                ps.setBoolean(8, entity.isActive());
+                ps.setInt(9, entity.getId());
                 return ps.executeUpdate() > 0;
             }
         } catch (SQLException e) {
@@ -184,101 +181,35 @@ public class MedicineDAO implements BaseDAO<Medicine> {
             closeIfOwned(conn);
         }
     }
-    public List<Medicine> getLowStockMedicines(){
-        List<Medicine> arr=new ArrayList<>();
-        String sql="Select * from Medicine where is_active=true and stock_qty<=min_threshold";
-        Connection conn=null;
-        try {
-            conn=getConnection();
-            try(Statement stm=conn.createStatement()) {
-                ResultSet rs=stm.executeQuery(sql);
-                while(rs.next()){
-                    arr.add(mapResultSet(rs));
-                }
-            }
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Lỗi truy vấn thuốc", e);
-            throw new DataAccessException("Lỗi truy vấn thuốc",e);
-        }finally {
-            closeIfOwned(conn);
-        }
-        return arr;
+
+    private Medicine mapResultSet(ResultSet rs) throws SQLException {
+        Medicine thuoc = new Medicine();
+        thuoc.setId(rs.getInt("medicine_id"));
+        thuoc.setMedicineCode(rs.getString("medicine_code"));
+        thuoc.setMedicineName(rs.getString("medicine_name"));
+        try { thuoc.setGenericName(rs.getString("generic_name")); } catch (SQLException ignored) {}
+        thuoc.setUnit(rs.getString("unit"));
+        try { thuoc.setDosageForm(rs.getString("dosage_form")); } catch (SQLException ignored) {}
+        try { thuoc.setManufacturer(rs.getString("manufacturer")); } catch (SQLException ignored) {}
+        try { thuoc.setDescription(rs.getString("description")); } catch (SQLException ignored) {}
+        thuoc.setActive(rs.getBoolean("is_active"));
+        return thuoc;
     }
-    public List<Medicine> getExpiryDateMedicines(){
-        List<Medicine> arr=new ArrayList<>();
-        String sql="Select * from Medicine where is_active=true and expiry_date is not null " +
-                "and expiry_date between curdate() and date_add(curdate(),interval 30 day)";
-        Connection con=null;
-        try {
-            con=getConnection();
-            try(Statement stm=con.createStatement()) {
-                ResultSet rs= stm.executeQuery(sql);
-                while (rs.next()){
-                    arr.add(mapResultSet(rs));
-                }
-            }
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Lỗi truy vấn thuốc", e);
-            throw new DataAccessException("Lỗi truy vấn thuốc",e);
-        }finally {
-            closeIfOwned(con);
-        }
-        return arr;
-    }
-    //nhập kho bằng Transaction
-    public boolean importMedicineStock(int medicineId, int importQty, int userId, String notes) throws Exception {
-        Connection conn = null;
-        try {
-            conn = DatabaseConfig.getInstance().getConnection();
-            conn.setAutoCommit(false); // Bắt đầu Transaction
-            String checkStockSql = "select stock_qty FROM Medicine where medicine_id = ? for update";
-            int stockBefore = 0;
-            try (PreparedStatement psCheck = conn.prepareStatement(checkStockSql)) {
-                psCheck.setInt(1, medicineId);
-                try (ResultSet rs = psCheck.executeQuery()) {
-                    if (rs.next()) stockBefore = rs.getInt("stock_qty");
-                    else throw new Exception("Không tìm thấy thuốc!");
-                }
-            }
-            int stockAfter = stockBefore + importQty;
-            String updateSQL = "update Medicine set stock_qty = ? where medicine_id = ?";
-            try (PreparedStatement psUpdate = conn.prepareStatement(updateSQL)) {
-                psUpdate.setInt(1, stockAfter);
-                psUpdate.setInt(2, medicineId);
-                psUpdate.executeUpdate();
-            }
-            String sql = "insert into StockTransaction " +
-                    "(medicine_id, transaction_type, quantity, stock_before, stock_after, reference_type, notes, created_by) " +
-                    "values (?, 'IMPORT', ?, ?, ?, 'MANUAL_IMPORT', ?, ?)";
-            try (PreparedStatement psTrans = conn.prepareStatement(sql)) {
-                psTrans.setInt(1, medicineId);
-                psTrans.setInt(2, importQty); // Nhập kho -> quantity dương
-                psTrans.setInt(3, stockBefore);
-                psTrans.setInt(4, stockAfter);
-                psTrans.setString(5, notes);
-                psTrans.setInt(6, userId);
-                psTrans.executeUpdate();
-            }
-            conn.commit();
-            return true;
-        } catch (SQLException e) {
-            if (conn != null) try { conn.rollback(); } catch (SQLException ignored) {}
-            throw new DataAccessException("Lỗi Database khi nhập kho: " + e.getMessage(), e);
-        } finally {
-            if (conn != null) {
-                try { conn.setAutoCommit(true); conn.close(); } catch (SQLException ignored) {}
-            }
-        }
-    }
-    //Top thuốc xuất
+
+    /**
+     * Top thuốc xuất kho (theo StockTransaction).
+     */
     public List<Object[]> getTopExportedMedicines() {
         List<Object[]> list = new ArrayList<>();
-        String sql = "select m.medicine_name, sum(abs(s.quantity)) as total_exported " +
-                "from StockTransaction s JOIN Medicine m ON s.medicine_id = m.medicine_id " +
-                "where s.transaction_type = 'EXPORT' " +
-                "group by s.medicine_id, m.medicine_name " +
-                "order by total_exported desc limit 10";
-
+        String sql = """
+                SELECT m.medicine_name, SUM(s.quantity) AS total_exported
+                  FROM StockTransaction s
+                  JOIN Medicine m ON s.medicine_id = m.medicine_id
+                 WHERE s.transaction_type = 'EXPORT_PRESCRIPTION'
+                 GROUP BY s.medicine_id, m.medicine_name
+                 ORDER BY total_exported DESC
+                 LIMIT 10
+                """;
         try (Connection conn = DatabaseConfig.getInstance().getConnection();
              PreparedStatement ps = conn.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
@@ -289,48 +220,5 @@ public class MedicineDAO implements BaseDAO<Medicine> {
             throw new DataAccessException("Lỗi truy vấn top thuốc xuất", e);
         }
         return list;
-    }
-
-    private Medicine mapResultSet(ResultSet rs) throws SQLException {
-        Medicine thuoc = new Medicine();
-        thuoc.setId(rs.getInt("medicine_id"));
-        thuoc.setMedicineCode(rs.getString("medicine_code"));
-        thuoc.setMedicineName(rs.getString("medicine_name"));
-        try { thuoc.setGenericName(rs.getString("generic_name")); } catch (SQLException ignored) {}
-        thuoc.setUnit(rs.getString("unit"));
-        try { thuoc.setDosageForm(rs.getString("dosage_form")); } catch (SQLException ignored) {}
-        thuoc.setCostPrice(rs.getDouble("cost_price"));
-        thuoc.setSellPrice(rs.getDouble("sell_price"));
-        thuoc.setStockQty(rs.getInt("stock_qty"));
-        thuoc.setMinThreshold(rs.getInt("min_threshold"));
-        thuoc.setManufacturer(rs.getString("manufacturer"));
-        if (rs.getDate("expiry_date") != null) {
-            thuoc.setExpiryDate(rs.getDate("expiry_date").toLocalDate());
-        }
-        thuoc.setDescription(rs.getString("description"));
-        thuoc.setActive(rs.getBoolean("is_active"));
-        return thuoc;
-    }
-
-    /**
-     * Cập nhật tồn kho (+ nhập, - xuất).
-     */
-    public boolean updateStock(int id, int quantityChange) {
-        String sql = "UPDATE Medicine SET stock_qty = stock_qty + ? WHERE medicine_id = ? AND stock_qty + ? >= 0";
-        Connection conn = null;
-        try {
-            conn = getConnection();
-            try (PreparedStatement ps = conn.prepareStatement(sql)) {
-                ps.setInt(1, quantityChange);
-                ps.setInt(2, id);
-                ps.setInt(3, quantityChange);
-                return ps.executeUpdate() > 0;
-            }
-        } catch (SQLException e) {
-            LOGGER.log(Level.SEVERE, "Lỗi cập nhật tồn kho thuốc ID=" + id, e);
-            throw new DataAccessException("Lỗi cập nhật tồn kho thuốc", e);
-        } finally {
-            closeIfOwned(conn);
-        }
     }
 }

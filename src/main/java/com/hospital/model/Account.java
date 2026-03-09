@@ -2,15 +2,14 @@ package com.hospital.model;
 
 /**
  * Entity tài khoản đăng nhập — ánh xạ bảng `User` trong CSDL.
- * Account entity — maps to the `User` table in the database.
  *
  * Bảng User:
- *   user_id, username, password_hash, full_name, email, phone,
+ *   user_id, username, password, full_name, email, phone,
  *   role_id, is_active, created_at, updated_at
  */
 public class Account extends BaseModel {
     private String username;
-    private String passwordHash;
+    private String password;
     private String fullName;
     private String email;
     private String phone;
@@ -22,12 +21,12 @@ public class Account extends BaseModel {
     public Account() {
     }
 
-    public Account(int id, String username, String passwordHash,
+    public Account(int id, String username, String password,
                    String fullName, String email, String phone,
                    int roleId, boolean isActive) {
         super(id);
         this.username = username;
-        this.passwordHash = passwordHash;
+        this.password = password;
         this.fullName = fullName;
         this.email = email;
         this.phone = phone;
@@ -45,12 +44,12 @@ public class Account extends BaseModel {
         this.username = username;
     }
 
-    public String getPasswordHash() {
-        return passwordHash;
+    public String getPassword() {
+        return password;
     }
 
-    public void setPasswordHash(String passwordHash) {
-        this.passwordHash = passwordHash;
+    public void setPassword(String password) {
+        this.password = password;
     }
 
     public String getFullName() {
@@ -95,13 +94,6 @@ public class Account extends BaseModel {
 
     // ── Role helper ───────────────────────────────────────────
 
-    /**
-     * Trả về Role enum tương ứng với roleId.
-     * Tiện lợi để dùng switch/if thay vì so sánh magic number.
-     *
-     * @return Role enum
-     * @throws IllegalArgumentException nếu roleId không hợp lệ
-     */
     public Role getRole() {
         return Role.fromId(roleId);
     }

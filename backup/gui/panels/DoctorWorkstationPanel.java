@@ -83,20 +83,41 @@ public class DoctorWorkstationPanel extends JPanel {
     private int activeTab = 0;
     private JPanel tabBar;
     private JPanel bottomBar;
+    private Map<Integer, Map<String, Object>> tabStates;
 
     private javax.swing.Timer refreshTimer;
 
     public DoctorWorkstationPanel() {
         setBackground(UIConstants.CONTENT_BG);
         setLayout(new BorderLayout(0, 0));
+        tabStates = new HashMap<>();
         initComponents();
         startAutoRefresh();
     }
 
     private void startAutoRefresh() {
-        refreshTimer = new javax.swing.Timer(10_000, e -> loadPatientList());
-        refreshTimer.setRepeats(true);
-        refreshTimer.start();
+        if (refreshTimer == null) {
+            refreshTimer = new javax.swing.Timer(10_000, e -> {
+                // Capture state before refresh to avoid data loss
+                if (selectedPatient != null && activeTab < 2) {
+                    captureCurrentTabState();
+                }
+                loadPatientList();
+            });
+            refreshTimer.setRepeats(true);
+            refreshTimer.start();
+        }
+    }
+
+    public void stopAutoRefresh() {
+        if (refreshTimer != null) {
+            refreshTimer.stop();
+            refreshTimer = null;
+        }
+    }
+
+    private void clearTabStates() {
+        tabStates.clear();
     }
 
     private void initComponents() {
@@ -108,12 +129,16 @@ public class DoctorWorkstationPanel extends JPanel {
         EventBus.getInstance().subscribe(LabResultReadyEvent.class, evt -> {
             if (selectedPatient != null && activeTab == 3) {
                 // Lab result ready - user can see updates in LabOrderPanel
+                labOrderPanel.refresh();
             }
         });
 
         // Subscribe to queue updated events - refresh list when receptionist adds patient
         EventBus.getInstance().subscribe(QueueUpdatedEvent.class, evt -> {
-            SwingUtilities.invokeLater(() -> loadPatientList());
+            SwingUtilities.invokeLater(() -> {
+                captureCurrentTabState();
+                loadPatientList();
+            });
         });
         
         JPanel mainPanel = new JPanel(new BorderLayout(0, 0));
@@ -359,6 +384,7 @@ public class DoctorWorkstationPanel extends JPanel {
                 selectedPatient = patient;
                 selectedRecordId = patient.getCurrentRecordId();
                 prescriptionItems.clear();
+                clearTabStates();  // Clear state when switching patients
                 loadPatientList();
                 updateRightPanel();
             }
@@ -430,6 +456,8 @@ public class DoctorWorkstationPanel extends JPanel {
             tab.addMouseListener(new MouseAdapter() {
                 @Override
                 public void mousePressed(MouseEvent e) {
+                    // Capture state BEFORE switching tabs
+                    captureCurrentTabState();
                     activeTab = idx;
                     refreshTabBar();
                     updateRightPanel();
@@ -491,16 +519,21 @@ public class DoctorWorkstationPanel extends JPanel {
         tabBar.revalidate();
         tabBar.repaint();
     }
-    
-    private Map<Integer, Map<String, Object>> tabStates = new java.util.HashMap<>();
-    
+
     private void captureCurrentTabState() {
         if (selectedPatient == null) return;
         if (activeTab == 0) {
              tabStates.put(0, vitalSignsPanel.captureState());
         } else if (activeTab == 1) {
              tabStates.put(1, symptomsPanel.captureState());
+        } else if (activeTab == 2) {
+             // Capture prescription state
+             Map<String, Object> prescState = new HashMap<>();
+             prescState.put("medicineSearch", txtMedicineSearch.getText());
+             prescState.put("prescriptionItems", new ArrayList<>(prescriptionItems));
+             tabStates.put(2, prescState);
         }
+        // Tab 3 (Lab Orders) and Tab 4 (History) are read-only, no capture needed
     }
 
     private void updateRightPanel() {
@@ -517,7 +550,16 @@ public class DoctorWorkstationPanel extends JPanel {
                     rightContentPanel.add(createExaminationContent(), BorderLayout.CENTER);
                     if (tabStates.containsKey(1)) symptomsPanel.restoreState(tabStates.get(1));
                 }
-                case 2 -> rightContentPanel.add(createPrescriptionContent(), BorderLayout.CENTER);
+                case 2 -> {
+                    rightContentPanel.add(createPrescriptionContent(), BorderLayout.CENTER);
+                    // Restore prescription state if available
+                    if (tabStates.containsKey(2)) {
+                        Map<String, Object> prescState = tabStates.get(2);
+                        String searchText = (String) prescState.getOrDefault("medicineSearch", "");
+                        txtMedicineSearch.setText(searchText);
+                        // prescriptionItems already restored in loadExistingPrescription()
+                    }
+                }
                 case 3 -> {
                     if (selectedPatient != null && selectedRecordId > 0) {
                         labOrderPanel.setContext(selectedRecordId, selectedPatient.getId(), 0);

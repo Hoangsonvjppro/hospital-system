@@ -65,10 +65,10 @@ public class InvoiceDAO implements BaseDAO<Invoice> {
      */
     private static final String BASE_SELECT = """
         SELECT i.invoice_id, i.patient_id, i.record_id, i.invoice_date,
-               i.exam_fee, i.medicine_fee, i.other_fee, i.discount,
+               i.exam_fee, i.service_fee, i.medicine_fee, i.other_fee, i.discount,
                i.total_amount, i.paid_amount, i.change_amount,
                i.status, i.payment_method, i.payment_date,
-               i.notes, i.created_by, i.created_at, i.updated_at,
+               i.notes, i.cashier_id, i.created_at, i.updated_at,
                p.full_name  AS patient_name,
                p.phone      AS patient_phone,
                u.full_name  AS doctor_name
@@ -117,10 +117,10 @@ public class InvoiceDAO implements BaseDAO<Invoice> {
         String sql = """
             INSERT INTO Invoice
                 (patient_id, record_id, invoice_date,
-                 exam_fee, medicine_fee, other_fee, discount, total_amount,
+                 exam_fee, service_fee, medicine_fee, other_fee, discount, total_amount,
                  paid_amount, change_amount,
-                 status, payment_method, payment_date, notes, created_by)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 status, payment_method, payment_date, notes, cashier_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """;
         Connection conn = null;
         try {
@@ -154,6 +154,7 @@ public class InvoiceDAO implements BaseDAO<Invoice> {
                 record_id      = ?,
                 invoice_date   = ?,
                 exam_fee       = ?,
+                service_fee    = ?,
                 medicine_fee   = ?,
                 other_fee      = ?,
                 discount       = ?,
@@ -174,17 +175,18 @@ public class InvoiceDAO implements BaseDAO<Invoice> {
                 setNullableLong(ps, 2, entity.getRecordId());
                 setNullableTimestamp(ps, 3, entity.getInvoiceDate());
                 ps.setDouble(4, entity.getExamFee());
-                ps.setDouble(5, entity.getMedicineFee());
-                ps.setDouble(6, entity.getOtherFee());
-                ps.setDouble(7, entity.getDiscount());
-                ps.setDouble(8, entity.getTotalAmount());
-                ps.setDouble(9, entity.getPaidAmount());
-                ps.setDouble(10, entity.getChangeAmount());
-                ps.setString(11, entity.getStatus());
-                ps.setString(12, entity.getPaymentMethod());
-                setNullableTimestamp(ps, 13, entity.getPaymentDate());
-                ps.setString(14, entity.getNotes());
-                ps.setInt(15, entity.getId());
+                ps.setDouble(5, entity.getServiceFee());
+                ps.setDouble(6, entity.getMedicineFee());
+                ps.setDouble(7, entity.getOtherFee());
+                ps.setDouble(8, entity.getDiscount());
+                ps.setDouble(9, entity.getTotalAmount());
+                ps.setDouble(10, entity.getPaidAmount());
+                ps.setDouble(11, entity.getChangeAmount());
+                ps.setString(12, entity.getStatus());
+                ps.setString(13, entity.getPaymentMethod());
+                setNullableTimestamp(ps, 14, entity.getPaymentDate());
+                ps.setString(15, entity.getNotes());
+                ps.setInt(16, entity.getId());
                 return ps.executeUpdate() > 0;
             }
         } catch (SQLException e) {
@@ -410,7 +412,7 @@ public class InvoiceDAO implements BaseDAO<Invoice> {
     public List<InvoiceMedicineDetail> getMedicineDetails(long invoiceId) {
         String sql = """
             SELECT imd.detail_id, imd.invoice_id, imd.medicine_id,
-                   imd.prescription_detail_id, imd.medicine_name,
+                   imd.prescription_detail_id, imd.batch_id, imd.medicine_name,
                    imd.quantity, imd.unit_price, imd.cost_price,
                    imd.line_total, imd.profit_total,
                    m.unit AS medicine_unit
@@ -447,9 +449,9 @@ public class InvoiceDAO implements BaseDAO<Invoice> {
     public boolean insertMedicineDetail(InvoiceMedicineDetail detail) {
         String sql = """
             INSERT INTO InvoiceMedicineDetail
-                (invoice_id, medicine_id, prescription_detail_id,
+                (invoice_id, medicine_id, prescription_detail_id, batch_id,
                  medicine_name, quantity, unit_price, cost_price)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """;
         Connection conn = null;
         try {
@@ -458,10 +460,11 @@ public class InvoiceDAO implements BaseDAO<Invoice> {
                 ps.setLong(1, detail.getInvoiceId());
                 ps.setLong(2, detail.getMedicineId());
                 setNullableLong(ps, 3, detail.getPrescriptionDetailId());
-                ps.setString(4, detail.getMedicineName());
-                ps.setInt(5, detail.getQuantity());
-                ps.setDouble(6, detail.getUnitPrice());
-                ps.setDouble(7, detail.getCostPrice());
+                setNullableLong(ps, 4, detail.getBatchId());
+                ps.setString(5, detail.getMedicineName());
+                ps.setInt(6, detail.getQuantity());
+                ps.setDouble(7, detail.getUnitPrice());
+                ps.setDouble(8, detail.getCostPrice());
                 int rows = ps.executeUpdate();
                 if (rows > 0) {
                     try (ResultSet keys = ps.getGeneratedKeys()) {
@@ -502,6 +505,7 @@ public class InvoiceDAO implements BaseDAO<Invoice> {
         }
 
         inv.setExamFee(rs.getDouble("exam_fee"));
+        inv.setServiceFee(rs.getDouble("service_fee"));
         inv.setMedicineFee(rs.getDouble("medicine_fee"));
         inv.setOtherFee(rs.getDouble("other_fee"));
         inv.setDiscount(rs.getDouble("discount"));
@@ -519,8 +523,8 @@ public class InvoiceDAO implements BaseDAO<Invoice> {
 
         inv.setNotes(rs.getString("notes"));
 
-        long createdBy = rs.getLong("created_by");
-        inv.setCreatedBy(rs.wasNull() ? null : createdBy);
+        long createdBy = rs.getLong("cashier_id");
+        inv.setCashierId(rs.wasNull() ? null : createdBy);
 
         Timestamp createdAt = rs.getTimestamp("created_at");
         if (createdAt != null) inv.setCreatedAt(createdAt.toLocalDateTime());
@@ -563,6 +567,9 @@ public class InvoiceDAO implements BaseDAO<Invoice> {
 
         long prescDetailId = rs.getLong("prescription_detail_id");
         d.setPrescriptionDetailId(rs.wasNull() ? null : prescDetailId);
+
+        long batchId = rs.getLong("batch_id");
+        d.setBatchId(rs.wasNull() ? null : batchId);
 
         d.setMedicineName(rs.getString("medicine_name"));
         d.setQuantity(rs.getInt("quantity"));
@@ -635,17 +642,18 @@ public class InvoiceDAO implements BaseDAO<Invoice> {
         }
 
         ps.setDouble(4, e.getExamFee());
-        ps.setDouble(5, e.getMedicineFee());
-        ps.setDouble(6, e.getOtherFee());
-        ps.setDouble(7, e.getDiscount());
-        ps.setDouble(8, e.getTotalAmount());
-        ps.setDouble(9, e.getPaidAmount());
-        ps.setDouble(10, e.getChangeAmount());
-        ps.setString(11, e.getStatus());
-        ps.setString(12, e.getPaymentMethod());
-        setNullableTimestamp(ps, 13, e.getPaymentDate());
-        ps.setString(14, e.getNotes());
-        setNullableLong(ps, 15, e.getCreatedBy());
+        ps.setDouble(5, e.getServiceFee());
+        ps.setDouble(6, e.getMedicineFee());
+        ps.setDouble(7, e.getOtherFee());
+        ps.setDouble(8, e.getDiscount());
+        ps.setDouble(9, e.getTotalAmount());
+        ps.setDouble(10, e.getPaidAmount());
+        ps.setDouble(11, e.getChangeAmount());
+        ps.setString(12, e.getStatus());
+        ps.setString(13, e.getPaymentMethod());
+        setNullableTimestamp(ps, 14, e.getPaymentDate());
+        ps.setString(15, e.getNotes());
+        setNullableLong(ps, 16, e.getCashierId());
     }
 
     private void setNullableLong(PreparedStatement ps, int idx, Long value) throws SQLException {
@@ -722,7 +730,7 @@ public class InvoiceDAO implements BaseDAO<Invoice> {
         String sql = """
                 SELECT pd.detail_id AS presc_detail_id,
                        pd.medicine_id, pd.quantity, pd.unit_price,
-                       m.medicine_name, m.cost_price
+                       m.medicine_name
                 FROM Prescription p
                 JOIN PrescriptionDetail pd ON p.prescription_id = pd.prescription_id
                 JOIN Medicine m ON pd.medicine_id = m.medicine_id
@@ -740,7 +748,7 @@ public class InvoiceDAO implements BaseDAO<Invoice> {
                     d.setMedicineName(rs.getString("medicine_name"));
                     d.setQuantity(rs.getInt("quantity"));
                     d.setUnitPrice(rs.getDouble("unit_price"));
-                    d.setCostPrice(rs.getDouble("cost_price"));
+                    d.setCostPrice(0); // cost_price giờ nằm trên MedicineBatch, cần tính riêng
                     list.add(d);
                 }
             }

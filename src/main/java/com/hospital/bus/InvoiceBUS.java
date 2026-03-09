@@ -151,8 +151,9 @@ public class InvoiceBUS extends BaseBUS<Invoice> {
             invoice.setRecordId(medicalRecordId);
             invoice.setInvoiceDate(LocalDateTime.now());
             invoice.setExamFee(examFee);
+            invoice.setServiceFee(serviceFee);
             invoice.setMedicineFee(medicineFee);
-            invoice.setOtherFee(serviceFee);
+            invoice.setOtherFee(0);
             invoice.setDiscount(0);
             invoice.setTotalAmount(totalAmount);
             invoice.setStatus("PENDING");

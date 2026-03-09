@@ -20,10 +20,12 @@ public class FollowUp extends BaseModel {
 
     private long patientId;
     private long recordId;           // FK → MedicalRecord.record_id
+    private Long doctorId;           // FK → Doctor.doctor_id
     private LocalDate followUpDate;
     private String reason;
     private String status;
     private boolean reminderSent;
+    private String followUpNotes;    // DB column: notes
 
     // Transient — for display
     private String patientName;
@@ -67,6 +69,9 @@ public class FollowUp extends BaseModel {
     public long getRecordId()                        { return recordId; }
     public void setRecordId(long v)                  { this.recordId = v; }
 
+    public Long getDoctorId()                        { return doctorId; }
+    public void setDoctorId(Long v)                  { this.doctorId = v; }
+
     public LocalDate getFollowUpDate()               { return followUpDate; }
     public void setFollowUpDate(LocalDate v)         { this.followUpDate = v; }
 
@@ -78,6 +83,9 @@ public class FollowUp extends BaseModel {
 
     public boolean isReminderSent()                  { return reminderSent; }
     public void setReminderSent(boolean v)           { this.reminderSent = v; }
+
+    public String getFollowUpNotes()                 { return followUpNotes; }
+    public void setFollowUpNotes(String v)           { this.followUpNotes = v; }
 
     public String getPatientName()                   { return patientName; }
     public void setPatientName(String v)             { this.patientName = v; }

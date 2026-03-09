@@ -4,17 +4,15 @@ package com.hospital.model;
  * Enum phân quyền — ánh xạ bảng Role trong CSDL.
  * <p>
  * Mỗi giá trị tương ứng với role_id trong bảng Role:
- * 1=ADMIN, 2=DOCTOR, 3=NURSE, 4=RECEPTIONIST, 5=ACCOUNTANT, 6=PATIENT, 7=PHARMACIST
+ * 1=ADMIN, 2=DOCTOR, 3=RECEPTIONIST, 4=PHARMACIST, 5=CASHIER
  */
 public enum Role {
 
     ADMIN(1, "Quản trị viên"),
     DOCTOR(2, "Bác sĩ"),
-    NURSE(3, "Y tá"),
-    RECEPTIONIST(4, "Lễ tân"),
-    ACCOUNTANT(5, "Kế toán"),
-    PATIENT(6, "Bệnh nhân"),
-    PHARMACIST(7, "Dược sĩ");
+    RECEPTIONIST(3, "Lễ tân"),
+    PHARMACIST(4, "Dược sĩ"),
+    CASHIER(5, "Thu ngân");
 
     private final int id;
     private final String displayName;
