@@ -339,7 +339,7 @@ public class PatientDAO implements BaseDAO<Patient> {
      */
     public List<Patient> findTodayRegistered() {
         List<Patient> list = new ArrayList<>();
-        String sql = "SELECT * FROM Patient WHERE DATE(created_at) = CURDATE() AND is_active = true ORDER BY created_at DESC";
+        String sql = "SELECT * FROM Patient WHERE DATE(created_at) = CURDATE() AND is_active = true ORDER BY created_at ASC";
         Connection conn = null;
         try {
             conn = getConnection();

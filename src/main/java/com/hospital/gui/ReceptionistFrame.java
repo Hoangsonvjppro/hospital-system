@@ -21,7 +21,7 @@ public class ReceptionistFrame extends BaseFrame {
     @Override
     protected void registerMenuItems() {
         addMenuItem("📋", "Tiếp nhận",
-                () -> showPanel(new PatientPanel()));
+                () -> showPanel(new ReceptionPanel()));
 
 
         addSeparator();
@@ -39,6 +39,6 @@ public class ReceptionistFrame extends BaseFrame {
 
     @Override
     protected JPanel createDefaultPanel() {
-        return new PatientPanel();
+        return new ReceptionPanel();
     }
 }

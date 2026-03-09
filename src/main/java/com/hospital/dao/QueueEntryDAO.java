@@ -14,7 +14,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * DAO hàng đợi khám bệnh — truy vấn bảng queue_entries.
+ * DAO hàng đợi khám bệnh — truy vấn bảng QueueEntry.
  * Tất cả method dùng PreparedStatement, try-with-resources.
  */
 public class QueueEntryDAO {
@@ -53,7 +53,7 @@ public class QueueEntryDAO {
         entry.setQueueNumber(nextNumber);
 
         String sql = """
-            INSERT INTO queue_entries
+            INSERT INTO QueueEntry
                 (patient_id, queue_number, priority, status, created_at)
             VALUES (?, ?, ?, ?, ?)
         """;
@@ -94,7 +94,7 @@ public class QueueEntryDAO {
     public List<QueueEntry> getTodayQueue() {
         String sql = """
             SELECT qe.*, p.full_name, p.phone
-            FROM queue_entries qe
+            FROM QueueEntry qe
             JOIN Patient p ON qe.patient_id = p.patient_id
             WHERE DATE(qe.created_at) = CURDATE()
             ORDER BY
@@ -111,7 +111,7 @@ public class QueueEntryDAO {
     public List<QueueEntry> getWaitingQueue() {
         String sql = """
             SELECT qe.*, p.full_name, p.phone
-            FROM queue_entries qe
+            FROM QueueEntry qe
             JOIN Patient p ON qe.patient_id = p.patient_id
             WHERE DATE(qe.created_at) = CURDATE()
               AND qe.status = 'WAITING'
@@ -129,11 +129,11 @@ public class QueueEntryDAO {
     public boolean updateStatus(int id, QueueStatus status) {
         String sql;
         if (status == QueueStatus.IN_PROGRESS) {
-            sql = "UPDATE queue_entries SET status = ?, called_at = NOW() WHERE id = ?";
+            sql = "UPDATE QueueEntry SET status = ?, called_at = NOW() WHERE id = ?";
         } else if (status == QueueStatus.COMPLETED || status == QueueStatus.CANCELLED) {
-            sql = "UPDATE queue_entries SET status = ?, completed_at = NOW() WHERE id = ?";
+            sql = "UPDATE QueueEntry SET status = ?, completed_at = NOW() WHERE id = ?";
         } else {
-            sql = "UPDATE queue_entries SET status = ? WHERE id = ?";
+            sql = "UPDATE QueueEntry SET status = ? WHERE id = ?";
         }
 
         Connection conn = null;
@@ -159,7 +159,7 @@ public class QueueEntryDAO {
     public QueueEntry getNextPatient() {
         String sql = """
             SELECT qe.*, p.full_name, p.phone
-            FROM queue_entries qe
+            FROM QueueEntry qe
             JOIN Patient p ON qe.patient_id = p.patient_id
             WHERE DATE(qe.created_at) = CURDATE()
               AND qe.status = 'WAITING'
@@ -192,7 +192,7 @@ public class QueueEntryDAO {
      * Tạo số thứ tự tiếp theo trong ngày (reset mỗi ngày).
      */
     public int getNextQueueNumber() {
-        String sql = "SELECT COALESCE(MAX(queue_number), 0) + 1 FROM queue_entries WHERE DATE(created_at) = CURDATE()";
+        String sql = "SELECT COALESCE(MAX(queue_number), 0) + 1 FROM QueueEntry WHERE DATE(created_at) = CURDATE()";
         Connection conn = null;
         try {
             conn = getConnection();
@@ -215,7 +215,7 @@ public class QueueEntryDAO {
     public QueueEntry findById(int id) {
         String sql = """
             SELECT qe.*, p.full_name, p.phone
-            FROM queue_entries qe
+            FROM QueueEntry qe
             JOIN Patient p ON qe.patient_id = p.patient_id
             WHERE qe.id = ?
         """;
@@ -241,7 +241,7 @@ public class QueueEntryDAO {
 
     // ── countTodayWaiting ─────────────────────────────────────
     public int countTodayWaiting() {
-        String sql = "SELECT COUNT(*) FROM queue_entries WHERE DATE(created_at) = CURDATE() AND status = 'WAITING'";
+        String sql = "SELECT COUNT(*) FROM QueueEntry WHERE DATE(created_at) = CURDATE() AND status = 'WAITING'";
         Connection conn = null;
         try {
             conn = getConnection();
