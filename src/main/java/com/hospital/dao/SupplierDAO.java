@@ -156,8 +156,6 @@ public class SupplierDAO implements BaseDAO<Supplier> {
         s.setPhone(rs.getString("phone"));
         s.setAddress(rs.getString("address"));
         s.setActive(rs.getBoolean("is_active"));
-        s.setCreatedAt(rs.getTimestamp("created_at") != null ? rs.getTimestamp("created_at").toLocalDateTime() : null);
-        s.setUpdatedAt(rs.getTimestamp("updated_at") != null ? rs.getTimestamp("updated_at").toLocalDateTime() : null);
         return s;
     }
 }
