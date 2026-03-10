@@ -318,7 +318,7 @@ public class LabOrderPanel extends JPanel {
         }
 
         try {
-            LabOrder order = new LabOrder(examinationId, patientId, testType, testName, doctorId);
+            LabOrder order = new LabOrder(examinationId, patientId, testType, testName, doctorId = 1);
             order.setNotes(txtNotes.getText().trim());
 
             long id = labOrderBUS.createLabOrder(order);
