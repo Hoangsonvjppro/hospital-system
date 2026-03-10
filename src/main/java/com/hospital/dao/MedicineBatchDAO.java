@@ -291,8 +291,6 @@ public class MedicineBatchDAO implements BaseDAO<MedicineBatch> {
         mb.setInitialQty(rs.getInt("initial_qty"));
         mb.setCurrentQty(rs.getInt("current_qty"));
         mb.setMinThreshold(rs.getInt("min_threshold"));
-        mb.setCreatedAt(rs.getTimestamp("created_at") != null ? rs.getTimestamp("created_at").toLocalDateTime() : null);
-        mb.setUpdatedAt(rs.getTimestamp("updated_at") != null ? rs.getTimestamp("updated_at").toLocalDateTime() : null);
         // transients from JOIN
         try { mb.setMedicineName(rs.getString("medicine_name")); } catch (SQLException ignored) {}
         try { mb.setMedicineCode(rs.getString("medicine_code")); } catch (SQLException ignored) {}

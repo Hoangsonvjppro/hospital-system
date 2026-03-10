@@ -177,8 +177,6 @@ public class GoodsReceiptDAO implements BaseDAO<GoodsReceipt> {
         long createdBy = rs.getLong("created_by");
         gr.setCreatedBy(rs.wasNull() ? null : createdBy);
         gr.setStatus(rs.getString("status"));
-        gr.setCreatedAt(rs.getTimestamp("created_at") != null ? rs.getTimestamp("created_at").toLocalDateTime() : null);
-        gr.setUpdatedAt(rs.getTimestamp("updated_at") != null ? rs.getTimestamp("updated_at").toLocalDateTime() : null);
         // transient
         try { gr.setSupplierName(rs.getString("supplier_name")); } catch (SQLException ignored) {}
         return gr;

@@ -274,6 +274,7 @@ public class StockImportPanel extends JPanel {
         try {
             // Create GoodsReceipt
             GoodsReceipt receipt = new GoodsReceipt();
+            receipt.setReceiptCode("GR-" + System.currentTimeMillis());
             receipt.setSupplierId((long) supplier.getId());
             receipt.setImportDate(LocalDateTime.now());
             receipt.setTotalAmount(batchLines.stream().mapToDouble(l -> l.qty * l.price).sum());
@@ -288,6 +289,7 @@ public class StockImportPanel extends JPanel {
             receiptBUS.insert(receipt);
 
             // Create MedicineBatch for each line
+            com.hospital.bus.StockTransactionBUS transactionBUS = new com.hospital.bus.StockTransactionBUS();
             for (BatchLine line : batchLines) {
                 MedicineBatch batch = new MedicineBatch();
                 batch.setReceiptId(receipt.getId());
@@ -299,6 +301,21 @@ public class StockImportPanel extends JPanel {
                 batch.setInitialQty(line.qty);
                 batch.setCurrentQty(line.qty);
                 batchBUS.insert(batch);
+                
+                // Add StockTransaction
+                StockTransaction st = new StockTransaction();
+                st.setMedicineId(line.medicine.getId());
+                st.setBatchId((long) batch.getId());
+                st.setTransactionType("IMPORT");
+                st.setQuantity(line.qty);
+                st.setStockBefore(0);
+                st.setStockAfter(line.qty);
+                st.setReferenceId((long) receipt.getId());
+                st.setNotes("Khởi tạo lô từ phiếu nhập " + receipt.getReceiptCode());
+                if (currentUser != null) {
+                    st.setCreatedBy((long) currentUser.getId());
+                }
+                transactionBUS.insert(st);
             }
 
             JOptionPane.showMessageDialog(this, "Nhập kho thành công!",
