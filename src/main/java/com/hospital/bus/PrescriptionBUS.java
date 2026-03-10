@@ -68,32 +68,12 @@ public class PrescriptionBUS {
                     + "\n\nVui lòng điều chỉnh số lượng hoặc liên hệ kho dược.");
         }
 
-        Connection conn = null;
-        try {
-            conn = DatabaseConfig.getInstance().getTransactionalConnection();
+        // Gọi PrescriptionDAO để lưu đơn thuốc và chi tiết trong transaction
+        Prescription prescription = new Prescription(medicalRecordId);
+        prescription.setTotalAmount(totalAmount);
+        prescription.setStatus("CONFIRMED"); // Ensure status is set appropriately before inserting
 
-            PrescriptionDAO pDao = new PrescriptionDAO(conn);
-
-            // 1. Tạo Prescription
-            Prescription prescription = new Prescription(medicalRecordId);
-            prescription.setTotalAmount(totalAmount);
-            long prescriptionId = pDao.insertPrescription(prescription);
-
-            // 2. Insert từng PrescriptionDetail
-            for (PrescriptionDetail d : details) {
-                d.setPrescriptionId(prescriptionId);
-                pDao.insertDetail(d);
-            }
-
-            conn.commit();
-            return prescriptionId;
-
-        } catch (SQLException e) {
-            try { if (conn != null) conn.rollback(); } catch (SQLException ignored) {}
-            throw new DataAccessException("Lỗi tạo đơn thuốc", e);
-        } finally {
-            try { if (conn != null) conn.close(); } catch (SQLException ignored) {}
-        }
+        return prescriptionDAO.createPrescriptionWithItems(prescription, details);
     }
 
     /**

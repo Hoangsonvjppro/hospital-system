@@ -16,6 +16,7 @@ import com.hospital.model.Medicine;
 import com.hospital.model.MedicalRecord;
 import com.hospital.model.Patient;
 import com.hospital.model.PrescriptionDetail;
+import com.hospital.util.SessionManager;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -224,12 +225,19 @@ public class DoctorWorkstationPanel extends JPanel {
 
         if ("WAITING".equals(selectedPatient.getStatus())) {
             try {
-                queueBUS.updateQueueStatus(selectedRecordId, "EXAMINING");
-                JOptionPane.showMessageDialog(this,
-                        "\u0110\u00E3 g\u1ECDi b\u1EC7nh nh\u00E2n: " + selectedPatient.getFullName() + " v\u00E0o ph\u00F2ng kh\u00E1m.",
-                        "G\u1ECDi kh\u00E1m", JOptionPane.INFORMATION_MESSAGE);
-                loadPatientList();
-                updateRightPanel();
+                int currentUserId = SessionManager.getInstance().getCurrentUser() != null ? 
+                                    SessionManager.getInstance().getCurrentUser().getId() : 0;
+                long newRecordId = queueBUS.updateQueueStatus(selectedRecordId, "EXAMINING", currentUserId);
+                if (newRecordId > 0) {
+                    selectedRecordId = newRecordId;
+                    selectedPatient.setCurrentRecordId(newRecordId);
+                    selectedPatient.setStatus("EXAMINING");
+                    JOptionPane.showMessageDialog(this,
+                            "\u0110\u00E3 g\u1ECDi b\u1EC7nh nh\u00E2n: " + selectedPatient.getFullName() + " v\u00E0o ph\u00F2ng kh\u00E1m.",
+                            "G\u1ECDi kh\u00E1m", JOptionPane.INFORMATION_MESSAGE);
+                    loadPatientList();
+                    updateRightPanel();
+                }
             } catch (BusinessException ex) {
                 JOptionPane.showMessageDialog(this, ex.getMessage(), "L\u1ED7i nghi\u1EC7p v\u1EE5", JOptionPane.WARNING_MESSAGE);
             } catch (Exception ex) {
@@ -520,7 +528,9 @@ public class DoctorWorkstationPanel extends JPanel {
                 case 2 -> rightContentPanel.add(createPrescriptionContent(), BorderLayout.CENTER);
                 case 3 -> {
                     if (selectedPatient != null && selectedRecordId > 0) {
-                        labOrderPanel.setContext(selectedRecordId, selectedPatient.getId(), 0);
+                        int currentUserId = SessionManager.getInstance().getCurrentUser() != null ? 
+                                            SessionManager.getInstance().getCurrentUser().getId() : 0;
+                        labOrderPanel.setContext(selectedRecordId, selectedPatient.getId(), currentUserId);
                     }
                     rightContentPanel.add(labOrderPanel, BorderLayout.CENTER);
                 }

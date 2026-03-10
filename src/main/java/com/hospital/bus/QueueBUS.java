@@ -5,6 +5,8 @@ import com.hospital.bus.event.QueueUpdatedEvent;
 import com.hospital.dao.PatientDAO;
 import com.hospital.dao.QueueDAO;
 import com.hospital.dao.QueueEntryDAO;
+import com.hospital.dao.MedicalRecordDAO;
+import com.hospital.dao.DoctorDAO;
 import com.hospital.exception.BusinessException;
 import com.hospital.model.Patient;
 import com.hospital.model.QueueEntry;
@@ -23,11 +25,15 @@ public class QueueBUS {
     private final QueueDAO queueDAO;
     private final QueueEntryDAO queueEntryDAO;
     private final PatientDAO patientDAO;
+    private final MedicalRecordDAO medicalRecordDAO;
+    private final DoctorDAO doctorDAO;
 
     public QueueBUS() {
         this.queueDAO = new QueueDAO();
         this.queueEntryDAO = new QueueEntryDAO();
         this.patientDAO = new PatientDAO();
+        this.medicalRecordDAO = new MedicalRecordDAO();
+        this.doctorDAO = new DoctorDAO();
     }
 
     // ══════════════════════════════════════════════════════════
@@ -181,10 +187,28 @@ public class QueueBUS {
                 if (p != null) {
                     // Set transient fields for display
                     p.setPatientCode(p.getPatientCode()); // BN00X format
-                    p.setStatus(entry.getStatus() != null ? entry.getStatus().name() : "WAITING");
+                    String statusStr = entry.getStatus() != null ? entry.getStatus().name() : "WAITING";
+                    if ("IN_PROGRESS".equals(statusStr)) {
+                        statusStr = "EXAMINING";
+                    }
+                    p.setStatus(statusStr);
                     p.setArrivalTime(entry.getCreatedAt() != null ? 
                         entry.getCreatedAt().toLocalTime().toString() : "");
                     p.setExamType("Khám tổng quát");
+                    
+                    if ("EXAMINING".equals(statusStr)) {
+                        // Nếu đang khám, tìm record_id trong bảng MedicalRecord hôm nay
+                        // Điều này cực kỳ quan trọng để LabOrder/Prescription có examinationId đúng.
+                        List<com.hospital.model.MedicalRecord> todayRecords = medicalRecordDAO.listQueueToday(0);
+                        long realRecordId = todayRecords.stream()
+                            .filter(mr -> mr.getPatientId() == p.getId() && "EXAMINING".equals(mr.getStatus()))
+                            .map(mr -> (long) mr.getId())
+                            .findFirst()
+                            .orElse((long) entry.getId());
+                        p.setCurrentRecordId(realRecordId);
+                    } else {
+                        p.setCurrentRecordId(entry.getId());
+                    }
                     patients.add(p);
                 }
             } catch (Exception e) {
@@ -199,30 +223,93 @@ public class QueueBUS {
      * Lấy danh sách bệnh nhân theo trạng thái hàng đợi.
      */
     public List<Patient> getPatientsByStatus(String... statuses) {
-        return queueDAO.findByQueueStatus(statuses);
+        List<Patient> allWaiting = getWaitingPatients();
+        List<Patient> result = new java.util.ArrayList<>();
+        List<String> statusList = java.util.Arrays.asList(statuses);
+        for (Patient p : allWaiting) {
+            if (statusList.contains(p.getStatus())) {
+                result.add(p);
+            }
+        }
+        return result;
     }
 
     /**
      * Cập nhật trạng thái hàng đợi (legacy).
      */
-    public boolean updateQueueStatus(long recordId, String newStatus) {
-        if (recordId <= 0) {
-            throw new BusinessException("Record ID không hợp lệ");
+    /**
+     * Cập nhật trạng thái hàng đợi (legacy wrapper).
+     * Trả về recordId (MedicalRecord) nếu status là EXAMINING, ngược lại trả về queueId.
+     */
+    public long updateQueueStatus(long queueId, String newStatus, int doctorUserId) {
+        if (queueId <= 0) {
+            throw new BusinessException("Queue ID không hợp lệ");
         }
-        return queueDAO.updateQueueStatus(recordId, newStatus);
+        
+        try {
+            String mappedStatus = "EXAMINING".equals(newStatus) ? "IN_PROGRESS" : newStatus;
+            QueueStatus status = QueueStatus.valueOf(mappedStatus);
+            
+            boolean updated = updateQueueEntryStatus((int) queueId, status);
+            
+            if (updated && status == QueueStatus.IN_PROGRESS) {
+                // Tạo MedicalRecord khi bắt đầu khám
+                QueueEntry entry = queueEntryDAO.findById((int) queueId);
+                if (entry != null) {
+                    // Tìm doctorId từ doctorUserId
+                    com.hospital.model.Doctor doctor = doctorDAO.findByUserId(doctorUserId);
+                    if (doctor == null) {
+                        throw new BusinessException("Không tìm thấy thông tin bác sĩ cho người dùng này.");
+                    }
+                    
+                    // Kiểm tra xem đã có record hôm nay chưa (để tránh tạo trùng)
+                    // Ở đây ta cứ tạo mới mỗi lần call (phiên khám mới)
+                    return medicalRecordDAO.createEmptyRecord(
+                        entry.getPatientId(), 
+                        doctor.getId(), 
+                        null, 
+                        entry.getPriority() != null ? entry.getPriority().name() : "NORMAL",
+                        entry.getQueueNumber(),
+                        null,
+                        "Khám tổng quát"
+                    );
+                }
+            }
+            
+            return updated ? queueId : -1;
+        } catch (IllegalArgumentException e) {
+            return -1;
+        }
+    }
+
+    /**
+     * @deprecated Use the version with doctorUserId
+     */
+    @Deprecated
+    public boolean updateQueueStatus(long recordId, String newStatus) {
+        return updateQueueStatus(recordId, newStatus, 0) > 0;
     }
 
     /**
      * Đếm tổng số bệnh nhân trong hàng đợi hôm nay (legacy).
      */
     public int countToday() {
-        return queueDAO.countToday();
+        return queueEntryDAO.getTodayQueue().size();
     }
 
     /**
      * Đếm bệnh nhân theo trạng thái (hôm nay) (legacy).
      */
     public int countByStatus(String status) {
-        return queueDAO.countByStatus(status);
+        List<QueueEntry> today = queueEntryDAO.getTodayQueue();
+        String targetStatus = "EXAMINING".equals(status) ? "IN_PROGRESS" : status;
+        int count = 0;
+        for (QueueEntry e : today) {
+            String s = e.getStatus() != null ? e.getStatus().name() : "WAITING";
+            if (s.equals(targetStatus)) {
+                count++;
+            }
+        }
+        return count;
     }
 }

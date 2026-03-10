@@ -1,6 +1,5 @@
 package com.hospital.gui.panels;
 
-import com.hospital.bus.AppointmentBUS;
 import com.hospital.bus.PatientBUS;
 import com.hospital.bus.QueueBUS;
 import com.hospital.exception.BusinessException;
@@ -9,7 +8,6 @@ import com.hospital.gui.components.RoundedButton;
 import com.hospital.gui.components.RoundedPanel;
 import com.hospital.gui.components.StatCard;
 import com.hospital.gui.components.StatusBadge;
-import com.hospital.model.Appointment;
 import com.hospital.model.Patient;
 
 import javax.swing.*;
@@ -24,7 +22,6 @@ import java.util.List;
 public class DoctorDashboardPanel extends JPanel {
 
     private final PatientBUS     patientBUS     = new PatientBUS();
-    private final AppointmentBUS appointmentBUS = new AppointmentBUS();
     private final QueueBUS       queueBUS       = new QueueBUS();
 
     private DefaultTableModel waitingModel;
@@ -216,44 +213,16 @@ public class DoctorDashboardPanel extends JPanel {
         return card;
     }
 
-    // ── Right panel: appointments + quick notes ───────────────────────────────
+    // ── Right panel: quick notes ───────────────────────────────
     private JPanel createRightPanel() {
         JPanel p = new JPanel(new BorderLayout(0, 16));
         p.setOpaque(false);
-
-        // Appointments card
-        RoundedPanel apptCard = new RoundedPanel(UIConstants.CARD_RADIUS);
-        apptCard.setBackground(UIConstants.CARD_BG);
-        apptCard.setLayout(new BorderLayout(0, 12));
-        apptCard.setBorder(BorderFactory.createEmptyBorder(18, 18, 18, 18));
-
-        JLabel apptTitle = new JLabel("Lịch hẹn hôm nay");
-        apptTitle.setFont(UIConstants.FONT_SUBTITLE);
-        apptTitle.setForeground(UIConstants.TEXT_PRIMARY);
-        apptCard.add(apptTitle, BorderLayout.NORTH);
-
-        JPanel apptList = new JPanel();
-        apptList.setLayout(new BoxLayout(apptList, BoxLayout.Y_AXIS));
-        apptList.setOpaque(false);
-
-        List<Appointment> appts = appointmentBUS.findAll();
-        for (Appointment a : appts) {
-            JPanel row = buildAppointmentRow(a);
-            apptList.add(row);
-            apptList.add(Box.createVerticalStrut(8));
-        }
-
-        JScrollPane scroll = new JScrollPane(apptList);
-        scroll.setBorder(null);
-        scroll.getViewport().setOpaque(false);
-        apptCard.add(scroll, BorderLayout.CENTER);
 
         // Quick notes card
         RoundedPanel notesCard = new RoundedPanel(UIConstants.CARD_RADIUS);
         notesCard.setBackground(UIConstants.CARD_BG);
         notesCard.setLayout(new BorderLayout(0, 8));
         notesCard.setBorder(BorderFactory.createEmptyBorder(18, 18, 18, 18));
-        notesCard.setPreferredSize(new Dimension(0, 160));
 
         JLabel notesTitle = new JLabel("Ghi chú nhanh");
         notesTitle.setFont(UIConstants.FONT_SUBTITLE);
@@ -270,42 +239,8 @@ public class DoctorDashboardPanel extends JPanel {
             BorderFactory.createEmptyBorder(6, 8, 6, 8)));
         notesCard.add(new JScrollPane(notes), BorderLayout.CENTER);
 
-        p.add(apptCard,   BorderLayout.CENTER);
-        p.add(notesCard,  BorderLayout.SOUTH);
+        p.add(notesCard,  BorderLayout.CENTER);
         return p;
-    }
-
-    private JPanel buildAppointmentRow(Appointment a) {
-        JPanel row = new JPanel(new BorderLayout(10, 0));
-        row.setOpaque(false);
-        row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 56));
-        row.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(UIConstants.BORDER_COLOR, 1, true),
-            BorderFactory.createEmptyBorder(8, 12, 8, 12)));
-
-        // Time badge
-        JLabel timeLbl = new JLabel(a.getFormattedTime());
-        timeLbl.setFont(new Font(UIConstants.FONT_NAME, Font.BOLD, 12));
-        timeLbl.setForeground(UIConstants.PRIMARY_RED);
-        timeLbl.setPreferredSize(new Dimension(50, 0));
-
-        JPanel info = new JPanel(new GridLayout(2, 1, 0, 2));
-        info.setOpaque(false);
-        JLabel nameLbl = new JLabel(a.getPatientName());
-        nameLbl.setFont(UIConstants.FONT_BOLD);
-        nameLbl.setForeground(UIConstants.TEXT_PRIMARY);
-        JLabel specLbl = new JLabel(a.getSpecialty());
-        specLbl.setFont(UIConstants.FONT_SMALL);
-        specLbl.setForeground(UIConstants.TEXT_SECONDARY);
-        info.add(nameLbl);
-        info.add(specLbl);
-
-        StatusBadge badge = new StatusBadge(a.getStatus());
-
-        row.add(timeLbl, BorderLayout.WEST);
-        row.add(info,    BorderLayout.CENTER);
-        row.add(badge,   BorderLayout.EAST);
-        return row;
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
