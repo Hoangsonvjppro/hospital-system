@@ -95,10 +95,7 @@ public class LoginFrame extends JFrame {
                 SessionManager.getInstance().login(account);
                 LOGGER.info("Đăng nhập thành công: " + username);
                 dispose();
-                // TODO: Open role-based frame (AdminFrame, DoctorFrame, etc.)
-                JOptionPane.showMessageDialog(null,
-                        "Đăng nhập thành công!\nRole: " + account.getRoleId(),
-                        "Thành công", JOptionPane.INFORMATION_MESSAGE);
+                SwingUtilities.invokeLater(() -> new MainFrame(account));
             } else {
                 lblError.setText("Sai tài khoản hoặc mật khẩu");
             }
