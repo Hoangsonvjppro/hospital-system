@@ -60,8 +60,9 @@ public class PrescriptionDAO {
     public boolean insertDetail(PrescriptionDetail d) {
         String sql = """
             INSERT INTO PrescriptionDetail
-            (prescription_id, medicine_id, quantity, dosage, instruction, unit_price)
-            VALUES (?, ?, ?, ?, ?, ?)
+            (prescription_id, medicine_id, quantity, dosage, instruction, unit_price,
+             batch_id, frequency, duration_days)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """;
         Connection conn = null;
         try {
@@ -73,6 +74,13 @@ public class PrescriptionDAO {
                 ps.setString(4, d.getDosage());
                 ps.setString(5, d.getInstruction());
                 ps.setDouble(6, d.getUnitPrice());
+                if (d.getBatchId() != null) {
+                    ps.setLong(7, d.getBatchId());
+                } else {
+                    ps.setNull(7, Types.BIGINT);
+                }
+                ps.setString(8, d.getFrequency());
+                ps.setInt(9, d.getDurationDays());
                 return ps.executeUpdate() > 0;
             }
         } catch (SQLException e) {
@@ -109,6 +117,9 @@ public class PrescriptionDAO {
                         try { d.setInstruction(rs.getString("instruction")); } catch (SQLException ignored) {}
                         try { d.setUnitPrice(rs.getDouble("unit_price")); } catch (SQLException ignored) {}
                         try { d.setMedicineName(rs.getString("medicine_name")); } catch (SQLException ignored) {}
+                        try { d.setBatchId(rs.getObject("batch_id") == null ? null : rs.getLong("batch_id")); } catch (SQLException ignored) {}
+                        try { d.setFrequency(rs.getString("frequency")); } catch (SQLException ignored) {}
+                        try { d.setDurationDays(rs.getInt("duration_days")); } catch (SQLException ignored) {}
                         result.add(d);
                     }
                 }

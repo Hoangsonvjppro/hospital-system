@@ -1,5 +1,7 @@
 package com.hospital.model;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -127,6 +129,18 @@ public class Invoice extends BaseModel {
      */
     public void recalculate() {
         this.totalAmount = examFee + serviceFee + medicineFee + otherFee - discount;
+    }
+
+    /**
+     * Tính tổng tiền chính xác bằng BigDecimal (tránh lỗi floating-point).
+     */
+    public BigDecimal getTotalAmountPrecise() {
+        return BigDecimal.valueOf(examFee)
+                .add(BigDecimal.valueOf(serviceFee))
+                .add(BigDecimal.valueOf(medicineFee))
+                .add(BigDecimal.valueOf(otherFee))
+                .subtract(BigDecimal.valueOf(discount))
+                .setScale(0, RoundingMode.HALF_UP);
     }
 
     // ══════════════════════════════════════════════════════════

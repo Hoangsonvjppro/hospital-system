@@ -1,6 +1,7 @@
 package com.hospital.model;
 
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 
 /**
  * Entity lượt khám — ánh xạ bảng MedicalRecord trong CSDL v4.
@@ -28,6 +29,7 @@ public class MedicalRecord extends BaseModel {
     private Integer queueNumber;
     private String priority;        // NORMAL / ELDERLY / EMERGENCY
     private String queueStatus;     // WAITING, EXAMINING, WAITING_LAB, ...
+    private LocalTime arrivalTime;  // Giờ đến khám
 
     // Sinh hiệu
     private String bloodPressure;
@@ -90,6 +92,9 @@ public class MedicalRecord extends BaseModel {
 
     public String getQueueStatus()                { return queueStatus; }
     public void setQueueStatus(String v)          { this.queueStatus = v; }
+
+    public LocalTime getArrivalTime()             { return arrivalTime; }
+    public void setArrivalTime(LocalTime v)       { this.arrivalTime = v; }
 
     /** Backward-compatible alias: getStatus() → getQueueStatus() */
     public String getStatus()                     { return queueStatus; }

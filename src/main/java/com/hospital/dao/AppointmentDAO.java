@@ -216,4 +216,30 @@ public class AppointmentDAO implements BaseDAO<Appointment> {
 
         return a;
     }
+
+    /**
+     * Lấy danh sách lịch hẹn theo trạng thái (SQL-level filter).
+     */
+    public List<Appointment> findByStatus(String status) {
+        String sql = SELECT_JOIN + " WHERE a.status = ? ORDER BY a.appointment_date, a.start_time";
+        List<Appointment> result = new ArrayList<>();
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, status);
+                try (ResultSet rs = ps.executeQuery()) {
+                    while (rs.next()) {
+                        result.add(mapResultSet(rs));
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi lấy lịch hẹn theo trạng thái=" + status, e);
+            throw new DataAccessException("Lỗi lấy lịch hẹn theo trạng thái", e);
+        } finally {
+            closeIfOwned(conn);
+        }
+        return result;
+    }
 }

@@ -267,6 +267,7 @@ public class MedicalRecordDAO {
         r.setQueueStatus(rs.getString("queue_status"));
         try { r.setPriority(rs.getString("priority")); } catch (SQLException ignored) {}
         try { r.setQueueNumber(rs.getObject("queue_number") == null ? null : rs.getInt("queue_number")); } catch (SQLException ignored) {}
+        try { if (rs.getTime("arrival_time") != null) r.setArrivalTime(rs.getTime("arrival_time").toLocalTime()); } catch (SQLException ignored) {}
         return r;
     }
 
@@ -601,6 +602,33 @@ public class MedicalRecordDAO {
             if (localConn && conn != null) {
                 try { conn.setAutoCommit(true); } catch (SQLException ignored) {}
             }
+            closeIfOwned(conn);
+        }
+    }
+
+    /**
+     * Cập nhật queue_status cho bệnh án hôm nay của bệnh nhân.
+     * Dùng để đồng bộ QueueEntry.status ↔ MedicalRecord.queue_status.
+     */
+    public boolean updateTodayStatusByPatient(long patientId, String status) {
+        String sql = """
+            UPDATE MedicalRecord
+               SET queue_status = ?, updated_at = NOW()
+             WHERE patient_id = ? AND DATE(visit_date) = CURRENT_DATE
+             ORDER BY record_id DESC LIMIT 1
+        """;
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql)) {
+                ps.setString(1, status);
+                ps.setLong(2, patientId);
+                return ps.executeUpdate() > 0;
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi cập nhật trạng thái bệnh án theo BN patientId=" + patientId, e);
+            throw new DataAccessException("Không thể cập nhật trạng thái bệnh án", e);
+        } finally {
             closeIfOwned(conn);
         }
     }

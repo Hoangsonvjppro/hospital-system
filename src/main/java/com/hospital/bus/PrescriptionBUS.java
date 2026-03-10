@@ -142,8 +142,9 @@ public class PrescriptionBUS {
                 }
             }
         } catch (SQLException e) {
-            // Log but don't block prescription
+            // Lỗi kiểm tra dị ứng phải được báo cho bác sĩ — không được bỏ qua
             LOGGER.warning("Lỗi kiểm tra dị ứng: " + e.getMessage());
+            throw new BusinessException("Không thể kiểm tra dị ứng. Vui lòng thử lại hoặc kiểm tra thủ công.");
         }
         return warnings;
     }

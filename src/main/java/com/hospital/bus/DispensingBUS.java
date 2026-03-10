@@ -8,6 +8,7 @@ import com.hospital.exception.BusinessException;
 import com.hospital.exception.DataAccessException;
 import com.hospital.model.Dispensing;
 import com.hospital.model.DispensingItem;
+import com.hospital.model.MedicalRecord;
 import com.hospital.model.Prescription;
 
 import java.math.BigDecimal;
@@ -127,12 +128,12 @@ public class DispensingBUS {
             // 2. Cập nhật Prescription status → DISPENSED
             txPrescDAO.updateStatus(prescriptionId, Prescription.STATUS_DISPENSED);
 
-            // 3. Cập nhật MedicalRecord status → DISPENSED
+            // 3. Cập nhật MedicalRecord status → WAITING_PAYMENT
             try {
                 // Lấy record_id từ Prescription
                 Prescription presc = txPrescDAO.findById(prescriptionId);
                 if (presc != null) {
-                    txRecordDAO.updateStatus(presc.getMedicalRecordId(), "DISPENSED");
+                    txRecordDAO.updateStatus(presc.getMedicalRecordId(), MedicalRecord.STATUS_WAITING_PAYMENT);
                 }
             } catch (Exception ex) {
                 LOGGER.warning("Không thể cập nhật trạng thái bệnh án: " + ex.getMessage());

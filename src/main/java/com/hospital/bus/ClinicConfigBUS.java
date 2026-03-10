@@ -11,12 +11,12 @@ import com.hospital.model.ClinicConfig;
 public class ClinicConfigBUS {
 
     private final ClinicConfigDAO dao = new ClinicConfigDAO();
-    private ClinicConfig cached;
+    private volatile ClinicConfig cached;
 
     /**
-     * Lấy toàn bộ cấu hình (có cache).
+     * Lấy toàn bộ cấu hình (có cache, thread-safe).
      */
-    public ClinicConfig getConfig() {
+    public synchronized ClinicConfig getConfig() {
         if (cached == null) {
             cached = dao.loadAll();
         }
@@ -47,7 +47,7 @@ public class ClinicConfigBUS {
     /**
      * Lưu toàn bộ cấu hình.
      */
-    public void saveConfig(ClinicConfig cfg) {
+    public synchronized void saveConfig(ClinicConfig cfg) {
         dao.saveAll(cfg);
         cached = cfg;   // refresh cache
     }

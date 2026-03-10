@@ -4,7 +4,6 @@ import com.hospital.dao.AppointmentDAO;
 import com.hospital.model.Appointment;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  * Business logic layer cho lịch hẹn.
@@ -30,9 +29,7 @@ public class AppointmentBUS extends BaseBUS<Appointment> {
     }
 
     public List<Appointment> getByStatus(String status) {
-        return appointmentDAO.findAll().stream()
-                .filter(a -> a.getStatus().equalsIgnoreCase(status))
-                .collect(Collectors.toList());
+        return appointmentDAO.findByStatus(status);
     }
 
     public boolean confirm(int id) {

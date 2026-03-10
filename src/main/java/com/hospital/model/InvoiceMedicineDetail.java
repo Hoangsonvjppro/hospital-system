@@ -1,5 +1,7 @@
 package com.hospital.model;
 
+import java.math.BigDecimal;
+
 /**
  * Entity chi tiết hóa đơn — phần THUỐC.
  * Ánh xạ bảng InvoiceMedicineDetail trong CSDL.
@@ -94,6 +96,21 @@ public class InvoiceMedicineDetail extends BaseModel {
         return (profitTotal > 0) ? profitTotal : (double) quantity * (unitPrice - costPrice);
     }
     public void setProfitTotal(double v) { this.profitTotal = v; }
+
+    /**
+     * Lợi nhuận chính xác bằng BigDecimal (tránh lỗi floating-point).
+     */
+    public BigDecimal getProfitTotalPrecise() {
+        return BigDecimal.valueOf(unitPrice).subtract(BigDecimal.valueOf(costPrice))
+                .multiply(BigDecimal.valueOf(quantity));
+    }
+
+    /**
+     * Thành tiền chính xác bằng BigDecimal.
+     */
+    public BigDecimal getLineTotalPrecise() {
+        return BigDecimal.valueOf(unitPrice).multiply(BigDecimal.valueOf(quantity));
+    }
 
     // Display field
     public String getUnit()                           { return unit; }

@@ -2,16 +2,24 @@ package com.hospital.bus;
 
 import com.hospital.bus.event.EventBus;
 import com.hospital.bus.event.QueueUpdatedEvent;
+import com.hospital.config.DatabaseConfig;
+import com.hospital.dao.MedicalRecordDAO;
 import com.hospital.dao.PatientDAO;
 import com.hospital.dao.QueueDAO;
 import com.hospital.dao.QueueEntryDAO;
 import com.hospital.exception.BusinessException;
+import com.hospital.model.MedicalRecord;
 import com.hospital.model.Patient;
 import com.hospital.model.QueueEntry;
 import com.hospital.model.QueueEntry.Priority;
 import com.hospital.model.QueueEntry.QueueStatus;
 
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.List;
+import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  * Business logic layer cho hàng đợi khám bệnh.
@@ -19,6 +27,15 @@ import java.util.List;
  * giữ QueueDAO (MedicalRecord) cho tương thích ngược.
  */
 public class QueueBUS {
+
+    private static final Logger LOGGER = Logger.getLogger(QueueBUS.class.getName());
+
+    private static final Map<QueueStatus, String> QUEUE_TO_RECORD_STATUS = Map.of(
+            QueueStatus.WAITING, MedicalRecord.STATUS_WAITING,
+            QueueStatus.IN_PROGRESS, MedicalRecord.STATUS_EXAMINING,
+            QueueStatus.COMPLETED, MedicalRecord.STATUS_COMPLETED,
+            QueueStatus.CANCELLED, MedicalRecord.STATUS_CANCELLED
+    );
 
     private final QueueDAO queueDAO;
     private final QueueEntryDAO queueEntryDAO;
@@ -77,17 +94,41 @@ public class QueueBUS {
     }
 
     /**
-     * Cập nhật trạng thái hàng đợi.
+     * Cập nhật trạng thái hàng đợi — đồng bộ QueueEntry.status ↔ MedicalRecord.queue_status trong transaction.
      */
     public boolean updateQueueEntryStatus(int queueId, QueueStatus status) {
         if (queueId <= 0) {
             throw new BusinessException("Queue ID không hợp lệ");
         }
-        boolean result = queueEntryDAO.updateStatus(queueId, status);
-        if (result) {
-            EventBus.getInstance().publish(new QueueUpdatedEvent(queueId, status.name()));
+        Connection conn = null;
+        try {
+            conn = DatabaseConfig.getInstance().getTransactionalConnection();
+            QueueEntryDAO txQueueEntryDAO = new QueueEntryDAO(conn);
+            MedicalRecordDAO txRecordDAO = new MedicalRecordDAO(conn);
+
+            boolean result = txQueueEntryDAO.updateStatus(queueId, status);
+            if (result) {
+                QueueEntry entry = txQueueEntryDAO.findById(queueId);
+                if (entry != null) {
+                    String recordStatus = QUEUE_TO_RECORD_STATUS.get(status);
+                    if (recordStatus != null) {
+                        txRecordDAO.updateTodayStatusByPatient(entry.getPatientId(), recordStatus);
+                    }
+                }
+            }
+
+            conn.commit();
+            if (result) {
+                EventBus.getInstance().publish(new QueueUpdatedEvent(queueId, status.name()));
+            }
+            return result;
+        } catch (SQLException e) {
+            if (conn != null) { try { conn.rollback(); } catch (SQLException ignored) {} }
+            LOGGER.log(Level.SEVERE, "Lỗi đồng bộ trạng thái hàng đợi queueId=" + queueId, e);
+            throw new BusinessException("Lỗi cập nhật trạng thái hàng đợi");
+        } finally {
+            if (conn != null) { try { conn.close(); } catch (SQLException ignored) {} }
         }
-        return result;
     }
 
     /**
@@ -98,14 +139,30 @@ public class QueueBUS {
     }
 
     /**
-     * Gọi bệnh nhân tiếp theo — cập nhật trạng thái sang IN_PROGRESS.
+     * Gọi bệnh nhân tiếp theo — cập nhật QueueEntry + MedicalRecord trong transaction.
      */
     public QueueEntry callNextPatient() {
         QueueEntry next = queueEntryDAO.getNextPatient();
         if (next == null) {
             throw new BusinessException("Không còn bệnh nhân trong hàng đợi.");
         }
-        queueEntryDAO.updateStatus(next.getId(), QueueStatus.IN_PROGRESS);
+        Connection conn = null;
+        try {
+            conn = DatabaseConfig.getInstance().getTransactionalConnection();
+            QueueEntryDAO txQueueEntryDAO = new QueueEntryDAO(conn);
+            MedicalRecordDAO txRecordDAO = new MedicalRecordDAO(conn);
+
+            txQueueEntryDAO.updateStatus(next.getId(), QueueStatus.IN_PROGRESS);
+            txRecordDAO.updateTodayStatusByPatient(next.getPatientId(), MedicalRecord.STATUS_EXAMINING);
+
+            conn.commit();
+        } catch (SQLException e) {
+            if (conn != null) { try { conn.rollback(); } catch (SQLException ignored) {} }
+            LOGGER.log(Level.SEVERE, "Lỗi gọi bệnh nhân tiếp theo", e);
+            throw new BusinessException("Lỗi gọi bệnh nhân: " + e.getMessage());
+        } finally {
+            if (conn != null) { try { conn.close(); } catch (SQLException ignored) {} }
+        }
         next.setStatus(QueueStatus.IN_PROGRESS);
         EventBus.getInstance().publish(new QueueUpdatedEvent(next.getId(), QueueStatus.IN_PROGRESS.name()));
         return next;

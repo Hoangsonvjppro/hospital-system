@@ -145,9 +145,7 @@ public class PatientDAO implements BaseDAO<Patient> {
     @Override
     public List<Patient> findAll() {
         List<Patient> list = new ArrayList<>();
-        // Return all patients from DB. Previously we filtered by is_active=true which hid soft-deleted
-        // records; change to show all patients as requested.
-        String sql = "SELECT * FROM Patient";
+        String sql = "SELECT * FROM Patient WHERE is_active = true";
         Connection conn = null;
         try {
             conn = getConnection();

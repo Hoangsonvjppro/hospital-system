@@ -730,10 +730,13 @@ public class InvoiceDAO implements BaseDAO<Invoice> {
         String sql = """
                 SELECT pd.detail_id AS presc_detail_id,
                        pd.medicine_id, pd.quantity, pd.unit_price,
-                       m.medicine_name
+                       pd.batch_id,
+                       m.medicine_name,
+                       COALESCE(mb.import_price, 0) AS cost_price
                 FROM Prescription p
                 JOIN PrescriptionDetail pd ON p.prescription_id = pd.prescription_id
                 JOIN Medicine m ON pd.medicine_id = m.medicine_id
+                LEFT JOIN MedicineBatch mb ON pd.batch_id = mb.batch_id
                 WHERE p.record_id = ? AND p.status != 'CANCELLED'
                 """;
         List<InvoiceMedicineDetail> list = new ArrayList<>();
@@ -748,7 +751,11 @@ public class InvoiceDAO implements BaseDAO<Invoice> {
                     d.setMedicineName(rs.getString("medicine_name"));
                     d.setQuantity(rs.getInt("quantity"));
                     d.setUnitPrice(rs.getDouble("unit_price"));
-                    d.setCostPrice(0); // cost_price giờ nằm trên MedicineBatch, cần tính riêng
+                    d.setCostPrice(rs.getDouble("cost_price"));
+                    long batchId = rs.getLong("batch_id");
+                    if (!rs.wasNull()) {
+                        d.setBatchId(batchId);
+                    }
                     list.add(d);
                 }
             }
