@@ -1,23 +1,3 @@
--- ============================================================
--- HỆ THỐNG QUẢN LÝ PHÒNG MẠCH TƯ — SCHEMA
--- Database: clinic_management
--- Engine:   MySQL 8.0+
--- Charset:  UTF-8 (utf8mb4)
--- ============================================================
---
--- ⚠ GHI CHÚ QUAN TRỌNG CHO TẦNG JAVA (BUS LAYER):
---
--- 1. ĐỒNG BỘ KHO (stock_qty ↔ StockTransaction):
---    Medicine.stock_qty là "cache" để query nhanh.
---    StockTransaction là "audit trail" (nguồn sự thật).
---    → Khi xuất/nhập kho, PHẢI dùng DB Transaction (BEGIN...COMMIT)
---      để UPDATE Medicine.stock_qty VÀ INSERT StockTransaction cùng lúc.
---
--- 2. CHỒNG LẤN LỊCH HẸN:
---    UNIQUE KEY chỉ ngăn trùng start_time, không ngăn overlap.
---    → Java phải query kiểm tra trước khi INSERT.
--- ============================================================
-
 SET NAMES utf8mb4;
 SET CHARACTER SET utf8mb4;
 

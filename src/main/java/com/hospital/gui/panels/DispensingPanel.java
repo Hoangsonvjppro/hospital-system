@@ -282,15 +282,23 @@ public class DispensingPanel extends JPanel {
             }
 
             // Create invoice
+            boolean invoiceCreated = false;
             try {
                 invoiceBUS.createInvoiceFromMedicalRecord(presc.getMedicalRecordId());
+                invoiceCreated = true;
             } catch (Exception ex) {
-                LOGGER.warning("Không thể tạo hóa đơn tự động: " + ex.getMessage());
+                LOGGER.log(Level.WARNING, "Không thể tạo hóa đơn tự động cho bệnh án #" + presc.getMedicalRecordId(), ex);
+                JOptionPane.showMessageDialog(this,
+                        "Phát thuốc thành công nhưng KHÔNG thể tạo hóa đơn tự động.\nLỗi: " + ex.getMessage()
+                                + "\n\nVui lòng liên hệ Kế toán để tạo hóa đơn thủ công.",
+                        "Cảnh báo", JOptionPane.WARNING_MESSAGE);
             }
 
-            JOptionPane.showMessageDialog(this,
-                    "Phát thuốc thành công cho đơn #" + prescId + "!\nHóa đơn đã được tạo tự động.",
-                    "Thành công", JOptionPane.INFORMATION_MESSAGE);
+            if (invoiceCreated) {
+                JOptionPane.showMessageDialog(this,
+                        "Phát thuốc thành công cho đơn #" + prescId + "!\nHóa đơn đã được tạo tự động.",
+                        "Thành công", JOptionPane.INFORMATION_MESSAGE);
+            }
             loadPendingPrescriptions();
 
         } catch (BusinessException ex) {

@@ -1056,7 +1056,23 @@ public class DoctorWorkstationPanel extends JPanel {
 
             // Status: PRESCRIBED if has prescription, else COMPLETED
             String newStatus = hasPrescription ? MedicalRecord.STATUS_PRESCRIBED : MedicalRecord.STATUS_COMPLETED;
-            queueBUS.updateQueueStatus(selectedRecordId, newStatus);
+            // Cập nhật trạng thái trên MedicalRecord (queue_status)
+            medicalRecordBUS.updateStatus(selectedRecordId, newStatus);
+
+            // Cập nhật QueueEntry → COMPLETED (bệnh nhân đã rời hàng đợi)
+            try {
+                // Tìm QueueEntry tương ứng qua patient và đánh dấu hoàn tất
+                var waitingEntries = queueBUS.getTodayQueue();
+                for (var entry : waitingEntries) {
+                    if (entry.getPatientId() == selectedPatient.getId()
+                            && entry.getStatus() == com.hospital.model.QueueEntry.QueueStatus.IN_PROGRESS) {
+                        queueBUS.updateQueueEntryStatus(entry.getId(), com.hospital.model.QueueEntry.QueueStatus.COMPLETED);
+                        break;
+                    }
+                }
+            } catch (Exception ignored) {
+                // QueueEntry update is best-effort
+            }
 
             String msg = hasPrescription
                     ? "\u0110\u00E3 ho\u00E0n t\u1EA5t kh\u00E1m v\u00E0 k\u00EA \u0111\u01A1n cho: " + selectedPatient.getFullName() + "\nTr\u1EA1ng th\u00E1i: CH\u1ECC PH\u00C1T THU\u1ED0C"
