@@ -21,7 +21,7 @@ PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 DB_CONTAINER="clinic-mysql"
 DB_USER="root"
 DB_PASS="123456"
-DB_NAME="clinic_management"
+DB_NAME="clinic_v4"
 DB_HOST="localhost"
 DB_PORT="3306"
 
