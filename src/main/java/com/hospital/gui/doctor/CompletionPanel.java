@@ -31,6 +31,10 @@ public class CompletionPanel extends JPanel {
     private MedicalRecord currentRecord;
 
     public CompletionPanel() {
+        this(null);
+    }
+
+    public CompletionPanel(Long initialRecordId) {
         setLayout(new BorderLayout(0, 12));
         setBackground(UIConstants.CONTENT_BG);
         setBorder(new EmptyBorder(20, 20, 20, 20));
@@ -38,6 +42,11 @@ public class CompletionPanel extends JPanel {
         add(createHeader(), BorderLayout.NORTH);
         add(createBody(), BorderLayout.CENTER);
         add(createActionBar(), BorderLayout.SOUTH);
+
+        if (initialRecordId != null) {
+            txtRecordId.setText(String.valueOf(initialRecordId));
+            loadRecord();
+        }
     }
 
     private JPanel createHeader() {
@@ -316,6 +325,18 @@ public class CompletionPanel extends JPanel {
 
         try {
             recordBUS.updateStatus(currentRecord.getId(), MedicalRecord.STATUS_COMPLETED);
+            
+            // Mark queue entry as COMPLETED too if it exists
+            try {
+                com.hospital.bus.QueueBUS qBus = new com.hospital.bus.QueueBUS();
+                for (com.hospital.model.QueueEntry qe : qBus.getTodayQueue()) {
+                    if (qe.getPatientId() == currentRecord.getPatientId() && 
+                        qe.getStatus() == com.hospital.model.QueueEntry.QueueStatus.IN_PROGRESS) {
+                        qBus.updateQueueEntryStatus(qe.getId(), com.hospital.model.QueueEntry.QueueStatus.COMPLETED);
+                        break;
+                    }
+                }
+            } catch (Exception ignored) {}
             try {
                 invoiceBUS.createInvoiceFromMedicalRecord(currentRecord.getId());
             } catch (Exception ex) {

@@ -28,12 +28,21 @@ public class LabOrderPanel extends JPanel {
     private long currentRecordId = -1;
 
     public LabOrderPanel() {
+        this(null);
+    }
+
+    public LabOrderPanel(Long initialRecordId) {
         setLayout(new BorderLayout(0, 12));
         setBackground(UIConstants.CONTENT_BG);
         setBorder(new EmptyBorder(20, 20, 20, 20));
 
         add(createHeader(), BorderLayout.NORTH);
         add(createBody(), BorderLayout.CENTER);
+
+        if (initialRecordId != null) {
+            txtRecordId.setText(String.valueOf(initialRecordId));
+            loadExistingOrders();
+        }
     }
 
     private JPanel createHeader() {

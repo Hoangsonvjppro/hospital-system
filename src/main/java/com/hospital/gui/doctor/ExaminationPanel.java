@@ -48,6 +48,31 @@ public class ExaminationPanel extends JPanel {
         add(createTopBar(), BorderLayout.NORTH);
         add(createMainContent(), BorderLayout.CENTER);
         add(createActionBar(), BorderLayout.SOUTH);
+
+        // Tự động load bệnh nhân đang khám (IN_PROGRESS) nếu có
+        loadCurrentInProgressPatient();
+    }
+
+    private void loadCurrentInProgressPatient() {
+        try {
+            QueueEntry inProgress = queueBUS.getCurrentInProgressEntry();
+            if (inProgress != null) {
+                currentEntry = inProgress;
+                currentPatient = patientBUS.findById(inProgress.getPatientId());
+                if (currentPatient != null) {
+                    String info = String.format("BN: %s | %s | %d tuổi | %s",
+                            currentPatient.getFullName(),
+                            currentPatient.getGender() != null ? currentPatient.getGender().name() : "",
+                            currentPatient.getAge(),
+                            currentEntry.getPriority().name());
+                    lblPatientInfo.setText(info);
+                    lblPatientInfo.setForeground(UIConstants.ACCENT_BLUE);
+                    loadPatientHistory();
+                    loadAllergiesAndChronic();
+                }
+            }
+        } catch (Exception ignored) {
+        }
     }
 
     private JPanel createTopBar() {
@@ -231,16 +256,44 @@ public class ExaminationPanel extends JPanel {
         RoundedButton btnPrescribe = new RoundedButton("💊 Kê đơn thuốc");
         btnPrescribe.setColors(UIConstants.SUCCESS_GREEN, UIConstants.SUCCESS_GREEN_DARK);
         btnPrescribe.addActionListener(e -> {
-            if (currentRecord != null) {
-                saveExamination();
+            if (currentRecord == null) {
+                JOptionPane.showMessageDialog(this, "Vui lòng lưu khám trước khi kê đơn.");
+                return;
+            }
+            saveExamination();
+            Window window = SwingUtilities.getWindowAncestor(this);
+            if (window instanceof com.hospital.gui.BaseFrame) {
+                ((com.hospital.gui.BaseFrame) window).showPanel(new PrescriptionPanel((long) currentRecord.getId()));
             }
         });
 
         RoundedButton btnLab = new RoundedButton("🧪 Yêu cầu XN");
         btnLab.setColors(UIConstants.WARNING_ORANGE, UIConstants.WARNING_ORANGE.darker());
+        btnLab.addActionListener(e -> {
+            if (currentRecord == null) {
+                JOptionPane.showMessageDialog(this, "Vui lòng lưu khám trước khi yêu cầu xét nghiệm.");
+                return;
+            }
+            saveExamination();
+            Window window = SwingUtilities.getWindowAncestor(this);
+            if (window instanceof com.hospital.gui.BaseFrame) {
+                ((com.hospital.gui.BaseFrame) window).showPanel(new LabOrderPanel((long) currentRecord.getId()));
+            }
+        });
 
         RoundedButton btnComplete = new RoundedButton("✅ Kết thúc khám");
         btnComplete.setColors(UIConstants.ACCENT_BLUE, UIConstants.ACCENT_BLUE_DARK);
+        btnComplete.addActionListener(e -> {
+            if (currentRecord == null) {
+                JOptionPane.showMessageDialog(this, "Vui lòng lưu khám trước khi kết thúc.");
+                return;
+            }
+            saveExamination();
+            Window window = SwingUtilities.getWindowAncestor(this);
+            if (window instanceof com.hospital.gui.BaseFrame) {
+                ((com.hospital.gui.BaseFrame) window).showPanel(new CompletionPanel((long) currentRecord.getId()));
+            }
+        });
 
         btnPanel.add(btnSave);
         btnPanel.add(btnPrescribe);
@@ -289,8 +342,11 @@ public class ExaminationPanel extends JPanel {
         try {
             List<MedicalRecord> records = recordBUS.getHistoryByPatient(currentPatient.getId());
             for (MedicalRecord r : records) {
+                String formattedDate = r.getVisitDate() != null
+                        ? java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm").format(r.getVisitDate())
+                        : (r.getCreatedAt() != null ? java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm").format(r.getCreatedAt()) : "");
                 historyModel.addRow(new Object[]{
-                        r.getCreatedAt() != null ? r.getCreatedAt().toLocalDate().toString() : "",
+                        formattedDate,
                         r.getDiagnosis() != null ? r.getDiagnosis() : "",
                         r.getDiagnosisCode() != null ? r.getDiagnosisCode() : ""
                 });

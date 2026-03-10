@@ -239,6 +239,39 @@ public class QueueEntryDAO {
         return null;
     }
 
+    // ── getCurrentInProgress ──────────────────────────────────
+    /**
+     * Lấy bệnh nhân đang khám (IN_PROGRESS) hôm nay. Trả về null nếu không có.
+     */
+    public QueueEntry getCurrentInProgress() {
+        String sql = """
+            SELECT qe.*, p.full_name, p.phone
+            FROM QueueEntry qe
+            JOIN Patient p ON qe.patient_id = p.patient_id
+            WHERE DATE(qe.created_at) = CURDATE()
+              AND qe.status = 'IN_PROGRESS'
+            ORDER BY qe.called_at DESC
+            LIMIT 1
+        """;
+
+        Connection conn = null;
+        try {
+            conn = getConnection();
+            try (PreparedStatement ps = conn.prepareStatement(sql);
+                 ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return mapResultSet(rs);
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi lấy bệnh nhân đang khám", e);
+            throw new DataAccessException("Lỗi lấy bệnh nhân đang khám", e);
+        } finally {
+            closeIfOwned(conn);
+        }
+        return null;
+    }
+
     // ── countTodayWaiting ─────────────────────────────────────
     public int countTodayWaiting() {
         String sql = "SELECT COUNT(*) FROM QueueEntry WHERE DATE(created_at) = CURDATE() AND status = 'WAITING'";

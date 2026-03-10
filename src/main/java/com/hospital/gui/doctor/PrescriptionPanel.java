@@ -28,6 +28,10 @@ public class PrescriptionPanel extends JPanel {
     private JLabel lblTotal;
 
     public PrescriptionPanel() {
+        this(null);
+    }
+
+    public PrescriptionPanel(Long initialRecordId) {
         setLayout(new BorderLayout(0, 12));
         setBackground(UIConstants.CONTENT_BG);
         setBorder(new EmptyBorder(20, 20, 20, 20));
@@ -35,6 +39,11 @@ public class PrescriptionPanel extends JPanel {
         add(createHeader(), BorderLayout.NORTH);
         add(createContent(), BorderLayout.CENTER);
         add(createActionBar(), BorderLayout.SOUTH);
+
+        if (initialRecordId != null) {
+            txtRecordId.setText(String.valueOf(initialRecordId));
+            loadRecord();
+        }
     }
 
     private JPanel createHeader() {
@@ -173,13 +182,12 @@ public class PrescriptionPanel extends JPanel {
     private final MedicalRecordBUS recordBUS = new MedicalRecordBUS();
 
     private void addMedicine() {
-        String keyword = txtMedicineSearch.getText().trim();
-        if (keyword.isEmpty()) return;
+        String keyword = txtMedicineSearch.getText().trim().toLowerCase();
         try {
             List<Medicine> all = medicineBUS.findAll();
             List<Medicine> results = all.stream()
                     .filter(m -> m.getMedicineName() != null &&
-                            m.getMedicineName().toLowerCase().contains(keyword.toLowerCase()))
+                            (keyword.isEmpty() || m.getMedicineName().toLowerCase().contains(keyword)))
                     .toList();
 
             if (results.isEmpty()) {

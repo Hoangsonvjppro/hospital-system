@@ -139,6 +139,14 @@ public class QueueBUS {
     }
 
     /**
+     * Lấy bệnh nhân đang khám (IN_PROGRESS) hôm nay.
+     * Trả về null nếu không có.
+     */
+    public QueueEntry getCurrentInProgressEntry() {
+        return queueEntryDAO.getCurrentInProgress();
+    }
+
+    /**
      * Gọi bệnh nhân tiếp theo — cập nhật QueueEntry + MedicalRecord trong transaction.
      */
     public QueueEntry callNextPatient() {

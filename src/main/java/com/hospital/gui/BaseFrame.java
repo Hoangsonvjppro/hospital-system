@@ -198,7 +198,7 @@ public abstract class BaseFrame extends JFrame {
         sidebarMenu.add(Box.createVerticalStrut(8));
     }
 
-    protected void showPanel(JPanel panel) {
+    public void showPanel(JPanel panel) {
         contentPanel.removeAll();
         contentPanel.add(panel, BorderLayout.CENTER);
         contentPanel.revalidate();
