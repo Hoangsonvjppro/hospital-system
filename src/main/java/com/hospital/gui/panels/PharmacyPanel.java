@@ -1,6 +1,8 @@
 package com.hospital.gui.panels;
 
 import com.hospital.bus.DispensingBUS;
+import com.hospital.bus.InvoiceBUS;
+import com.hospital.dao.PrescriptionDAO;
 import com.hospital.exception.BusinessException;
 import com.hospital.exception.DataAccessException;
 import com.hospital.gui.UIConstants;
@@ -38,6 +40,8 @@ public class PharmacyPanel extends JPanel {
     private static final DecimalFormat MONEY_FMT = new DecimalFormat("#,###");
 
     private final DispensingBUS dispensingBUS = new DispensingBUS();
+    private final InvoiceBUS invoiceBUS = new InvoiceBUS();
+    private final PrescriptionDAO prescriptionDAO = new PrescriptionDAO();
 
     // Left: pending prescriptions
     private DefaultTableModel prescTableModel;
@@ -503,9 +507,26 @@ public class PharmacyPanel extends JPanel {
                     txtNotes.getText().trim()
             );
 
+            // Tạo hóa đơn tự động
+            boolean invoiceCreated = false;
+            try {
+                var presc = prescriptionDAO.findById(selectedDispensing.getPrescriptionId());
+                if (presc != null) {
+                    invoiceBUS.createInvoiceFromMedicalRecord(presc.getMedicalRecordId());
+                    invoiceCreated = true;
+                }
+            } catch (Exception ex) {
+                LOGGER.log(Level.WARNING, "Không thể tạo hóa đơn tự động", ex);
+                JOptionPane.showMessageDialog(this,
+                        "Phát thuốc thành công nhưng KHÔNG thể tạo hóa đơn tự động.\nLỗi: " + ex.getMessage()
+                                + "\n\nVui lòng liên hệ Kế toán để tạo hóa đơn thủ công.",
+                        "Cảnh báo", JOptionPane.WARNING_MESSAGE);
+            }
+
             JOptionPane.showMessageDialog(this,
                     "Phát thuốc thành công!\nMã phiếu: #" + dispensingId
-                            + (isPartial ? "\n(Phát một phần)" : ""),
+                            + (isPartial ? "\n(Phát một phần)" : "")
+                            + (invoiceCreated ? "\nHóa đơn đã được tạo tự động." : ""),
                     "Thành công", JOptionPane.INFORMATION_MESSAGE);
 
             loadPendingPrescriptions();

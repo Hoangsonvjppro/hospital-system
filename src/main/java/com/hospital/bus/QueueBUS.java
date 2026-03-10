@@ -199,11 +199,13 @@ public class QueueBUS {
                     if ("EXAMINING".equals(statusStr)) {
                         // Nếu đang khám, tìm record_id trong bảng MedicalRecord hôm nay
                         // Điều này cực kỳ quan trọng để LabOrder/Prescription có examinationId đúng.
+                        // Lấy record mới nhất (max ID) cho bệnh nhân này hôm nay,
+                        // không yêu cầu queue_status cụ thể (có thể NULL cho record cũ).
                         List<com.hospital.model.MedicalRecord> todayRecords = medicalRecordDAO.listQueueToday(0);
                         long realRecordId = todayRecords.stream()
-                            .filter(mr -> mr.getPatientId() == p.getId() && "EXAMINING".equals(mr.getStatus()))
-                            .map(mr -> (long) mr.getId())
-                            .findFirst()
+                            .filter(mr -> mr.getPatientId() == p.getId())
+                            .mapToLong(mr -> (long) mr.getId())
+                            .max()
                             .orElse((long) entry.getId());
                         p.setCurrentRecordId(realRecordId);
                     } else {

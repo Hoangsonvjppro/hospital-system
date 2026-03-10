@@ -367,6 +367,9 @@ public class DoctorWorkstationPanel extends JPanel {
                 selectedPatient = patient;
                 selectedRecordId = patient.getCurrentRecordId();
                 prescriptionItems.clear();
+                tabStates.clear();
+                vitalSignsPanel.clearFields();
+                symptomsPanel.clearFields();
                 loadPatientList();
                 updateRightPanel();
             }
@@ -525,12 +528,23 @@ public class DoctorWorkstationPanel extends JPanel {
                     rightContentPanel.add(createExaminationContent(), BorderLayout.CENTER);
                     if (tabStates.containsKey(1)) symptomsPanel.restoreState(tabStates.get(1));
                 }
-                case 2 -> rightContentPanel.add(createPrescriptionContent(), BorderLayout.CENTER);
+                case 2 -> {
+                    if ("EXAMINING".equals(selectedPatient.getStatus())) {
+                        rightContentPanel.add(createPrescriptionContent(), BorderLayout.CENTER);
+                    } else {
+                        JLabel warn = new JLabel("Vui lòng gọi khám bệnh nhân trước khi kê đơn thuốc.", SwingConstants.CENTER);
+                        warn.setFont(UIConstants.FONT_SUBTITLE);
+                        warn.setForeground(UIConstants.TEXT_MUTED);
+                        rightContentPanel.add(warn, BorderLayout.CENTER);
+                    }
+                }
                 case 3 -> {
-                    if (selectedPatient != null && selectedRecordId > 0) {
+                    if (selectedPatient != null && selectedRecordId > 0 && "EXAMINING".equals(selectedPatient.getStatus())) {
                         int currentUserId = SessionManager.getInstance().getCurrentUser() != null ? 
                                             SessionManager.getInstance().getCurrentUser().getId() : 0;
                         labOrderPanel.setContext(selectedRecordId, selectedPatient.getId(), currentUserId);
+                    } else {
+                        labOrderPanel.setContext(0, 0, 0);
                     }
                     rightContentPanel.add(labOrderPanel, BorderLayout.CENTER);
                 }
@@ -1135,6 +1149,9 @@ public class DoctorWorkstationPanel extends JPanel {
         selectedPatient = null;
         selectedRecordId = -1;
         prescriptionItems.clear();
+        tabStates.clear();
+        vitalSignsPanel.clearFields();
+        symptomsPanel.clearFields();
         List<Patient> waiting = queueBUS.getWaitingPatients();
         if (!waiting.isEmpty()) {
             selectedIndex = 0;

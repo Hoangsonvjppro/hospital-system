@@ -300,6 +300,7 @@ public class LabOrderPanel extends JPanel {
     // ════════════════════════════════════════════════════════════
 
     private void onCreateOrder() {
+        LOGGER.info("onCreateOrder: examinationId=" + examinationId + ", patientId=" + patientId + ", doctorId=" + doctorId);
         if (examinationId <= 0 || patientId <= 0) {
             JOptionPane.showMessageDialog(this,
                     "Vui lòng chọn bệnh nhân và bắt đầu lần khám trước khi yêu cầu xét nghiệm.",
@@ -318,7 +319,7 @@ public class LabOrderPanel extends JPanel {
         }
 
         try {
-            LabOrder order = new LabOrder(examinationId, patientId, testType, testName, doctorId = 1);
+            LabOrder order = new LabOrder(examinationId, patientId, testType, testName, doctorId);
             order.setNotes(txtNotes.getText().trim());
 
             long id = labOrderBUS.createLabOrder(order);

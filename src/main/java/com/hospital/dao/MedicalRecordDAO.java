@@ -58,11 +58,12 @@ public class MedicalRecordDAO {
                 doctor_id,
                 appointment_id,
                 visit_date,
+                queue_status,
                 priority,
                 queue_number,
                 arrival_time,
                 exam_type
-            ) VALUES (?, ?, ?, NOW(), ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, NOW(), 'EXAMINING', ?, ?, ?, ?)
         """;
 
         Connection conn = null;
