@@ -28,5 +28,5 @@ Thumbs.db
 *.log
 
 .agents/
-
-application.properties
+*.properties
+src/main/resources/application.properties
