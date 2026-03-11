@@ -4,15 +4,10 @@ import java.time.LocalDate;
 import java.time.Period;
 import java.util.Objects;
 
-/**
- * Entity bệnh nhân — ánh xạ bảng Patient trong CSDL.
- * Bổ sung các trường workflow (status, examType, arrivalTime, patientCode)
- * phục vụ hàng đợi khám bệnh tại DoctorWorkstationPanel.
- * Các trường workflow là transient (không lưu trong bảng Patient).
- */
+
 public class Patient extends BaseModel {
 
-    // ── Enum phân loại bệnh nhân ──────────────────────────────
+
     public enum PatientType {
         FIRST_VISIT("Khám lần đầu"),
         REVISIT("Tái khám"),
@@ -34,7 +29,6 @@ public class Patient extends BaseModel {
         }
     }
 
-    // -- Trường DB (ánh xạ bảng Patient) --
     private String fullName;
     private Gender gender;
     private LocalDate dateOfBirth;
@@ -42,18 +36,16 @@ public class Patient extends BaseModel {
     private String address;
     private Long userId;
     private boolean isActive;
-    private String cccd;           // Số CCCD (12 số)
-    private String allergyHistory; // Tiền sử dị ứng
-    private String notes;          // Ghi chú bổ sung
-    private PatientType patientType; // Phân loại: FIRST_VISIT / REVISIT / EMERGENCY
+    private String cccd;           
+    private String allergyHistory;
+    private String notes;          
+    private PatientType patientType;
 
-    // -- Trường workflow (transient, phục vụ hàng đợi khám) --
-    private String patientCode;   // Mã BN hiển thị (vd: "BN001")
-    private String status;        // WAITING / EXAMINING / COMPLETED / TRANSFERRED
-    private String examType;      // Loại khám (vd: "Khám tổng quát")
-    private String arrivalTime;   // Giờ đến (vd: "08:30")
-    private long currentRecordId; // Record ID hiện tại (dùng cho queue workflow)
-
+    private String patientCode; 
+    private String status;       
+    private String examType;     
+    private String arrivalTime;   
+    private long currentRecordId; 
     public enum Gender {
         MALE("Nam"),
         FEMALE("Nữ"),
@@ -95,7 +87,6 @@ public class Patient extends BaseModel {
         this.patientType = PatientType.FIRST_VISIT;
     }
 
-    // -- DB field getters/setters --
 
     public String getFullName() {
         return fullName;
@@ -185,7 +176,6 @@ public class Patient extends BaseModel {
         this.patientType = patientType;
     }
 
-    // -- Workflow field getters/setters --
 
     public String getPatientCode() {
         if (patientCode == null || patientCode.isEmpty()) {
@@ -230,17 +220,13 @@ public class Patient extends BaseModel {
         this.currentRecordId = currentRecordId;
     }
 
-    // -- Helper methods --
-
-    /**
-     * Tính tuổi dựa trên ngày sinh.
-     */
+  
     public int getAge() {
         if (dateOfBirth == null) return 0;
         return Period.between(dateOfBirth, LocalDate.now()).getYears();
     }
 
-    // -- equals / hashCode (dựa trên id) --
+
 
     @Override
     public boolean equals(Object o) {
@@ -255,7 +241,6 @@ public class Patient extends BaseModel {
         return Objects.hash(id);
     }
 
-    // -- toString --
 
     @Override
     public String toString() {

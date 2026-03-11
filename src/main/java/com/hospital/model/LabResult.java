@@ -2,9 +2,7 @@ package com.hospital.model;
 
 import java.time.LocalDateTime;
 
-/**
- * Model kết quả xét nghiệm (Lab Result).
- */
+
 public class LabResult extends BaseModel {
 
     private long recordId;
@@ -16,7 +14,6 @@ public class LabResult extends BaseModel {
     private LocalDateTime testDate;
     private String notes;
 
-    // ── Constructors ─────────────────────────────────────────
 
     public LabResult() {}
 
@@ -27,7 +24,6 @@ public class LabResult extends BaseModel {
         this.testDate = testDate;
     }
 
-    // ── Getters & Setters ────────────────────────────────────
 
     public long getRecordId()                     { return recordId; }
     public void setRecordId(long v)               { this.recordId = v; }

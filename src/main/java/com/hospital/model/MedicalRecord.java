@@ -2,9 +2,7 @@ package com.hospital.model;
 
 import java.time.LocalDateTime;
 
-/**
- * Model bệnh án (Medical Record).
- */
+
 public class MedicalRecord extends BaseModel {
 
     private long patientId;
@@ -12,37 +10,32 @@ public class MedicalRecord extends BaseModel {
     private Long appointmentId;
     private LocalDateTime visitDate;
 
-    // ── Thông tin khám ───────────────────────────────────────────────────────
-    private String symptoms;       // Triệu chứng
-    private String diagnosis;      // Chẩn đoán
+    private String symptoms;       
+    private String diagnosis;     
 
-    // ── Sinh hiệu (Vital Signs) ─────────────────────────────────────────────
-    private double weight;         // Cân nặng (kg)
-    private double height;         // Chiều cao (cm)
-    private String bloodPressure;  // Huyết áp (vd: "120/80")
-    private int pulse;             // Mạch (bpm)
-    private double temperature;    // Nhiệt độ (°C)
-    private int spo2;              // SpO2 (%)
+    private double weight;         
+    private double height;        
+    private String bloodPressure; 
+    private int pulse;            
+    private double temperature;    
+    private int spo2;            
 
-    private String diagnosisCode;  // Mã ICD-10
-    private String notes;          // Doctor notes
+    private String diagnosisCode;  
+    private String notes;         
 
-    private String status;         // Editing / Completed / Transferred
+    private String status;         
 
-    // Workflow statuses (mở rộng)
     public static final String STATUS_WAITING     = "WAITING";
-    public static final String STATUS_IN_PROGRESS = "IN_PROGRESS"; // tương đương EXAMINING
+    public static final String STATUS_IN_PROGRESS = "IN_PROGRESS"; 
     public static final String STATUS_PRESCRIBED  = "PRESCRIBED";
     public static final String STATUS_COMPLETED   = "COMPLETED";
     public static final String STATUS_PAID        = "PAID";
 
-    // Queue/workflow fields — synced with DB columns: priority, queue_number, arrival_time, exam_type
-    // Used by QueueDAO, DoctorWorkstationPanel.
-    private String priority;       // NORMAL / ELDERLY / EMERGENCY — DB column: priority
-    private Integer queueNumber;   // Số thứ tự hôm nay — DB column: queue_number
-    private java.time.LocalTime arrivalTime; // Giờ đến — DB column: arrival_time
-    private String examTypeField;   // Loại khám (vd: "Kham tong quat") — DB column: exam_type
-    private java.time.LocalDate followUpDate; // Ngày hẹn tái khám — set by doctor on completion
+    private String priority;       
+    private Integer queueNumber;
+    private java.time.LocalTime arrivalTime; 
+    private String examTypeField;   
+    private java.time.LocalDate followUpDate; 
 
     public MedicalRecord() {}
 
@@ -55,7 +48,6 @@ public class MedicalRecord extends BaseModel {
         this.status = STATUS_WAITING;
     }
 
-    // ── Getters & Setters ────────────────────────────────────────────────────
 
     public long getPatientId()                { return patientId; }
     public void setPatientId(long v)          { this.patientId = v; }

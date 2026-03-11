@@ -11,9 +11,6 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-/**
- * DAO lịch hẹn – truy vấn database thật.
- */
 public class AppointmentDAO extends AbstractDAO implements BaseDAO<Appointment> {
 
     private static final Logger LOGGER = Logger.getLogger(AppointmentDAO.class.getName());
@@ -37,8 +34,6 @@ public class AppointmentDAO extends AbstractDAO implements BaseDAO<Appointment> 
         }
     }
 
-    // ── Status mapping: DB ENUM ↔ Vietnamese display ────────────────
-
     static String dbToDisplay(String dbStatus) {
         if (dbStatus == null) return "Mới";
         return switch (dbStatus) {
@@ -61,8 +56,6 @@ public class AppointmentDAO extends AbstractDAO implements BaseDAO<Appointment> 
         };
     }
 
-    // ── SQL base ────────────────────────────────────────────────────
-
     private static final String SELECT_BASE =
             "SELECT a.appointment_id, a.patient_id, a.doctor_id, "
           + "       a.appointment_date, a.start_time, a.end_time, "
@@ -73,8 +66,6 @@ public class AppointmentDAO extends AbstractDAO implements BaseDAO<Appointment> 
           + "JOIN Patient p ON a.patient_id = p.patient_id "
           + "JOIN Doctor  d ON a.doctor_id  = d.doctor_id "
           + "JOIN `User`  u ON d.user_id    = u.user_id ";
-
-    // ── CRUD ────────────────────────────────────────────────────────
 
     @Override
     public Appointment findById(int id) {
@@ -197,7 +188,6 @@ public class AppointmentDAO extends AbstractDAO implements BaseDAO<Appointment> 
         }
     }
 
-    /** Lấy danh sách tên bác sĩ (distinct) có trong lịch hẹn. */
     public List<String> findDistinctDoctorNames() {
         List<String> names = new ArrayList<>();
         String sql = "SELECT DISTINCT u.full_name "
@@ -219,8 +209,6 @@ public class AppointmentDAO extends AbstractDAO implements BaseDAO<Appointment> 
         }
         return names;
     }
-
-    // ── Row mapper ──────────────────────────────────────────────────
 
     private Appointment mapRow(ResultSet rs) throws SQLException {
         Appointment a = new Appointment();

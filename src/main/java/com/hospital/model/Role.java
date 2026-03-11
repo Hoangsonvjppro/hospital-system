@@ -1,11 +1,6 @@
 package com.hospital.model;
 
-/**
- * Enum phân quyền — ánh xạ bảng Role trong CSDL.
- * <p>
- * Mỗi giá trị tương ứng với role_id trong bảng Role:
- * 1=ADMIN, 2=DOCTOR, 3=NURSE, 4=RECEPTIONIST, 5=ACCOUNTANT, 6=PATIENT, 7=PHARMACIST
- */
+
 public enum Role {
 
     ADMIN(1, "Quản trị viên"),
@@ -32,13 +27,7 @@ public enum Role {
         return displayName;
     }
 
-    /**
-     * Tìm Role theo role_id từ CSDL.
-     *
-     * @param id role_id
-     * @return Role tương ứng
-     * @throws IllegalArgumentException nếu id không hợp lệ
-     */
+
     public static Role fromId(int id) {
         for (Role role : values()) {
             if (role.id == id) {
@@ -48,13 +37,6 @@ public enum Role {
         throw new IllegalArgumentException("Không tìm thấy vai trò với id=" + id);
     }
 
-    /**
-     * Tìm Role theo tên (role_name trong DB).
-     *
-     * @param name tên role (VD: "ADMIN", "DOCTOR")
-     * @return Role tương ứng
-     * @throws IllegalArgumentException nếu tên không hợp lệ
-     */
     public static Role fromName(String name) {
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("Tên vai trò không được để trống");

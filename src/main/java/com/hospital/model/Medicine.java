@@ -5,9 +5,9 @@ import java.time.LocalDate;
 public class Medicine extends BaseModel {
     private String medicineCode;
     private String medicineName;
-    private String genericName;    // Tên hoạt chất
-    private String unit;           // viên/gói/ống/chai
-    private String dosageForm;     // viên nén/viên nang/siro/tiêm
+    private String genericName;   
+    private String unit;          
+    private String dosageForm;    
     private double costPrice;
     private double sellPrice;
     private int stockQty;

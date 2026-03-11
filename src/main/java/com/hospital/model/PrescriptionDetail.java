@@ -6,14 +6,14 @@ public class PrescriptionDetail {
     private long prescriptionId;
     private int medicineId;
     private int quantity;
-    private String dosage;       // "2 viên x 3 lần/ngày"
-    private String frequency;    // Cách dùng: "Ngày 3 lần, mỗi lần 1 viên"
-    private int duration;        // Số ngày dùng thuốc
-    private String instruction;  // "Uống sau ăn"
-    private double unitPrice;    // Đơn giá tại thời điểm kê
-    private double totalAmount;  // Tổng tiền cho dòng này
-    private String medicineName; // Transient — for display
-    private String unit;         // Transient — đơn vị tính
+    private String dosage;     
+    private String frequency;   
+    private int duration;        
+    private String instruction;  
+    private double unitPrice;    
+    private double totalAmount;  
+    private String medicineName;
+    private String unit;        
 
     public PrescriptionDetail() {}
 

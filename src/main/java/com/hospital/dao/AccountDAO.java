@@ -8,25 +8,14 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * DAO cho tài khoản đăng nhập — thao tác CRUD trên bảng `User`.
- * Account DAO — CRUD operations on the `User` table.
- *
- * Lưu ý:
- * - findByUsername(): tìm tài khoản theo username (phục vụ đăng nhập).
- * - Việc so sánh password hash (BCrypt) sẽ được thực hiện ở tầng BUS,
- *   KHÔNG so khớp trực tiếp trong câu SQL.
- */
 public class AccountDAO implements BaseDAO<Account> {
 
     private Connection externalConnection;
 
     public AccountDAO() {
-        // Mode 1: Tự lấy connection (cho thao tác đơn lẻ)
     }
 
     public AccountDAO(Connection connection) {
-        // Mode 2: Dùng external connection (cho transaction)
         this.externalConnection = connection;
     }
 
@@ -42,8 +31,6 @@ public class AccountDAO implements BaseDAO<Account> {
             try { conn.close(); } catch (SQLException ignored) {}
         }
     }
-
-    // ── CRUD cơ bản (BaseDAO) ─────────────────────────────────
 
     @Override
     public Account findById(int id) {
@@ -154,16 +141,6 @@ public class AccountDAO implements BaseDAO<Account> {
         }
     }
 
-    // ── Truy vấn phục vụ đăng nhập ───────────────────────────
-
-    /**
-     * Tìm tài khoản theo username.
-     * Dùng cho chức năng đăng nhập: lấy Account ra rồi so sánh
-     * password hash ở tầng BUS bằng BCrypt.
-     *
-     * @param username tên đăng nhập
-     * @return Account nếu tìm thấy, null nếu không tồn tại
-     */
     public Account findByUsername(String username) {
         String sql = "SELECT * FROM `User` WHERE username = ? AND is_active = TRUE";
         Connection conn = null;
@@ -185,13 +162,6 @@ public class AccountDAO implements BaseDAO<Account> {
         return null;
     }
 
-    /**
-     * Kiểm tra username đã tồn tại trong hệ thống chưa.
-     * Dùng khi tạo tài khoản mới để tránh trùng lặp.
-     *
-     * @param username tên đăng nhập cần kiểm tra
-     * @return true nếu đã tồn tại
-     */
     public boolean existsByUsername(String username) {
         String sql = "SELECT COUNT(*) FROM `User` WHERE username = ?";
         Connection conn = null;
@@ -213,11 +183,6 @@ public class AccountDAO implements BaseDAO<Account> {
         return false;
     }
 
-    // ── Helper ────────────────────────────────────────────────
-
-    /**
-     * Map ResultSet thành entity Account.
-     */
     private Account mapResultSet(ResultSet rs) throws SQLException {
         Account account = new Account();
         account.setId(rs.getInt("user_id"));

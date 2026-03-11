@@ -2,9 +2,6 @@ package com.hospital.model;
 
 import java.time.LocalDateTime;
 
-/**
- * Model tiền sử dị ứng bệnh nhân (Patient Allergy).
- */
 public class PatientAllergy extends BaseModel {
 
     public static final String SEVERITY_MILD     = "MILD";
@@ -17,8 +14,7 @@ public class PatientAllergy extends BaseModel {
     private String reaction;
     private String notes;
 
-    // ── Constructors ─────────────────────────────────────────
-
+    
     public PatientAllergy() {
         this.severity = SEVERITY_MODERATE;
     }
@@ -30,7 +26,7 @@ public class PatientAllergy extends BaseModel {
         this.severity = severity;
     }
 
-    // ── Getters & Setters ────────────────────────────────────
+  
 
     public long getPatientId()                    { return patientId; }
     public void setPatientId(long v)              { this.patientId = v; }
@@ -47,9 +43,6 @@ public class PatientAllergy extends BaseModel {
     public String getNotes()                      { return notes; }
     public void setNotes(String v)                { this.notes = v; }
 
-    /**
-     * Trả về hiển thị mức độ bằng tiếng Việt.
-     */
     public String getSeverityDisplay() {
         return switch (severity) {
             case SEVERITY_MILD     -> "Nhẹ";

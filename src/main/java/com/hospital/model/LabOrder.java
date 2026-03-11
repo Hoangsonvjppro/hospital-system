@@ -2,13 +2,9 @@ package com.hospital.model;
 
 import java.time.LocalDateTime;
 
-/**
- * Model phiếu yêu cầu xét nghiệm (Lab Order).
- * Một lần khám (MedicalRecord) có thể có nhiều LabOrder (1-N).
- */
+
 public class LabOrder extends BaseModel {
 
-    // ── Enum loại xét nghiệm ────────────────────────────────
 
     public enum TestType {
         BLOOD("Xét nghiệm máu"),
@@ -27,7 +23,6 @@ public class LabOrder extends BaseModel {
         public String toString() { return displayName; }
     }
 
-    // ── Enum trạng thái xét nghiệm ──────────────────────────
 
     public enum LabStatus {
         PENDING("Chờ xử lý"),
@@ -44,24 +39,21 @@ public class LabOrder extends BaseModel {
         public String toString() { return displayName; }
     }
 
-    // ── Fields ───────────────────────────────────────────────
 
-    private long examinationId;   // FK → MedicalRecord.record_id
-    private long patientId;       // FK → Patient.patient_id
+    private long examinationId;  
+    private long patientId;       
     private TestType testType;
     private String testName;
     private LabStatus status;
-    private String result;        // Kết quả xét nghiệm (text)
+    private String result;     
     private String notes;
     private LocalDateTime orderedAt;
     private LocalDateTime completedAt;
-    private long orderedBy;       // FK → Doctor.doctor_id
+    private long orderedBy;
 
-    // Transient fields — for display
     private String patientName;
     private String doctorName;
 
-    // ── Constructors ─────────────────────────────────────────
 
     public LabOrder() {
         this.status = LabStatus.PENDING;
@@ -77,7 +69,6 @@ public class LabOrder extends BaseModel {
         this.orderedBy = orderedBy;
     }
 
-    // ── Getters & Setters ────────────────────────────────────
 
     public long getExaminationId()                      { return examinationId; }
     public void setExaminationId(long v)                { this.examinationId = v; }

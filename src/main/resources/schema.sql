@@ -141,17 +141,7 @@ CREATE TABLE IF NOT EXISTS StockTransaction (
     FOREIGN KEY (created_by)  REFERENCES `User`(user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS Schedule (
-    schedule_id  BIGINT AUTO_INCREMENT PRIMARY KEY,
-    doctor_id    BIGINT       NOT NULL,
-    work_date    DATE         NOT NULL,
-    start_time   TIME         NOT NULL,
-    end_time     TIME         NOT NULL,
-    notes        VARCHAR(500),
-    created_at   DATETIME     DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (doctor_id) REFERENCES Doctor(doctor_id),
-    UNIQUE KEY uq_doctor_schedule (doctor_id, work_date, start_time)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- Schedule table removed: DoctorSchedulePanel uses AppointmentBUS instead.
 
 CREATE TABLE IF NOT EXISTS Appointment (
     appointment_id  BIGINT AUTO_INCREMENT PRIMARY KEY,

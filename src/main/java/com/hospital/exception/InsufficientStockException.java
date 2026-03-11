@@ -1,11 +1,5 @@
 package com.hospital.exception;
 
-/**
- * Exception khi số lượng thuốc tồn kho không đủ để phát.
- * <p>
- * Chứa thông tin medicine, số lượng yêu cầu, và số lượng khả dụng
- * để hiển thị thông báo chi tiết cho user.
- */
 public class InsufficientStockException extends BusinessException {
 
     private final long medicineId;

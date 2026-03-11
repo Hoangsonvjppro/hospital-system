@@ -49,6 +49,12 @@ public class AdminFrame extends BaseFrame {
                 () -> showPanel(new com.hospital.gui.panels.CompletionPanel()));
 
         addSeparator();
+        addSectionLabel("Dịch vụ");
+
+        addMenuItem("stethoscope", "Quản lý dịch vụ",
+                () -> showPanel(new ServicePanel()));
+
+        addSeparator();
         addSectionLabel("Báo cáo");
 
         addMenuItem("trending_up", "Doanh thu",

@@ -13,6 +13,10 @@ import com.hospital.model.MedicalRecord;
 import com.hospital.model.Medicine;
 import com.hospital.model.Prescription;
 import com.hospital.model.PrescriptionDetail;
+import com.hospital.model.StockTransaction;
+import com.hospital.model.MedicineIngredient;
+import com.hospital.dao.StockTransactionDAO;
+import com.hospital.dao.MedicineIngredientDAO;
 import com.hospital.util.AppUtils;
 import com.formdev.flatlaf.FlatClientProperties;
 import com.formdev.flatlaf.icons.FlatSearchIcon;
@@ -340,11 +344,14 @@ public class MedicinePanel extends JPanel {
             JMenuItem itemEdit = new JMenuItem("Sửa thông tin thuốc");
             JMenuItem itemDelete = new JMenuItem("Xóa thuốc này");
             JMenuItem itemImport=new JMenuItem("Nhập thêm");
+            JMenuItem itemStockHistory = new JMenuItem("📊 Lịch sử tồn kho");
             popupMenu.add(itemImport);
             popupMenu.addSeparator();
             popupMenu.add(itemEdit);
             popupMenu.addSeparator();
             popupMenu.add(itemDelete);
+            popupMenu.addSeparator();
+            popupMenu.add(itemStockHistory);
             table.addMouseListener(new java.awt.event.MouseAdapter() {
                 @Override
                 public void mousePressed(java.awt.event.MouseEvent e) {
@@ -415,6 +422,14 @@ public class MedicinePanel extends JPanel {
                             AppUtils.showError(this, "Lỗi hệ thống: " + ex.getMessage());
                         }
                     }
+                }
+            });
+
+            itemStockHistory.addActionListener(e -> {
+                int row = table.getSelectedRow();
+                if (row >= 0) {
+                    Medicine selectedMedicine = currentList.get(row);
+                    showStockHistoryDialog(selectedMedicine);
                 }
             });
 
@@ -671,6 +686,72 @@ public class MedicinePanel extends JPanel {
             return wrapper;
         }
     }
+
+    private void showStockHistoryDialog(Medicine medicine) {
+        JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this),
+                "Lịch sử tồn kho — " + medicine.getMedicineName(), true);
+        dialog.setSize(850, 500);
+        dialog.setLocationRelativeTo(this);
+
+        String[] columns = {"Ngày giờ", "Loại GD", "Số lượng", "Tồn trước", "Tồn sau", "Tham chiếu", "Ghi chú"};
+        DefaultTableModel histModel = new DefaultTableModel(columns, 0) {
+            @Override public boolean isCellEditable(int row, int column) { return false; }
+        };
+        JTable histTable = new JTable(histModel);
+        histTable.setFont(UIConstants.FONT_BODY);
+        histTable.setRowHeight(30);
+        histTable.getTableHeader().setFont(UIConstants.FONT_BOLD);
+
+        SwingWorker<List<StockTransaction>, Void> worker = new SwingWorker<>() {
+            @Override
+            protected List<StockTransaction> doInBackground() {
+                return new StockTransactionDAO().findByMedicine(medicine.getId());
+            }
+            @Override
+            protected void done() {
+                try {
+                    List<StockTransaction> txList = get();
+                    java.time.format.DateTimeFormatter dtf = java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+                    for (StockTransaction tx : txList) {
+                        String dateStr = tx.getCreatedAt() != null ? tx.getCreatedAt().format(dtf) : "";
+                        String qtyStr = tx.getQuantity() > 0 ? "+" + tx.getQuantity() : String.valueOf(tx.getQuantity());
+                        String ref = (tx.getReferenceType() != null ? tx.getReferenceType() : "")
+                                + (tx.getReferenceId() != null ? " #" + tx.getReferenceId() : "");
+                        histModel.addRow(new Object[]{
+                                dateStr,
+                                tx.getTransactionTypeDisplay(),
+                                qtyStr,
+                                tx.getStockBefore(),
+                                tx.getStockAfter(),
+                                ref,
+                                tx.getNotes() != null ? tx.getNotes() : ""
+                        });
+                    }
+                    if (txList.isEmpty()) {
+                        histModel.addRow(new Object[]{"", "Chưa có giao dịch nào", "", "", "", "", ""});
+                    }
+                } catch (Exception ex) {
+                    histModel.addRow(new Object[]{"", "Lỗi tải dữ liệu: " + ex.getMessage(), "", "", "", "", ""});
+                }
+            }
+        };
+        worker.execute();
+
+        JPanel panel = new JPanel(new BorderLayout(0, 10));
+        panel.setBorder(new EmptyBorder(10, 10, 10, 10));
+        panel.add(new JScrollPane(histTable), BorderLayout.CENTER);
+
+        JButton btnClose = new JButton("Đóng");
+        btnClose.setFont(UIConstants.FONT_BUTTON);
+        btnClose.addActionListener(e -> dialog.dispose());
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        btnPanel.add(btnClose);
+        panel.add(btnPanel, BorderLayout.SOUTH);
+
+        dialog.setContentPane(panel);
+        dialog.setVisible(true);
+    }
+
     static class InventoryCellRenderer extends DefaultTableCellRenderer {
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
@@ -699,6 +780,7 @@ class MedicineDialog extends JDialog {
     private Medicine currentMedicine;
     private boolean isDataChanged=false;
     private MedicineBUS bus = new MedicineBUS();
+    private MedicineIngredientDAO ingredientDAO = new MedicineIngredientDAO();
     private JFormattedTextField txtExpiryDate;
     private JTextField txtName, txtUnit, txtCostPrice, txtSellPrice, txtStock, txtMinThreshold,txtDescription,txtManufacturer;
     public MedicineDialog(Frame parent, Medicine medicine) {
@@ -741,7 +823,71 @@ class MedicineDialog extends JDialog {
         pnl.add(new JLabel("Thông tin thuốc:")); txtDescription=new JTextField();
         txtDescription.putClientProperty(FlatClientProperties.STYLE, "arc: 10; margin:5,10,5,10");
         pnl.add(txtDescription);
-        add(pnl, BorderLayout.CENTER);
+
+        JPanel mainPanel = new JPanel(new BorderLayout(0, 10));
+        mainPanel.add(pnl, BorderLayout.NORTH);
+
+        // Ingredient management section (only for editing existing medicine)
+        if (currentMedicine != null && currentMedicine.getId() > 0) {
+            setSize(500, 750);
+            JPanel ingredientPanel = new JPanel(new BorderLayout(5, 5));
+            ingredientPanel.setBorder(BorderFactory.createTitledBorder("Thành phần hoạt chất"));
+
+            DefaultListModel<String> ingredientListModel = new DefaultListModel<>();
+            JList<String> ingredientList = new JList<>(ingredientListModel);
+            ingredientList.setFont(UIConstants.FONT_BODY);
+            JScrollPane ingredientScroll = new JScrollPane(ingredientList);
+            ingredientScroll.setPreferredSize(new Dimension(0, 120));
+            ingredientPanel.add(ingredientScroll, BorderLayout.CENTER);
+
+            JPanel addIngPanel = new JPanel(new BorderLayout(5, 0));
+            JTextField txtIngredient = new JTextField();
+            txtIngredient.putClientProperty(FlatClientProperties.STYLE, "arc: 10; margin:5,10,5,10");
+            JButton btnAddIng = new JButton("➕");
+            JButton btnDelIng = new JButton("🗑️ Xóa");
+            JPanel ingBtnPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+            ingBtnPanel.add(btnAddIng);
+            ingBtnPanel.add(btnDelIng);
+            addIngPanel.add(txtIngredient, BorderLayout.CENTER);
+            addIngPanel.add(ingBtnPanel, BorderLayout.EAST);
+            ingredientPanel.add(addIngPanel, BorderLayout.SOUTH);
+
+            // Load ingredients
+            Runnable loadIngredients = () -> {
+                ingredientListModel.clear();
+                for (MedicineIngredient mi : ingredientDAO.findByMedicine(currentMedicine.getId())) {
+                    ingredientListModel.addElement(mi.getIngredientName());
+                }
+            };
+            loadIngredients.run();
+
+            btnAddIng.addActionListener(e -> {
+                String name = txtIngredient.getText().trim();
+                if (!name.isEmpty()) {
+                    try {
+                        MedicineIngredient mi = new MedicineIngredient();
+                        mi.setMedicineId(currentMedicine.getId());
+                        mi.setIngredientName(name);
+                        ingredientDAO.insert(mi);
+                        txtIngredient.setText("");
+                        loadIngredients.run();
+                    } catch (DataAccessException ex) {
+                        JOptionPane.showMessageDialog(this, "Lỗi: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            });
+            btnDelIng.addActionListener(e -> {
+                String selected = ingredientList.getSelectedValue();
+                if (selected != null) {
+                    ingredientDAO.delete(currentMedicine.getId(), selected);
+                    loadIngredients.run();
+                }
+            });
+
+            mainPanel.add(ingredientPanel, BorderLayout.CENTER);
+        }
+
+        add(mainPanel, BorderLayout.CENTER);
 
         JButton btnSave = new JButton("Lưu");
         btnSave.addActionListener(e -> {

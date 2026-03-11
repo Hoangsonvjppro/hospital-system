@@ -8,12 +8,11 @@ public class Prescription extends BaseModel {
     public static final String STATUS_CONFIRMED = "CONFIRMED";
     public static final String STATUS_DISPENSED  = "DISPENSED";
     public static final String STATUS_CANCELLED  = "CANCELLED";
-    // Legacy alias — PrescriptionBUS used PENDING which maps to CONFIRMED
     public static final String STATUS_PENDING    = "CONFIRMED";
 
     private long medicalRecordId;
     private LocalDateTime createdAt;
-    private String status; // DRAFT / CONFIRMED / DISPENSED / CANCELLED
+    private String status; 
     private double totalAmount;
 
     public Prescription() {}
