@@ -19,7 +19,7 @@ import java.util.Locale;
 public class InvoicePrinter {
 
     private static final NumberFormat MONEY_FMT = NumberFormat.getInstance(new Locale("vi", "VN"));
-    private static final BaseColor HEADER_BG = new BaseColor(192, 57, 43);   // PRIMARY_RED
+    private static final BaseColor HEADER_BG = new BaseColor(192, 57, 43);  
     private static final BaseColor LIGHT_GRAY = new BaseColor(245, 245, 245);
 
 
@@ -157,25 +157,17 @@ public class InvoicePrinter {
 
     private static BaseFont createVietnameseBaseFont() throws Exception {
         String[] candidates = {
-                "c:/windows/fonts/times.ttf",
-                "c:/windows/fonts/arial.ttf",
-                "c:/windows/fonts/tahoma.ttf",
-                "c:/windows/fonts/segoeui.ttf",
-                "/usr/share/fonts/truetype/Jetbrain/Mono/JetBrainsMono-Regular.ttf",
-                "/usr/share/fonts/truetype/Jetbrain/Jetbrain-Regular.ttf"
+                "/usr/share/fonts/jetbrains-mono-fonts/JetBrainsMono-Regular.otf",
+                "/usr/share/fonts/jetbrains-mono-fonts/JetBrainsMono-ExtraBoldItalic.otf", 
         };
         for (String path : candidates) {
             if (new File(path).exists()) {
                 return BaseFont.createFont(path, BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
             }
         }
-        // Fallback — có thể không hỗ trợ đầy đủ dấu tiếng Việt
         return BaseFont.createFont(BaseFont.HELVETICA, BaseFont.CP1252, BaseFont.NOT_EMBEDDED);
     }
 
-    // ══════════════════════════════════════════════════════════
-    //  PRIVATE HELPERS
-    // ══════════════════════════════════════════════════════════
 
     private static void addCentered(Document doc, String text, Font font) throws DocumentException {
         Paragraph p = new Paragraph(text, font);

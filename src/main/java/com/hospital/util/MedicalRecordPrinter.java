@@ -14,16 +14,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
 
-/**
- * Tiện ích xuất bệnh án tóm tắt ra file PDF.
- * <p>
- * Sử dụng thư viện iText 5 với font hệ thống hỗ trợ tiếng Việt (Unicode).
- * <p>
- * Cách dùng:
- * <pre>
- *   MedicalRecordPrinter.exportPdf(record, "C:/output/BA00001.pdf");
- * </pre>
- */
+
 public class MedicalRecordPrinter {
 
     private static final NumberFormat MONEY_FMT = NumberFormat.getInstance(new Locale("vi", "VN"));
@@ -32,13 +23,7 @@ public class MedicalRecordPrinter {
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final DateTimeFormatter DATETIME_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
 
-    /**
-     * Xuất bệnh án tóm tắt ra file PDF.
-     *
-     * @param record   bệnh án (MedicalRecord)
-     * @param destPath đường dẫn file PDF đích
-     * @throws Exception nếu có lỗi ghi file hoặc font
-     */
+ 
     public static void exportPdf(MedicalRecord record, String destPath) throws Exception {
         BaseFont bf = createVietnameseBaseFont();
 
@@ -55,7 +40,6 @@ public class MedicalRecordPrinter {
         PdfWriter.getInstance(doc, new FileOutputStream(destPath));
         doc.open();
 
-        // ── 1. HEADER — Tên phòng khám ──────────────────────
         ClinicConfig cfg = new ClinicConfigBUS().getConfig();
         addCentered(doc, cfg.getClinicName().toUpperCase(), fHeader);
         String subHeader = safe(cfg.getClinicAddress());
@@ -65,12 +49,10 @@ public class MedicalRecordPrinter {
         addCentered(doc, subHeader, fSmall);
         doc.add(Chunk.NEWLINE);
 
-        // ── 2. TITLE ─────────────────────────────────────────
         addCentered(doc, "BỆNH ÁN TÓM TẮT", fTitle);
         addCentered(doc, "Mã bệnh án: #" + record.getId(), fSmall);
         doc.add(new Paragraph(" "));
 
-        // ── 3. THÔNG TIN BỆNH NHÂN ──────────────────────────
         addSectionTitle(doc, "I. THÔNG TIN BỆNH NHÂN", fSection);
 
         PdfPTable patientTbl = new PdfPTable(2);
@@ -99,7 +81,6 @@ public class MedicalRecordPrinter {
 
         doc.add(patientTbl);
 
-        // ── 4. SINH HIỆU ────────────────────────────────────
         addSectionTitle(doc, "II. SINH HIỆU", fSection);
 
         PdfPTable vitalsTbl = new PdfPTable(6);
@@ -224,14 +205,13 @@ public class MedicalRecordPrinter {
 
             doc.add(rxTbl);
 
-            // Tổng tiền thuốc
             Paragraph pTotal = new Paragraph("Tổng tiền thuốc: " + formatMoney(totalRx), fBold);
             pTotal.setAlignment(Element.ALIGN_RIGHT);
             pTotal.setSpacingAfter(10);
             doc.add(pTotal);
         }
 
-        // ── 8. HẸN TÁI KHÁM ────────────────────────────────
+
         if (record.getFollowUpDate() != null) {
             doc.add(Chunk.NEWLINE);
             Paragraph pFollowUp = new Paragraph(
@@ -240,7 +220,7 @@ public class MedicalRecordPrinter {
             doc.add(pFollowUp);
         }
 
-        // ── 9. FOOTER ───────────────────────────────────────
+
         doc.add(Chunk.NEWLINE);
         doc.add(Chunk.NEWLINE);
         addCentered(doc, "Chúc quý bệnh nhân sớm bình phục!", fSmallIt);
@@ -249,18 +229,11 @@ public class MedicalRecordPrinter {
         doc.close();
     }
 
-    // ══════════════════════════════════════════════════════════
-    //  FONT HELPER
-    // ══════════════════════════════════════════════════════════
 
     private static BaseFont createVietnameseBaseFont() throws Exception {
         String[] candidates = {
-                "c:/windows/fonts/times.ttf",
-                "c:/windows/fonts/arial.ttf",
-                "c:/windows/fonts/tahoma.ttf",
-                "c:/windows/fonts/segoeui.ttf",
-                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-                "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"
+                "/usr/share/fonts/jetbrains-mono-fonts/JetBrainsMono-Regular.otf",
+                "/usr/share/fonts/jetbrains-mono-fonts/JetBrainsMono-ExtraBoldItalic.otf",     
         };
         for (String path : candidates) {
             if (new File(path).exists()) {

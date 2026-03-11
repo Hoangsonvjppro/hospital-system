@@ -1,99 +1,245 @@
 package com.hospital.dao;
 
+import com.hospital.config.DatabaseConfig;
+import com.hospital.exception.DataAccessException;
 import com.hospital.model.Appointment;
 
+import java.sql.*;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
- * DAO lịch hẹn – dùng mock data.
+ * DAO lịch hẹn – truy vấn database thật.
  */
-public class AppointmentDAO implements BaseDAO<Appointment> {
+public class AppointmentDAO extends AbstractDAO implements BaseDAO<Appointment> {
 
-    private static final List<Appointment> DATA = new ArrayList<>();
-    private static int nextId = 13;
+    private static final Logger LOGGER = Logger.getLogger(AppointmentDAO.class.getName());
 
-    static {
-        // Tuần 16/02 – 22/02/2026  (Thứ 2 → Chủ nhật)
-        // ── Thứ 2 (16/02) ───────────────────────────────────────────────
-        DATA.add(new Appointment(1,  "LH001", "Nguyễn Thị Hà",
-                "0901230001", "Dr. Lê Văn C", "Khám tổng quát",
-                "16/02/2026", "09:00", "10:00", "Đã xác nhận", ""));
+    private Connection externalConnection;
 
-        // ── Thứ 3 (17/02) ───────────────────────────────────────────────
-        DATA.add(new Appointment(2,  "LH002", "Trần Văn Quân",
-                "0901230002", "Dr. Trần Thị D", "Tái khám định kỳ",
-                "17/02/2026", "08:15", "09:30", "Đã xác nhận", ""));
+    public AppointmentDAO() {}
 
-        // ── Thứ 4 (18/02) ───────────────────────────────────────────────
-        DATA.add(new Appointment(3,  "LH003", "Lê Anh Tú",
-                "0901230003", "Dr. Phạm Thị F", "Chờ xác nhận",
-                "18/02/2026", "10:15", "11:00", "Mới", ""));
-
-        // ── Thứ 5 (19/02) ───────────────────────────────────────────────
-        DATA.add(new Appointment(4,  "LH004", "Phạm Bình",
-                "0901230004", "Dr. Hoàng Văn G", "Đã hủy",
-                "19/02/2026", "08:00", "09:00", "Hủy", "Bệnh nhân hủy hẹn"));
-
-        // ── Thứ 6 (20/02) ───────────────────────────────────────────────
-        DATA.add(new Appointment(5,  "LH005", "Bùi Minh Khang",
-                "0901230005", "Dr. Lê Văn C", "Xét nghiệm máu",
-                "20/02/2026", "11:15", "12:45", "Đã xác nhận", ""));
-        DATA.add(new Appointment(6,  "LH006", "Nguyễn Thị Hoa",
-                "0901230006", "Dr. Nguyễn Văn E", "Khám nội",
-                "20/02/2026", "08:30", "09:15", "Đã khám", ""));
-
-        // ── Thứ 7 (21/02) ───────────────────────────────────────────────
-        DATA.add(new Appointment(7,  "LH007", "Võ Văn Hùng",
-                "0901230007", "Dr. Lê Văn C", "Khám tổng quát",
-                "21/02/2026", "09:00", "10:00", "Đã xác nhận", ""));
-        DATA.add(new Appointment(8,  "LH008", "Lê Thị Lan",
-                "0901230008", "Dr. Trần Thị D", "Khám nhi",
-                "21/02/2026", "14:00", "15:00", "Mới", ""));
-
-        // ── Chủ nhật (22/02) ────────────────────────────────────────────
-        DATA.add(new Appointment(9,  "LH009", "Trương Thị Mai",
-                "0901230009", "Dr. Phạm Thị F", "Khám tim mạch",
-                "22/02/2026", "08:00", "09:00", "Đã khám", ""));
-
-        // ── Tuần trước / tuần sau thêm vài cái ─────────────────────────
-        DATA.add(new Appointment(10, "LH010", "Hoàng Văn Dũng",
-                "0901230010", "Dr. Lê Văn C", "Tái khám",
-                "23/02/2026", "10:00", "11:00", "Mới", ""));
-        DATA.add(new Appointment(11, "LH011", "Đặng Thị Thanh",
-                "0901230011", "Dr. Hoàng Văn G", "Khám mắt",
-                "24/02/2026", "13:30", "14:30", "Đã xác nhận", ""));
-        DATA.add(new Appointment(12, "LH012", "Phan Minh Tuấn",
-                "0901230012", "Dr. Trần Thị D", "Khám sức khỏe",
-                "25/02/2026", "09:00", "10:00", "Mới", ""));
+    public AppointmentDAO(Connection connection) {
+        this.externalConnection = connection;
     }
+
+    private Connection conn() throws SQLException {
+        if (externalConnection != null) return externalConnection;
+        return getConnection();
+    }
+
+    private void closeIfOwned(Connection c) {
+        if (externalConnection == null && c != null) {
+            closeQuietly(c);
+        }
+    }
+
+    // ── Status mapping: DB ENUM ↔ Vietnamese display ────────────────
+
+    static String dbToDisplay(String dbStatus) {
+        if (dbStatus == null) return "Mới";
+        return switch (dbStatus) {
+            case "SCHEDULED"  -> "Mới";
+            case "CHECKED_IN" -> "Đã xác nhận";
+            case "COMPLETED"  -> "Đã khám";
+            case "CANCELLED"  -> "Hủy";
+            default           -> "Mới";
+        };
+    }
+
+    static String displayToDb(String display) {
+        if (display == null) return "SCHEDULED";
+        return switch (display) {
+            case "Mới"         -> "SCHEDULED";
+            case "Đã xác nhận" -> "CHECKED_IN";
+            case "Đã khám"     -> "COMPLETED";
+            case "Hủy"         -> "CANCELLED";
+            default            -> "SCHEDULED";
+        };
+    }
+
+    // ── SQL base ────────────────────────────────────────────────────
+
+    private static final String SELECT_BASE =
+            "SELECT a.appointment_id, a.patient_id, a.doctor_id, "
+          + "       a.appointment_date, a.start_time, a.end_time, "
+          + "       a.status, a.reason, "
+          + "       p.full_name AS patient_name, p.phone AS patient_phone, "
+          + "       u.full_name AS doctor_name "
+          + "FROM Appointment a "
+          + "JOIN Patient p ON a.patient_id = p.patient_id "
+          + "JOIN Doctor  d ON a.doctor_id  = d.doctor_id "
+          + "JOIN `User`  u ON d.user_id    = u.user_id ";
+
+    // ── CRUD ────────────────────────────────────────────────────────
 
     @Override
     public Appointment findById(int id) {
-        return DATA.stream().filter(a -> a.getId() == id).findFirst().orElse(null);
+        String sql = SELECT_BASE + "WHERE a.appointment_id = ?";
+        Connection c = null;
+        try {
+            c = conn();
+            try (PreparedStatement ps = c.prepareStatement(sql)) {
+                ps.setInt(1, id);
+                try (ResultSet rs = ps.executeQuery()) {
+                    if (rs.next()) return mapRow(rs);
+                }
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi truy vấn lịch hẹn ID=" + id, e);
+            throw new DataAccessException("Lỗi truy vấn lịch hẹn ID=" + id, e);
+        } finally {
+            closeIfOwned(c);
+        }
+        return null;
     }
 
     @Override
-    public List<Appointment> findAll() { return new ArrayList<>(DATA); }
+    public List<Appointment> findAll() {
+        List<Appointment> list = new ArrayList<>();
+        String sql = SELECT_BASE + "WHERE a.is_active = true ORDER BY a.appointment_date, a.start_time";
+        Connection c = null;
+        try {
+            c = conn();
+            try (Statement st = c.createStatement();
+                 ResultSet rs = st.executeQuery(sql)) {
+                while (rs.next()) list.add(mapRow(rs));
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi truy vấn danh sách lịch hẹn", e);
+            throw new DataAccessException("Lỗi truy vấn danh sách lịch hẹn", e);
+        } finally {
+            closeIfOwned(c);
+        }
+        return list;
+    }
 
     @Override
     public boolean insert(Appointment a) {
-        a.setId(nextId++);
-        DATA.add(a);
-        return true;
-    }
-
-    @Override
-    public boolean update(Appointment a) {
-        for (int i = 0; i < DATA.size(); i++) {
-            if (DATA.get(i).getId() == a.getId()) {
-                DATA.set(i, a);
-                return true;
+        String sql = "INSERT INTO Appointment (patient_id, doctor_id, appointment_date, "
+                   + "start_time, end_time, status, reason) VALUES (?, ?, ?, ?, ?, ?, ?)";
+        Connection c = null;
+        try {
+            c = conn();
+            try (PreparedStatement ps = c.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+                ps.setInt(1, a.getPatientId());
+                ps.setInt(2, a.getDoctorId());
+                ps.setDate(3, Date.valueOf(a.getDate()));
+                ps.setTime(4, Time.valueOf(a.getTime()));
+                ps.setTime(5, a.getEndTime() != null
+                        ? Time.valueOf(a.getEndTime())
+                        : Time.valueOf(a.getTime().plusHours(1)));
+                ps.setString(6, displayToDb(a.getStatus()));
+                ps.setString(7, a.getSpecialty());
+                int rows = ps.executeUpdate();
+                if (rows > 0) {
+                    try (ResultSet keys = ps.getGeneratedKeys()) {
+                        if (keys.next()) a.setId(keys.getInt(1));
+                    }
+                    return true;
+                }
             }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi thêm lịch hẹn", e);
+            throw new DataAccessException("Lỗi thêm lịch hẹn", e);
+        } finally {
+            closeIfOwned(c);
         }
         return false;
     }
 
     @Override
-    public boolean delete(int id) { return DATA.removeIf(a -> a.getId() == id); }
+    public boolean update(Appointment a) {
+        String sql = "UPDATE Appointment SET patient_id=?, doctor_id=?, appointment_date=?, "
+                   + "start_time=?, end_time=?, status=?, reason=? WHERE appointment_id=?";
+        Connection c = null;
+        try {
+            c = conn();
+            try (PreparedStatement ps = c.prepareStatement(sql)) {
+                ps.setInt(1, a.getPatientId());
+                ps.setInt(2, a.getDoctorId());
+                ps.setDate(3, Date.valueOf(a.getDate()));
+                ps.setTime(4, Time.valueOf(a.getTime()));
+                ps.setTime(5, a.getEndTime() != null
+                        ? Time.valueOf(a.getEndTime())
+                        : Time.valueOf(a.getTime().plusHours(1)));
+                ps.setString(6, displayToDb(a.getStatus()));
+                ps.setString(7, a.getSpecialty());
+                ps.setInt(8, a.getId());
+                return ps.executeUpdate() > 0;
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi cập nhật lịch hẹn ID=" + a.getId(), e);
+            throw new DataAccessException("Lỗi cập nhật lịch hẹn ID=" + a.getId(), e);
+        } finally {
+            closeIfOwned(c);
+        }
+    }
+
+    @Override
+    public boolean delete(int id) {
+        String sql = "UPDATE Appointment SET is_active = false WHERE appointment_id = ?";
+        Connection c = null;
+        try {
+            c = conn();
+            try (PreparedStatement ps = c.prepareStatement(sql)) {
+                ps.setInt(1, id);
+                return ps.executeUpdate() > 0;
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi xóa lịch hẹn ID=" + id, e);
+            throw new DataAccessException("Lỗi xóa lịch hẹn ID=" + id, e);
+        } finally {
+            closeIfOwned(c);
+        }
+    }
+
+    /** Lấy danh sách tên bác sĩ (distinct) có trong lịch hẹn. */
+    public List<String> findDistinctDoctorNames() {
+        List<String> names = new ArrayList<>();
+        String sql = "SELECT DISTINCT u.full_name "
+                   + "FROM Appointment a "
+                   + "JOIN Doctor d ON a.doctor_id = d.doctor_id "
+                   + "JOIN `User` u ON d.user_id = u.user_id "
+                   + "WHERE a.is_active = true ORDER BY u.full_name";
+        Connection c = null;
+        try {
+            c = conn();
+            try (Statement st = c.createStatement();
+                 ResultSet rs = st.executeQuery(sql)) {
+                while (rs.next()) names.add(rs.getString(1));
+            }
+        } catch (SQLException e) {
+            LOGGER.log(Level.SEVERE, "Lỗi truy vấn danh sách bác sĩ", e);
+        } finally {
+            closeIfOwned(c);
+        }
+        return names;
+    }
+
+    // ── Row mapper ──────────────────────────────────────────────────
+
+    private Appointment mapRow(ResultSet rs) throws SQLException {
+        Appointment a = new Appointment();
+        int id = rs.getInt("appointment_id");
+        a.setId(id);
+        a.setAppointmentCode(String.format("LH%03d", id));
+        a.setPatientId(rs.getInt("patient_id"));
+        a.setDoctorId(rs.getInt("doctor_id"));
+        a.setPatientName(rs.getString("patient_name"));
+        String phone = rs.getString("patient_phone");
+        a.setPatientPhone(phone != null ? phone : "");
+        a.setDoctorName(rs.getString("doctor_name"));
+        String reason = rs.getString("reason");
+        a.setSpecialty(reason != null ? reason : "");
+        a.setDate(rs.getDate("appointment_date").toLocalDate());
+        a.setTime(rs.getTime("start_time").toLocalTime());
+        a.setEndTime(rs.getTime("end_time").toLocalTime());
+        a.setStatus(dbToDisplay(rs.getString("status")));
+        a.setNote("");
+        return a;
+    }
 }

@@ -1,17 +1,22 @@
 package com.hospital.gui.panels;
 
 import com.hospital.bus.AppointmentBUS;
+import com.hospital.bus.DoctorBUS;
+import com.hospital.bus.PatientBUS;
 import com.hospital.exception.BusinessException;
 import com.hospital.exception.DataAccessException;
 import com.hospital.gui.UIConstants;
 import com.hospital.gui.components.RoundedButton;
 import com.hospital.model.Appointment;
+import com.hospital.model.Doctor;
+import com.hospital.model.Patient;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.*;
 import java.awt.geom.RoundRectangle2D;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.WeekFields;
 import java.util.*;
@@ -52,7 +57,7 @@ public class AppointmentPanel extends JPanel {
     private static final DateTimeFormatter DD_MM_YYYY = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
     public AppointmentPanel() {
-        LocalDate today = LocalDate.of(2026, 2, 20);
+        LocalDate today = LocalDate.now();
         weekStart = today.with(WeekFields.ISO.dayOfWeek(), 1);
 
         setBackground(UIConstants.CONTENT_BG);
@@ -127,6 +132,7 @@ public class AppointmentPanel extends JPanel {
 
         RoundedButton btnAdd = new RoundedButton("+ Thêm lịch hẹn");
         btnAdd.setPreferredSize(new Dimension(140, 32));
+        btnAdd.addActionListener(e -> showAddAppointmentDialog());
         right.add(btnAdd);
 
         bar.add(right, BorderLayout.EAST);
@@ -142,8 +148,11 @@ public class AppointmentPanel extends JPanel {
         JPanel filters = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         filters.setOpaque(false);
 
-        cbDoctor = new JComboBox<>(new String[]{"Tất cả bác sĩ", "Dr. Lê Văn C", "Dr. Trần Thị D",
-            "Dr. Phạm Thị F", "Dr. Hoàng Văn G", "Dr. Nguyễn Văn E"});
+        cbDoctor = new JComboBox<>();
+        cbDoctor.addItem("Tất cả bác sĩ");
+        try {
+            for (String name : apptBUS.getDistinctDoctorNames()) cbDoctor.addItem(name);
+        } catch (Exception ignored) {}
         cbDoctor.setFont(UIConstants.FONT_LABEL);
         cbDoctor.setPreferredSize(new Dimension(170, 32));
         cbDoctor.addActionListener(e -> refreshCalendar());
@@ -184,8 +193,7 @@ public class AppointmentPanel extends JPanel {
         btnToday.setPreferredSize(new Dimension(80, 30));
         btnToday.setFont(UIConstants.FONT_SMALL);
         btnToday.addActionListener(e -> {
-            LocalDate today = LocalDate.of(2026, 2, 20);
-            weekStart = today.with(WeekFields.ISO.dayOfWeek(), 1);
+            weekStart = LocalDate.now().with(WeekFields.ISO.dayOfWeek(), 1);
             refreshCalendar();
         });
         weekNav.add(btnToday);
@@ -379,7 +387,7 @@ public class AppointmentPanel extends JPanel {
             for (int i = 0; i < 7; i++) {
                 int x = TIME_COL_W + i * colW;
                 LocalDate day = weekStart.plusDays(i);
-                boolean isToday = day.equals(LocalDate.of(2026, 2, 20));
+                boolean isToday = day.equals(LocalDate.now());
 
                 g2.setFont(UIConstants.FONT_BOLD);
                 g2.setColor(isToday ? UIConstants.PRIMARY_RED : UIConstants.TEXT_PRIMARY);
@@ -607,5 +615,173 @@ public class AppointmentPanel extends JPanel {
         } catch (Exception e) {
             return 0;
         }
+    }
+
+    // ══════════════════════════════════════════════════════════════════
+    //  DIALOG: Thêm lịch hẹn mới
+    // ══════════════════════════════════════════════════════════════════
+
+    private void showAddAppointmentDialog() {
+        JDialog dlg = new JDialog(SwingUtilities.getWindowAncestor(this), "Thêm lịch hẹn mới", Dialog.ModalityType.APPLICATION_MODAL);
+        dlg.setSize(480, 420);
+        dlg.setLocationRelativeTo(this);
+        dlg.setResizable(false);
+
+        JPanel form = new JPanel(new GridBagLayout());
+        form.setBorder(BorderFactory.createEmptyBorder(20, 24, 20, 24));
+        GridBagConstraints gc = new GridBagConstraints();
+        gc.insets = new Insets(6, 6, 6, 6);
+        gc.anchor = GridBagConstraints.WEST;
+        gc.fill = GridBagConstraints.HORIZONTAL;
+
+        // Load patients
+        PatientBUS patientBUS = new PatientBUS();
+        List<Patient> patients = patientBUS.findAll();
+        JComboBox<Patient> cbPatient = new JComboBox<>(patients.toArray(new Patient[0]));
+        cbPatient.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean sel, boolean foc) {
+                super.getListCellRendererComponent(list, value, index, sel, foc);
+                if (value instanceof Patient p) setText(p.getFullName() + " - " + p.getPhone());
+                return this;
+            }
+        });
+
+        // Load doctors
+        DoctorBUS doctorBUS = new DoctorBUS();
+        List<Doctor> doctors = doctorBUS.findAll();
+        JComboBox<Doctor> cbDoc = new JComboBox<>(doctors.toArray(new Doctor[0]));
+        cbDoc.setRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean sel, boolean foc) {
+                super.getListCellRendererComponent(list, value, index, sel, foc);
+                if (value instanceof Doctor d) setText(d.getFullName() + " - " + d.getSpecialty());
+                return this;
+            }
+        });
+
+        // Date
+        JTextField txtDate = new JTextField(LocalDate.now().format(DD_MM_YYYY));
+        txtDate.setFont(UIConstants.FONT_LABEL);
+
+        // Time
+        String[] hours = new String[END_HOUR - START_HOUR];
+        for (int i = 0; i < hours.length; i++) hours[i] = String.format("%02d:00", START_HOUR + i);
+        JComboBox<String> cbStartTime = new JComboBox<>(hours);
+        JComboBox<String> cbEndTime = new JComboBox<>(hours);
+        if (hours.length > 1) cbEndTime.setSelectedIndex(1);
+
+        // Reason
+        JTextField txtReason = new JTextField();
+        txtReason.setFont(UIConstants.FONT_LABEL);
+
+        int row = 0;
+        gc.gridx = 0; gc.gridy = row; gc.weightx = 0;
+        form.add(new JLabel("Bệnh nhân:"), gc);
+        gc.gridx = 1; gc.weightx = 1;
+        form.add(cbPatient, gc);
+
+        row++;
+        gc.gridx = 0; gc.gridy = row; gc.weightx = 0;
+        form.add(new JLabel("Bác sĩ:"), gc);
+        gc.gridx = 1; gc.weightx = 1;
+        form.add(cbDoc, gc);
+
+        row++;
+        gc.gridx = 0; gc.gridy = row; gc.weightx = 0;
+        form.add(new JLabel("Ngày (dd/MM/yyyy):"), gc);
+        gc.gridx = 1; gc.weightx = 1;
+        form.add(txtDate, gc);
+
+        row++;
+        gc.gridx = 0; gc.gridy = row; gc.weightx = 0;
+        form.add(new JLabel("Giờ bắt đầu:"), gc);
+        gc.gridx = 1; gc.weightx = 1;
+        form.add(cbStartTime, gc);
+
+        row++;
+        gc.gridx = 0; gc.gridy = row; gc.weightx = 0;
+        form.add(new JLabel("Giờ kết thúc:"), gc);
+        gc.gridx = 1; gc.weightx = 1;
+        form.add(cbEndTime, gc);
+
+        row++;
+        gc.gridx = 0; gc.gridy = row; gc.weightx = 0;
+        form.add(new JLabel("Lý do khám:"), gc);
+        gc.gridx = 1; gc.weightx = 1;
+        form.add(txtReason, gc);
+
+        // Buttons
+        row++;
+        JPanel btnBar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+        RoundedButton btnSave = new RoundedButton("Lưu");
+        btnSave.setPreferredSize(new Dimension(90, 34));
+        RoundedButton btnCancel = new RoundedButton("Hủy");
+        btnCancel.setPreferredSize(new Dimension(90, 34));
+        btnCancel.setColors(UIConstants.BORDER_COLOR, UIConstants.BORDER_COLOR.darker());
+        btnCancel.setForeground(UIConstants.TEXT_PRIMARY);
+        btnBar.add(btnCancel);
+        btnBar.add(btnSave);
+        gc.gridx = 0; gc.gridy = row; gc.gridwidth = 2;
+        gc.anchor = GridBagConstraints.EAST;
+        form.add(btnBar, gc);
+
+        btnCancel.addActionListener(e -> dlg.dispose());
+        btnSave.addActionListener(e -> {
+            try {
+                Patient selPatient = (Patient) cbPatient.getSelectedItem();
+                Doctor selDoctor = (Doctor) cbDoc.getSelectedItem();
+                if (selPatient == null || selDoctor == null) {
+                    JOptionPane.showMessageDialog(dlg, "Vui lòng chọn bệnh nhân và bác sĩ", "Thiếu thông tin", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+                LocalDate date = LocalDate.parse(txtDate.getText().trim(), DD_MM_YYYY);
+                LocalTime start = LocalTime.parse((String) cbStartTime.getSelectedItem(), DateTimeFormatter.ofPattern("HH:mm"));
+                LocalTime end = LocalTime.parse((String) cbEndTime.getSelectedItem(), DateTimeFormatter.ofPattern("HH:mm"));
+                if (!end.isAfter(start)) {
+                    JOptionPane.showMessageDialog(dlg, "Giờ kết thúc phải sau giờ bắt đầu", "Lỗi", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+
+                Appointment a = new Appointment();
+                a.setPatientId(selPatient.getId());
+                a.setPatientName(selPatient.getFullName());
+                a.setPatientPhone(selPatient.getPhone());
+                a.setDoctorId(selDoctor.getId());
+                a.setDoctorName(selDoctor.getFullName());
+                a.setDate(date);
+                a.setTime(start);
+                a.setEndTime(end);
+                a.setStatus("Mới");
+                a.setSpecialty(txtReason.getText().trim());
+                a.setNote("");
+
+                apptBUS.insert(a);
+                dlg.dispose();
+                reloadDoctorFilter();
+                refreshCalendar();
+                JOptionPane.showMessageDialog(this, "Đã thêm lịch hẹn thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+            } catch (java.time.format.DateTimeParseException ex) {
+                JOptionPane.showMessageDialog(dlg, "Ngày hoặc giờ không đúng định dạng", "Lỗi", JOptionPane.WARNING_MESSAGE);
+            } catch (BusinessException ex) {
+                JOptionPane.showMessageDialog(dlg, ex.getMessage(), "Lỗi nghiệp vụ", JOptionPane.WARNING_MESSAGE);
+            } catch (DataAccessException ex) {
+                JOptionPane.showMessageDialog(dlg, "Lỗi hệ thống: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        dlg.setContentPane(form);
+        dlg.setVisible(true);
+    }
+
+    /** Reload danh sách bác sĩ trong filter combo sau khi thêm/sửa. */
+    private void reloadDoctorFilter() {
+        String selected = (String) cbDoctor.getSelectedItem();
+        cbDoctor.removeAllItems();
+        cbDoctor.addItem("Tất cả bác sĩ");
+        try {
+            for (String name : apptBUS.getDistinctDoctorNames()) cbDoctor.addItem(name);
+        } catch (Exception ignored) {}
+        if (selected != null) cbDoctor.setSelectedItem(selected);
     }
 }
