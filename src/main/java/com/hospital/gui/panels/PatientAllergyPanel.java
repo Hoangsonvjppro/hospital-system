@@ -53,15 +53,22 @@ public class PatientAllergyPanel extends JPanel {
     }
 
     private JPanel createHeader() {
-        JPanel header = new JPanel(new BorderLayout(12, 0));
+        JPanel header = new JPanel();
+        header.setLayout(new BoxLayout(header, BoxLayout.Y_AXIS));
         header.setOpaque(false);
 
+        // Row 1: Title
+        JPanel titleRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        titleRow.setOpaque(false);
         JLabel lblTitle = new JLabel("  Quản lý dị ứng bệnh nhân");
         lblTitle.setIcon(com.hospital.gui.IconManager.getIcon("warning", 20, 20));
         lblTitle.setFont(UIConstants.FONT_TITLE);
         lblTitle.setForeground(UIConstants.TEXT_PRIMARY);
-        header.add(lblTitle, BorderLayout.WEST);
+        titleRow.add(lblTitle);
+        header.add(titleRow);
+        header.add(Box.createVerticalStrut(10));
 
+        // Row 2: Filters
         JPanel filters = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         filters.setOpaque(false);
 
@@ -91,7 +98,7 @@ public class PatientAllergyPanel extends JPanel {
         });
         filters.add(txtSearch);
 
-        header.add(filters, BorderLayout.EAST);
+        header.add(filters);
         return header;
     }
 

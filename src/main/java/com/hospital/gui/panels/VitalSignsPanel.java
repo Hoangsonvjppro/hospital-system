@@ -57,7 +57,7 @@ public class VitalSignsPanel extends JPanel {
         gbc.gridx = 0; gbc.gridy = 0; gridPanel.add(createFieldRow("Mạch (lần/phút):", txtPulse, "bpm"), gbc);
         gbc.gridx = 0; gbc.gridy = 1; gridPanel.add(createFieldRow("Huyết áp (mmHg):", txtBloodPressure, "mmHg"), gbc);
         gbc.gridx = 0; gbc.gridy = 2; gridPanel.add(createFieldRow("Nhiệt độ (°C):", txtTemperature, "°C"), gbc);
-        gbc.gridx = 0; gbc.gridy = 3; gridPanel.add(createFieldRow("Nhịp thở (l/ph):", new JTextField(), "l/ph"), gbc); // Optional extra field based on spec
+        gbc.gridx = 0; gbc.gridy = 3; gridPanel.add(createFieldRow("Nhịp thở (l/ph):", createTextField(), "l/ph"), gbc);
 
         // Column 2
         gbc.gridx = 1; gbc.gridy = 0; gridPanel.add(createFieldRow("Cân nặng (kg):", txtWeight, "kg"), gbc);

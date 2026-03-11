@@ -128,7 +128,6 @@ public class ReceptionPanel extends JPanel {
 
         RoundedButton btnShowAll = new RoundedButton("Tất cả");
         btnShowAll.setPreferredSize(new Dimension(90, 38));
-        btnShowAll.setColors(UIConstants.TEXT_SECONDARY, UIConstants.STATUS_CANCEL);
         btnShowAll.addActionListener(e -> {
             txtSearch.setText("");
             loadAllPatients();
@@ -211,12 +210,18 @@ public class ReceptionPanel extends JPanel {
         header.setReorderingAllowed(false);
 
         // Column widths
-        table.getColumnModel().getColumn(0).setMaxWidth(50);   // STT
-        table.getColumnModel().getColumn(0).setMinWidth(40);
-        table.getColumnModel().getColumn(1).setMaxWidth(90);   // Mã BN
-        table.getColumnModel().getColumn(3).setMaxWidth(120);  // SĐT
-        table.getColumnModel().getColumn(4).setMaxWidth(80);   // Giới tính
-        table.getColumnModel().getColumn(5).setMaxWidth(120);  // Phân loại
+        table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+        table.getColumnModel().getColumn(0).setMinWidth(45);
+        table.getColumnModel().getColumn(0).setMaxWidth(55);   // STT
+        table.getColumnModel().getColumn(1).setMinWidth(70);
+        table.getColumnModel().getColumn(1).setMaxWidth(100);  // Mã BN
+        table.getColumnModel().getColumn(2).setMinWidth(120);  // Họ tên – co giãn
+        table.getColumnModel().getColumn(3).setMinWidth(110);
+        table.getColumnModel().getColumn(3).setPreferredWidth(130); // SĐT
+        table.getColumnModel().getColumn(4).setMinWidth(75);
+        table.getColumnModel().getColumn(4).setMaxWidth(90);   // Giới tính
+        table.getColumnModel().getColumn(5).setMinWidth(100);
+        table.getColumnModel().getColumn(5).setPreferredWidth(130); // Phân loại
 
         // Cell renderer with padding
         DefaultTableCellRenderer renderer = new DefaultTableCellRenderer();

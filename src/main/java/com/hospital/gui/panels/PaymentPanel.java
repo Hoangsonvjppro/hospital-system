@@ -87,8 +87,8 @@ public class PaymentPanel extends JPanel {
         // ── Split Pane ──
         JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
                 createLeftPanel(), createRightPanel());
-        splitPane.setDividerLocation(520);
-        splitPane.setResizeWeight(0.4);
+        splitPane.setDividerLocation(580);
+        splitPane.setResizeWeight(0.45);
         splitPane.setDividerSize(6);
         splitPane.setBorder(null);
         splitPane.setOpaque(false);
@@ -117,13 +117,13 @@ public class PaymentPanel extends JPanel {
         int paid    = bus.getPaidInvoices().size();
         int pending = bus.getPendingInvoices().size();
 
-        cardTotal   = new StatCard("Tổng doanh thu",
+        cardTotal   = new StatCard("Doanh thu",
                 moneyFmt.format(totalRev / 1_000_000.0) + " tr", "Đã thanh toán",
                 "money", UIConstants.SUCCESS_GREEN);
-        cardPaid    = new StatCard("Đã thanh toán",
+        cardPaid    = new StatCard("Đã TT",
                 String.valueOf(paid), "Hóa đơn",
                 "check", UIConstants.STATUS_DONE);
-        cardPending = new StatCard("Chờ thanh toán",
+        cardPending = new StatCard("Chờ TT",
                 String.valueOf(pending), "Cần xử lý",
                 "hourglass", UIConstants.WARNING_ORANGE);
 
@@ -154,17 +154,17 @@ public class PaymentPanel extends JPanel {
         filterBtns.setOpaque(false);
 
         RoundedButton btnAll = new RoundedButton("Tất cả");
-        btnAll.setPreferredSize(new Dimension(72, 30));
+        btnAll.setPreferredSize(new Dimension(80, 30));
         btnAll.addActionListener(e -> { currentFilter = "ALL"; loadInvoices(); });
 
         RoundedButton btnPendingFilter = new RoundedButton("Chờ TT");
         btnPendingFilter.setColors(UIConstants.WARNING_ORANGE, UIConstants.WARNING_ORANGE.darker());
-        btnPendingFilter.setPreferredSize(new Dimension(72, 30));
+        btnPendingFilter.setPreferredSize(new Dimension(90, 30));
         btnPendingFilter.addActionListener(e -> { currentFilter = "PENDING"; loadInvoices(); });
 
         RoundedButton btnPaidFilter = new RoundedButton("Đã TT");
         btnPaidFilter.setColors(UIConstants.SUCCESS_GREEN, UIConstants.SUCCESS_GREEN.darker());
-        btnPaidFilter.setPreferredSize(new Dimension(72, 30));
+        btnPaidFilter.setPreferredSize(new Dimension(80, 30));
         btnPaidFilter.addActionListener(e -> { currentFilter = "PAID"; loadInvoices(); });
 
         filterBtns.add(btnAll);
