@@ -185,7 +185,7 @@ public class DoctorWorkstationPanel extends JPanel {
 
         // "Goi kham" button
         RoundedButton btnCallPatient = new RoundedButton("G\u1ECDi kh\u00E1m", UIConstants.ACCENT_BLUE, UIConstants.ACCENT_BLUE_DARK, 8);
-        btnCallPatient.setPreferredSize(new Dimension(100, 34));
+        btnCallPatient.setPreferredSize(new Dimension(140, 34));
         btnCallPatient.addActionListener(e -> onCallPatient());
         JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 4));
         btnPanel.setOpaque(false);
@@ -293,7 +293,7 @@ public class DoctorWorkstationPanel extends JPanel {
         };
         card.setOpaque(false);
         card.setBorder(new EmptyBorder(14, 16, 14, 12));
-        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 90));
+        card.setMaximumSize(new Dimension(Integer.MAX_VALUE, 100));
         card.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
         String num = String.format("%02d", index + 1);
@@ -668,7 +668,7 @@ public class DoctorWorkstationPanel extends JPanel {
         // Allergy warning
         String allergyText = selectedPatient.getAllergyHistory();
         if (allergyText != null && !allergyText.trim().isEmpty()) {
-            JLabel allergyLabel = new JLabel("\u26A0 D\u1ECB \u1EE9ng: " + allergyText);
+            JLabel allergyLabel = new JLabel("D\u1ECB \u1EE9ng: " + allergyText);
             allergyLabel.setFont(UIConstants.FONT_BOLD);
             allergyLabel.setForeground(UIConstants.ERROR_COLOR);
             gbc = new GridBagConstraints();
@@ -806,7 +806,7 @@ public class DoctorWorkstationPanel extends JPanel {
         prescPanel.setBorder(BorderFactory.createTitledBorder("\u0110\u01A1n thu\u1ED1c"));
         prescPanel.add(new JScrollPane(tablePrescription), BorderLayout.CENTER);
         RoundedButton btnRemove = new RoundedButton("X\u00F3a d\u00F2ng", UIConstants.ERROR_COLOR, UIConstants.PRIMARY_DARK, 6);
-        btnRemove.setPreferredSize(new Dimension(100, 30));
+        btnRemove.setPreferredSize(new Dimension(130, 30));
         btnRemove.addActionListener(e -> removePrescriptionItem());
         JPanel removeBtnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
         removeBtnPanel.setOpaque(false);
@@ -967,7 +967,7 @@ public class DoctorWorkstationPanel extends JPanel {
                 btns.add(btnSaveVitals);
             } else if (activeTab == 1) {
                 RoundedButton btnSaveExam = new RoundedButton("L\u01B0u kh\u00E1m b\u1EC7nh", UIConstants.ACCENT_BLUE, UIConstants.ACCENT_BLUE_DARK, 8);
-                btnSaveExam.setPreferredSize(new Dimension(150, 40));
+                btnSaveExam.setPreferredSize(new Dimension(180, 40));
                 btnSaveExam.addActionListener(e -> onSaveExamination());
                 btns.add(btnSaveExam);
             } else if (activeTab == 2) {

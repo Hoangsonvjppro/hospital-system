@@ -27,7 +27,7 @@ public class AdminFrame extends BaseFrame {
                 () -> showPanel(new ReceptionPanel()));
         addMenuItem("queue", "Hàng đợi",
                 () -> showPanel(new DoctorDashboardPanel()));
-        addMenuItem("queue", "🔢 Quản lý hàng đợi",
+        addMenuItem("queue", "Quản lý hàng đợi",
                 () -> showPanel(new QueuePanel()));
 
         addSeparator();
