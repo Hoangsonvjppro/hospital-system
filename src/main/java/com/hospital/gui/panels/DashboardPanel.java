@@ -332,7 +332,7 @@ public class DashboardPanel extends JPanel {
         // ── Alert: Thuốc sắp hết ────────────────────────────
         alertLowStockBody.removeAll();
         if (d.lowStockList.isEmpty()) {
-            addAlertLine(alertLowStockBody, "✅ Không có thuốc nào sắp hết hàng", UIConstants.SUCCESS_GREEN);
+            addAlertLine(alertLowStockBody, "Không có thuốc nào sắp hết hàng", UIConstants.SUCCESS_GREEN);
         } else {
             for (String[] med : d.lowStockList) {
                 String line = med[0] + ":  tồn " + med[1] + " / ngưỡng " + med[2];
@@ -346,7 +346,7 @@ public class DashboardPanel extends JPanel {
         // ── Alert: BN chờ lâu ────────────────────────────────
         alertLongWaitBody.removeAll();
         if (d.longWaitList.isEmpty()) {
-            addAlertLine(alertLongWaitBody, "✅ Không có BN nào chờ quá " + LONG_WAIT_THRESHOLD + " phút",
+            addAlertLine(alertLongWaitBody, "Không có BN nào chờ quá " + LONG_WAIT_THRESHOLD + " phút",
                     UIConstants.SUCCESS_GREEN);
         } else {
             for (String[] patient : d.longWaitList) {

@@ -345,7 +345,6 @@ public class PrescriptionPanel extends JPanel {
         panel.setBorder(BorderFactory.createEmptyBorder(14, 16, 14, 16));
 
         JLabel title = new JLabel("Đơn thuốc hiện tại");
-        title.setIcon(com.hospital.gui.IconManager.getIcon("clipboard", 16, 16));
         title.setFont(UIConstants.FONT_SUBTITLE);
         title.setForeground(UIConstants.TEXT_PRIMARY);
         panel.add(title, BorderLayout.NORTH);
@@ -401,10 +400,7 @@ public class PrescriptionPanel extends JPanel {
         // Remove button
         JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         btnPanel.setOpaque(false);
-        RoundedButton btnRemove = new RoundedButton("Xóa dòng");
-        btnRemove.setIcon(com.hospital.gui.IconManager.getIcon("delete", 14, 14));
-        btnRemove.setBackground(UIConstants.ERROR_COLOR);
-        btnRemove.setForeground(Color.WHITE);
+        RoundedButton btnRemove = new RoundedButton("Xóa dòng", UIConstants.ERROR_COLOR, UIConstants.PRIMARY_DARK, 6);
         btnRemove.setPreferredSize(new Dimension(120, 32));
         btnRemove.addActionListener(e -> onRemoveItem());
         btnPanel.add(btnRemove);
