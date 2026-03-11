@@ -102,12 +102,14 @@ public class LabOrderPanel extends JPanel {
         JPanel header = new JPanel(new BorderLayout(12, 0));
         header.setOpaque(false);
 
-        JLabel lblTitle = new JLabel("🔬  Yêu cầu xét nghiệm");
+        JLabel lblTitle = new JLabel("  Yêu cầu xét nghiệm");
+        lblTitle.setIcon(com.hospital.gui.IconManager.getIcon("microscope", 20, 20));
         lblTitle.setFont(UIConstants.FONT_TITLE);
         lblTitle.setForeground(UIConstants.TEXT_PRIMARY);
         header.add(lblTitle, BorderLayout.WEST);
 
-        RoundedButton btnRefresh = new RoundedButton("🔄 Làm mới");
+        RoundedButton btnRefresh = new RoundedButton("Làm mới");
+        btnRefresh.setIcon(com.hospital.gui.IconManager.getIcon("refresh", 14, 14));
         btnRefresh.setBackground(UIConstants.TEXT_SECONDARY);
         btnRefresh.setForeground(Color.WHITE);
         btnRefresh.addActionListener(e -> loadData());
@@ -204,7 +206,8 @@ public class LabOrderPanel extends JPanel {
         gbc.gridx = 3; gbc.gridy = 2; gbc.weightx = 0;
         gbc.fill = GridBagConstraints.NONE;
         gbc.anchor = GridBagConstraints.SOUTH;
-        RoundedButton btnOrder = new RoundedButton("📋 Yêu cầu XN");
+        RoundedButton btnOrder = new RoundedButton("Yêu cầu XN");
+        btnOrder.setIcon(com.hospital.gui.IconManager.getIcon("clipboard", 14, 14));
         btnOrder.setBackground(UIConstants.ACCENT_BLUE);
         btnOrder.setForeground(Color.WHITE);
         btnOrder.setPreferredSize(new Dimension(150, 36));

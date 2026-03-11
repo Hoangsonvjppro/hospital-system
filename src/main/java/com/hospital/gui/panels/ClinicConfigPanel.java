@@ -46,7 +46,8 @@ public class ClinicConfigPanel extends JPanel {
 
     private void initComponents() {
         // ── Header ──
-        JLabel title = new JLabel("⚙️  Cấu hình Phòng khám");
+        JLabel title = new JLabel("  Cấu hình Phòng khám");
+        title.setIcon(com.hospital.gui.IconManager.getIcon("settings", 20, 20));
         title.setFont(UIConstants.FONT_TITLE);
         title.setForeground(UIConstants.PRIMARY);
         add(title, BorderLayout.NORTH);
@@ -95,12 +96,14 @@ public class ClinicConfigPanel extends JPanel {
         btnPanel.setOpaque(false);
         btnPanel.setBorder(new EmptyBorder(12, 0, 0, 0));
 
-        RoundedButton btnReload = new RoundedButton("🔄  Tải lại");
+        RoundedButton btnReload = new RoundedButton("Tải lại");
+        btnReload.setIcon(com.hospital.gui.IconManager.getIcon("refresh", 14, 14));
         btnReload.setBackground(UIConstants.FIELD_BG);
         btnReload.setForeground(UIConstants.TEXT_PRIMARY);
         btnReload.addActionListener(e -> loadConfig());
 
-        RoundedButton btnSave = new RoundedButton("💾  Lưu cấu hình");
+        RoundedButton btnSave = new RoundedButton("Lưu cấu hình");
+        btnSave.setIcon(com.hospital.gui.IconManager.getIcon("save", 14, 14));
         btnSave.setBackground(UIConstants.SUCCESS_GREEN);
         btnSave.setForeground(Color.WHITE);
         btnSave.addActionListener(e -> saveConfig());

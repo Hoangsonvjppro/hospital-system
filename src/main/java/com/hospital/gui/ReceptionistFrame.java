@@ -15,25 +15,25 @@ import javax.swing.*;
 public class ReceptionistFrame extends BaseFrame {
 
     public ReceptionistFrame(Account account) {
-        super(account, "Lễ tân", "🏥");
+        super(account, "Lễ tân", "hospital");
     }
 
     @Override
     protected void registerMenuItems() {
-        addMenuItem("📋", "Tiếp nhận",
+        addMenuItem("clipboard", "Tiếp nhận",
                 () -> showPanel(new ReceptionPanel()));
 
 
         addSeparator();
         addSectionLabel("Thu ngân");
 
-        addMenuItem("💰", "Thanh toán & Thu ngân",
+        addMenuItem("money", "Thanh toán & Thu ngân",
                 () -> showPanel(new PaymentPanel()));
 
         addSeparator();
         addSectionLabel("Hồ sơ");
 
-        addMenuItem("⚠", "Dị ứng bệnh nhân",
+        addMenuItem("warning", "Dị ứng bệnh nhân",
                 () -> showPanel(new PatientAllergyPanel()));
     }
 

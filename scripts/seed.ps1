@@ -24,7 +24,7 @@ $ProjectDir = Split-Path -Parent $ScriptDir
 # ── Cấu hình ──────────────────────────────────────────────
 $DbContainer = "clinic-mysql"
 $DbUser      = "root"
-$DbPass      = "123456"
+$DbPass      = ""
 $DbName      = "clinic_management"
 $DbHost      = "localhost"
 $DbPort      = "3306"
@@ -99,7 +99,10 @@ function Invoke-SqlFile {
             # --default-character-set=utf8mb4 để fix lỗi phông chữ tiếng Việt
             $content | & $ContainerCmd exec -i $DbContainer mysql --default-character-set=utf8mb4 -u $DbUser -p"$DbPass" 2>$null
         } else {
-            $content | mysql --default-character-set=utf8mb4 -h $DbHost -P $DbPort -u $DbUser -p"$DbPass" 2>$null
+            $passArg = if ($DbPass) { "-p$DbPass" } else { $null }
+            $args = @('--default-character-set=utf8mb4', '-h', $DbHost, '-P', $DbPort, '-u', $DbUser)
+            if ($passArg) { $args += $passArg }
+            $content | mysql @args 2>$null
         }
         return $true
     } catch {
@@ -114,7 +117,10 @@ function Invoke-SqlCmd {
         if ($MysqlMode -eq 'container') {
             $Sql | & $ContainerCmd exec -i $DbContainer mysql --default-character-set=utf8mb4 -u $DbUser -p"$DbPass" 2>$null
         } else {
-            $Sql | mysql --default-character-set=utf8mb4 -h $DbHost -P $DbPort -u $DbUser -p"$DbPass" 2>$null
+            $passArg = if ($DbPass) { "-p$DbPass" } else { $null }
+            $sqlArgs = @('--default-character-set=utf8mb4', '-h', $DbHost, '-P', $DbPort, '-u', $DbUser)
+            if ($passArg) { $sqlArgs += $passArg }
+            $Sql | mysql @sqlArgs 2>$null
         }
     } catch {
         # ignore

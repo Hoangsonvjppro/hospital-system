@@ -72,12 +72,14 @@ public class CompletionPanel extends JPanel {
         // Header
         JPanel header = new JPanel(new BorderLayout());
         header.setOpaque(false);
-        JLabel lblTitle = new JLabel("✅  Kết thúc khám");
+        JLabel lblTitle = new JLabel("  Kết thúc khám");
+        lblTitle.setIcon(com.hospital.gui.IconManager.getIcon("check", 20, 20));
         lblTitle.setFont(UIConstants.FONT_TITLE);
         lblTitle.setForeground(UIConstants.TEXT_PRIMARY);
         header.add(lblTitle, BorderLayout.WEST);
 
-        RoundedButton btnRefresh = new RoundedButton("🔄 Làm mới");
+        RoundedButton btnRefresh = new RoundedButton("Làm mới");
+        btnRefresh.setIcon(com.hospital.gui.IconManager.getIcon("refresh", 14, 14));
         btnRefresh.addActionListener(e -> loadRecords());
         header.add(btnRefresh, BorderLayout.EAST);
 
@@ -246,23 +248,23 @@ public class CompletionPanel extends JPanel {
         content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
 
         // 1. Patient info
-        content.add(createSection("👤 Thông tin bệnh nhân", buildPatientInfo(record)));
+        content.add(createSection("Thông tin bệnh nhân", buildPatientInfo(record)));
         content.add(Box.createVerticalStrut(12));
 
         // 2. Vital signs
-        content.add(createSection("💓 Sinh hiệu", buildVitalSigns(record)));
+        content.add(createSection("Sinh hiệu", buildVitalSigns(record)));
         content.add(Box.createVerticalStrut(12));
 
         // 3. Diagnosis
-        content.add(createSection("🩺 Chẩn đoán", buildDiagnosisInfo(record)));
+        content.add(createSection("Chẩn đoán", buildDiagnosisInfo(record)));
         content.add(Box.createVerticalStrut(12));
 
         // 4. Prescription
-        content.add(createSection("💊 Đơn thuốc", buildPrescriptionInfo(record)));
+        content.add(createSection("Đơn thuốc", buildPrescriptionInfo(record)));
         content.add(Box.createVerticalStrut(12));
 
         // 5. Payment
-        content.add(createSection("💰 Thanh toán", buildPaymentInfo(record)));
+        content.add(createSection("Thanh toán", buildPaymentInfo(record)));
         content.add(Box.createVerticalStrut(16));
 
         // 6. Follow-up scheduling
@@ -489,7 +491,8 @@ public class CompletionPanel extends JPanel {
         section.setMaximumSize(new Dimension(Integer.MAX_VALUE, 120));
         section.setAlignmentX(LEFT_ALIGNMENT);
 
-        JLabel lblTitle = new JLabel("📅 Hẹn tái khám");
+        JLabel lblTitle = new JLabel("Lịch tái khám");
+        lblTitle.setIcon(com.hospital.gui.IconManager.getIcon("calendar", 16, 16));
         lblTitle.setFont(UIConstants.FONT_SUBTITLE);
         lblTitle.setForeground(UIConstants.ACCENT_BLUE);
 
@@ -567,11 +570,13 @@ public class CompletionPanel extends JPanel {
         actionPanel.setMaximumSize(new Dimension(Integer.MAX_VALUE, 48));
         actionPanel.setAlignmentX(LEFT_ALIGNMENT);
 
-        RoundedButton btnPrint = new RoundedButton("🖨 In bệnh án tóm tắt");
+        RoundedButton btnPrint = new RoundedButton("In bệnh án tóm tắt");
+        btnPrint.setIcon(com.hospital.gui.IconManager.getIcon("print", 14, 14));
         btnPrint.setPreferredSize(new Dimension(180, 40));
         btnPrint.addActionListener(e -> printSummary(record));
 
-        RoundedButton btnComplete = new RoundedButton("✅ Hoàn tất lượt khám");
+        RoundedButton btnComplete = new RoundedButton("Hoàn tất lượt khám");
+        btnComplete.setIcon(com.hospital.gui.IconManager.getIcon("check", 14, 14));
         btnComplete.setColors(UIConstants.SUCCESS_GREEN, UIConstants.SUCCESS_GREEN_DARK);
         btnComplete.setForeground(Color.WHITE);
         btnComplete.setFont(UIConstants.FONT_BUTTON);

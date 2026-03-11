@@ -72,12 +72,14 @@ public class PharmacyPanel extends JPanel {
         // Title
         JPanel header = new JPanel(new BorderLayout());
         header.setOpaque(false);
-        JLabel lblTitle = new JLabel("💉  Phát thuốc theo đơn");
+        JLabel lblTitle = new JLabel("  Phát thuốc theo đơn");
+        lblTitle.setIcon(com.hospital.gui.IconManager.getIcon("syringe", 20, 20));
         lblTitle.setFont(UIConstants.FONT_TITLE);
         lblTitle.setForeground(UIConstants.TEXT_PRIMARY);
         header.add(lblTitle, BorderLayout.WEST);
 
-        RoundedButton btnRefreshTop = new RoundedButton("🔄 Làm mới");
+        RoundedButton btnRefreshTop = new RoundedButton("Làm mới");
+        btnRefreshTop.setIcon(com.hospital.gui.IconManager.getIcon("refresh", 14, 14));
         btnRefreshTop.addActionListener(e -> loadPendingPrescriptions());
         header.add(btnRefreshTop, BorderLayout.EAST);
         header.setBorder(BorderFactory.createEmptyBorder(0, 0, 12, 0));
@@ -289,7 +291,8 @@ public class PharmacyPanel extends JPanel {
         rightBottom.add(lblTotalAmount);
         rightBottom.add(Box.createVerticalStrut(8));
 
-        RoundedButton btnDispense = new RoundedButton("✅ Phát thuốc");
+        RoundedButton btnDispense = new RoundedButton("Phát thuốc");
+        btnDispense.setIcon(com.hospital.gui.IconManager.getIcon("check", 14, 14));
         btnDispense.setColors(UIConstants.SUCCESS_GREEN, UIConstants.SUCCESS_GREEN_DARK);
         btnDispense.setForeground(Color.WHITE);
         btnDispense.setFont(UIConstants.FONT_BUTTON);
@@ -416,7 +419,8 @@ public class PharmacyPanel extends JPanel {
             warnCard.setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createLineBorder(UIConstants.ALERT_AMBER_BORDER),
                     BorderFactory.createEmptyBorder(8, 12, 8, 12)));
-            JLabel icon = new JLabel("⚠️");
+            JLabel icon = new JLabel();
+            icon.setIcon(com.hospital.gui.IconManager.getIcon("warning", 16, 16));
             icon.setFont(UIConstants.FONT_SUBTITLE);
             warnCard.add(icon, BorderLayout.WEST);
             JTextArea warnText = new JTextArea(String.join("\n", warnings));

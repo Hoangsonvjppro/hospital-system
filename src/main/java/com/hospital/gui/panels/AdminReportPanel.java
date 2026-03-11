@@ -79,7 +79,8 @@ public class AdminReportPanel extends JPanel {
         JPanel topBar = new JPanel(new BorderLayout(16, 0));
         topBar.setOpaque(false);
 
-        JLabel title = new JLabel("📈  Báo cáo Doanh thu");
+        JLabel title = new JLabel("  Báo cáo Doanh thu");
+        title.setIcon(com.hospital.gui.IconManager.getIcon("trending_up", 20, 20));
         title.setFont(UIConstants.FONT_TITLE);
         title.setForeground(UIConstants.PRIMARY);
         topBar.add(title, BorderLayout.WEST);
@@ -156,7 +157,8 @@ public class AdminReportPanel extends JPanel {
         txtTo.setFont(UIConstants.FONT_BODY);
         txtTo.setText(dateTo.format(DateTimeFormatter.ISO_LOCAL_DATE));
 
-        JButton btnFilter = new JButton("🔍 Lọc");
+        JButton btnFilter = new JButton("Lọc");
+        btnFilter.setIcon(com.hospital.gui.IconManager.getIcon("search", 14, 14));
         btnFilter.setFont(UIConstants.FONT_BODY);
         btnFilter.setBackground(UIConstants.PRIMARY);
         btnFilter.setForeground(Color.WHITE);
@@ -238,16 +240,16 @@ public class AdminReportPanel extends JPanel {
         kpiPanel.add(new StatCard("Doanh Thu",
                 moneyFmt.format(totalRevenue) + " đ",
                 dateFrom.format(dayFmt) + " → " + dateTo.format(dayFmt),
-                "💰", UIConstants.SUCCESS_GREEN));
+                "money", UIConstants.SUCCESS_GREEN));
         kpiPanel.add(new StatCard("Đã Thanh Toán",
                 String.valueOf(paidCount), "Hóa đơn trong kỳ",
-                "✅", UIConstants.STATUS_DONE));
+                "check", UIConstants.STATUS_DONE));
         kpiPanel.add(new StatCard("Chờ Thanh Toán",
                 String.valueOf(pendingCount), "Cần xử lý",
-                "⏳", UIConstants.WARNING_ORANGE));
+                "hourglass", UIConstants.WARNING_ORANGE));
         kpiPanel.add(new StatCard("Tổng Lượt Khám",
                 String.valueOf(totalVisits), "Tất cả thời gian",
-                "🩺", UIConstants.PRIMARY));
+                "stethoscope", UIConstants.PRIMARY));
     }
 
     // ══════════════════════════════════════════════════════════
@@ -285,7 +287,8 @@ public class AdminReportPanel extends JPanel {
         card.setLayout(new BorderLayout());
         card.setBorder(new EmptyBorder(12, 14, 12, 14));
 
-        JLabel chartTitle = new JLabel("📊  Doanh thu theo ngày");
+        JLabel chartTitle = new JLabel("  Doanh thu theo ngày");
+        chartTitle.setIcon(com.hospital.gui.IconManager.getIcon("dashboard", 18, 18));
         chartTitle.setFont(UIConstants.FONT_SUBTITLE);
         chartTitle.setForeground(UIConstants.TEXT_PRIMARY);
         card.add(chartTitle, BorderLayout.NORTH);
@@ -343,7 +346,8 @@ public class AdminReportPanel extends JPanel {
         card.setLayout(new BorderLayout(0, 8));
         card.setBorder(new EmptyBorder(14, 16, 14, 16));
 
-        JLabel lbl = new JLabel("💊  Top thuốc bán chạy");
+        JLabel lbl = new JLabel("  Top thuốc bán chạy");
+        lbl.setIcon(com.hospital.gui.IconManager.getIcon("pill", 18, 18));
         lbl.setFont(UIConstants.FONT_SUBTITLE);
         lbl.setForeground(UIConstants.TEXT_PRIMARY);
         card.add(lbl, BorderLayout.NORTH);
@@ -384,7 +388,8 @@ public class AdminReportPanel extends JPanel {
         card.setLayout(new BorderLayout(0, 8));
         card.setBorder(new EmptyBorder(14, 16, 14, 16));
 
-        JLabel lbl = new JLabel("🏥  Top bệnh phổ biến");
+        JLabel lbl = new JLabel("  Top bệnh phổ biến");
+        lbl.setIcon(com.hospital.gui.IconManager.getIcon("hospital", 18, 18));
         lbl.setFont(UIConstants.FONT_SUBTITLE);
         lbl.setForeground(UIConstants.TEXT_PRIMARY);
         card.add(lbl, BorderLayout.NORTH);

@@ -56,7 +56,8 @@ public class PatientAllergyPanel extends JPanel {
         JPanel header = new JPanel(new BorderLayout(12, 0));
         header.setOpaque(false);
 
-        JLabel lblTitle = new JLabel("⚠  Quản lý dị ứng bệnh nhân");
+        JLabel lblTitle = new JLabel("  Quản lý dị ứng bệnh nhân");
+        lblTitle.setIcon(com.hospital.gui.IconManager.getIcon("warning", 20, 20));
         lblTitle.setFont(UIConstants.FONT_TITLE);
         lblTitle.setForeground(UIConstants.TEXT_PRIMARY);
         header.add(lblTitle, BorderLayout.WEST);
@@ -131,10 +132,12 @@ public class PatientAllergyPanel extends JPanel {
 
         // Context menu
         JPopupMenu popup = new JPopupMenu();
-        JMenuItem miEdit = new JMenuItem("✏️ Sửa");
+        JMenuItem miEdit = new JMenuItem("Sửa");
+        miEdit.setIcon(com.hospital.gui.IconManager.getIcon("edit", 14, 14));
         miEdit.addActionListener(e -> editSelected());
         popup.add(miEdit);
-        JMenuItem miDelete = new JMenuItem("🗑️ Xóa");
+        JMenuItem miDelete = new JMenuItem("Xóa");
+        miDelete.setIcon(com.hospital.gui.IconManager.getIcon("delete", 14, 14));
         miDelete.addActionListener(e -> deleteSelected());
         popup.add(miDelete);
         table.setComponentPopupMenu(popup);
@@ -162,19 +165,22 @@ public class PatientAllergyPanel extends JPanel {
         btnAdd.addActionListener(e -> showAddDialog());
         bar.add(btnAdd);
 
-        RoundedButton btnEdit = new RoundedButton("✏️ Sửa");
+        RoundedButton btnEdit = new RoundedButton("Sửa");
+        btnEdit.setIcon(com.hospital.gui.IconManager.getIcon("edit", 14, 14));
         btnEdit.setBackground(UIConstants.ACCENT_BLUE);
         btnEdit.setForeground(Color.WHITE);
         btnEdit.addActionListener(e -> editSelected());
         bar.add(btnEdit);
 
-        RoundedButton btnDelete = new RoundedButton("🗑️ Xóa");
+        RoundedButton btnDelete = new RoundedButton("Xóa");
+        btnDelete.setIcon(com.hospital.gui.IconManager.getIcon("delete", 14, 14));
         btnDelete.setBackground(UIConstants.ERROR_COLOR);
         btnDelete.setForeground(Color.WHITE);
         btnDelete.addActionListener(e -> deleteSelected());
         bar.add(btnDelete);
 
-        RoundedButton btnRefresh = new RoundedButton("🔄 Làm mới");
+        RoundedButton btnRefresh = new RoundedButton("Làm mới");
+        btnRefresh.setIcon(com.hospital.gui.IconManager.getIcon("refresh", 14, 14));
         btnRefresh.setBackground(UIConstants.TEXT_SECONDARY);
         btnRefresh.setForeground(Color.WHITE);
         btnRefresh.addActionListener(e -> loadData());

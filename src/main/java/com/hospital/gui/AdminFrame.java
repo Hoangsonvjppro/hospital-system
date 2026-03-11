@@ -12,52 +12,52 @@ import javax.swing.*;
 public class AdminFrame extends BaseFrame {
 
     public AdminFrame(Account account) {
-        super(account, "Quản trị viên", "🛡️");
+        super(account, "Quản trị viên", "shield");
     }
 
     @Override
     protected void registerMenuItems() {
-        addMenuItem("📊", "Tổng quan",
+        addMenuItem("dashboard", "Tổng quan",
                 () -> showPanel(new DashboardPanel(account.getFullName())));
 
         addSeparator();
         addSectionLabel("Tiếp nhận");
 
-        addMenuItem("📋", "Tiếp nhận BN",
+        addMenuItem("clipboard", "Tiếp nhận BN",
                 () -> showPanel(new ReceptionPanel()));
-        addMenuItem("🕐", "Hàng đợi",
+        addMenuItem("queue", "Hàng đợi",
                 () -> showPanel(new DoctorDashboardPanel()));
 
         addSeparator();
         addSectionLabel("Khám bệnh");
 
-        addMenuItem("🩺", "Khám bệnh",
+        addMenuItem("stethoscope", "Khám bệnh",
                 () -> showPanel(new DoctorWorkstationPanel()));
 
         addSeparator();
         addSectionLabel("Dược & Tài chính");
 
-        addMenuItem("💊", "Kho thuốc",
+        addMenuItem("pill", "Kho thuốc",
                 () -> showPanel(new MedicinePanel()));
-        addMenuItem("💉", "Phát thuốc",
+        addMenuItem("syringe", "Phát thuốc",
                 () -> showPanel(new com.hospital.gui.panels.PharmacyPanel()));
-        addMenuItem("💰", "Thanh toán",
+        addMenuItem("money", "Thanh toán",
                 () -> showPanel(new PaymentPanel()));
-        addMenuItem("✅", "Kết thúc khám",
+        addMenuItem("check", "Kết thúc khám",
                 () -> showPanel(new com.hospital.gui.panels.CompletionPanel()));
 
         addSeparator();
         addSectionLabel("Báo cáo");
 
-        addMenuItem("📈", "Doanh thu",
+        addMenuItem("trending_up", "Doanh thu",
                 () -> showPanel(new AdminReportPanel()));
 
         addSeparator();
         addSectionLabel("Hệ thống");
 
-        addMenuItem("👤", "Quản lý tài khoản",
+        addMenuItem("person", "Quản lý tài khoản",
                 () -> showPanel(new AccountManagementPanel()));
-        addMenuItem("⚙️", "Cấu hình phòng khám",
+        addMenuItem("settings", "Cấu hình phòng khám",
                 () -> showPanel(new ClinicConfigPanel()));
     }
 

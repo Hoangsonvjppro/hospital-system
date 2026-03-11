@@ -126,7 +126,8 @@ public class PrescriptionPanel extends JPanel {
         JPanel header = new JPanel(new BorderLayout(12, 0));
         header.setOpaque(false);
 
-        JLabel lblTitle = new JLabel("💊  Kê đơn thuốc");
+        JLabel lblTitle = new JLabel("  Kê đơn thuốc");
+        lblTitle.setIcon(com.hospital.gui.IconManager.getIcon("pill", 20, 20));
         lblTitle.setFont(UIConstants.FONT_TITLE);
         lblTitle.setForeground(UIConstants.TEXT_PRIMARY);
         header.add(lblTitle, BorderLayout.WEST);
@@ -167,7 +168,8 @@ public class PrescriptionPanel extends JPanel {
         JPanel searchRow = new JPanel(new BorderLayout(8, 0));
         searchRow.setOpaque(false);
 
-        JLabel lblSearch = new JLabel("🔍 Tìm thuốc:");
+        JLabel lblSearch = new JLabel("Tìm thuốc:");
+        lblSearch.setIcon(com.hospital.gui.IconManager.getIcon("search", 14, 14));
         lblSearch.setFont(UIConstants.FONT_BOLD);
         lblSearch.setForeground(UIConstants.TEXT_PRIMARY);
         searchRow.add(lblSearch, BorderLayout.WEST);
@@ -342,7 +344,8 @@ public class PrescriptionPanel extends JPanel {
         panel.setLayout(new BorderLayout(0, 8));
         panel.setBorder(BorderFactory.createEmptyBorder(14, 16, 14, 16));
 
-        JLabel title = new JLabel("📋 Đơn thuốc hiện tại");
+        JLabel title = new JLabel("Đơn thuốc hiện tại");
+        title.setIcon(com.hospital.gui.IconManager.getIcon("clipboard", 16, 16));
         title.setFont(UIConstants.FONT_SUBTITLE);
         title.setForeground(UIConstants.TEXT_PRIMARY);
         panel.add(title, BorderLayout.NORTH);
@@ -398,7 +401,8 @@ public class PrescriptionPanel extends JPanel {
         // Remove button
         JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         btnPanel.setOpaque(false);
-        RoundedButton btnRemove = new RoundedButton("🗑 Xóa dòng");
+        RoundedButton btnRemove = new RoundedButton("Xóa dòng");
+        btnRemove.setIcon(com.hospital.gui.IconManager.getIcon("delete", 14, 14));
         btnRemove.setBackground(UIConstants.ERROR_COLOR);
         btnRemove.setForeground(Color.WHITE);
         btnRemove.setPreferredSize(new Dimension(120, 32));
@@ -432,14 +436,16 @@ public class PrescriptionPanel extends JPanel {
         JPanel btns = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         btns.setOpaque(false);
 
-        RoundedButton btnPrint = new RoundedButton("🖨 In đơn thuốc");
+        RoundedButton btnPrint = new RoundedButton("In đơn thuốc");
+        btnPrint.setIcon(com.hospital.gui.IconManager.getIcon("print", 14, 14));
         btnPrint.setBackground(UIConstants.TEXT_SECONDARY);
         btnPrint.setForeground(Color.WHITE);
         btnPrint.setPreferredSize(new Dimension(160, 38));
         btnPrint.addActionListener(e -> onPrintPrescription());
         btns.add(btnPrint);
 
-        RoundedButton btnComplete = new RoundedButton("✅ Hoàn tất đơn thuốc");
+        RoundedButton btnComplete = new RoundedButton("Hoàn tất đơn thuốc");
+        btnComplete.setIcon(com.hospital.gui.IconManager.getIcon("check", 14, 14));
         btnComplete.setBackground(UIConstants.SUCCESS_GREEN);
         btnComplete.setForeground(Color.WHITE);
         btnComplete.setPreferredSize(new Dimension(200, 38));

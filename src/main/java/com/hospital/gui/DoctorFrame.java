@@ -20,45 +20,45 @@ import javax.swing.*;
 public class DoctorFrame extends BaseFrame {
 
     public DoctorFrame(Account account) {
-        super(account, "Bác sĩ", "🩺");
+        super(account, "Bác sĩ", "stethoscope");
     }
 
     @Override
     protected void registerMenuItems() {
-        addMenuItem("📋", "Danh sách chờ khám",
+        addMenuItem("clipboard", "Danh sách chờ khám",
                 () -> showPanel(new DoctorDashboardPanel()));
 
-        addMenuItem("🩺", "Khám bệnh",
+        addMenuItem("stethoscope", "Khám bệnh",
                 () -> showPanel(new DoctorWorkstationPanel()));
 
-        addMenuItem("📅", "Lịch khám",
+        addMenuItem("calendar", "Lịch khám",
                 () -> showPanel(new DoctorSchedulePanel()));
 
-        addMenuItem("📝", "Kê đơn thuốc",
+        addMenuItem("edit", "Kê đơn thuốc",
                 () -> showPanel(new PrescriptionPanel()));
 
         addSeparator();
         addSectionLabel("Xét nghiệm");
 
-        addMenuItem("🧪", "Yêu cầu xét nghiệm",
+        addMenuItem("lab", "Yêu cầu xét nghiệm",
                 () -> showPanel(new LabOrderPanel()));
 
-        addMenuItem("🔬", "Xử lý xét nghiệm",
+        addMenuItem("microscope", "Xử lý xét nghiệm",
                 () -> showPanel(new LabProcessingPanel()));
 
-        addMenuItem("📊", "Kết quả xét nghiệm",
+        addMenuItem("dashboard", "Kết quả xét nghiệm",
                 () -> showPanel(new LabResultPanel()));
 
         addSeparator();
         addSectionLabel("Hồ sơ");
 
-        addMenuItem("⚠", "Dị ứng bệnh nhân",
+        addMenuItem("warning", "Dị ứng bệnh nhân",
                 () -> showPanel(new PatientAllergyPanel()));
 
         addSeparator();
         addSectionLabel("Hoàn tất");
 
-        addMenuItem("✅", "Kết thúc khám",
+        addMenuItem("check", "Kết thúc khám",
                 () -> showPanel(new com.hospital.gui.panels.CompletionPanel()));
     }
 

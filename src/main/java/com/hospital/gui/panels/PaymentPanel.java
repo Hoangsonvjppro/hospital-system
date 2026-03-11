@@ -117,13 +117,13 @@ public class PaymentPanel extends JPanel {
 
         cardTotal   = new StatCard("Tổng doanh thu",
                 moneyFmt.format(totalRev / 1_000_000.0) + " tr", "Đã thanh toán",
-                "\uD83D\uDCB5", UIConstants.SUCCESS_GREEN);
+                "money", UIConstants.SUCCESS_GREEN);
         cardPaid    = new StatCard("Đã thanh toán",
                 String.valueOf(paid), "Hóa đơn",
-                "\u2705", UIConstants.STATUS_DONE);
+                "check", UIConstants.STATUS_DONE);
         cardPending = new StatCard("Chờ thanh toán",
                 String.valueOf(pending), "Cần xử lý",
-                "\u23F3", UIConstants.WARNING_ORANGE);
+                "hourglass", UIConstants.WARNING_ORANGE);
 
         p.add(cardTotal);
         p.add(cardPaid);

@@ -65,7 +65,8 @@ public class LabProcessingPanel extends JPanel {
         JPanel header = new JPanel(new BorderLayout(12, 0));
         header.setOpaque(false);
 
-        JLabel lblTitle = new JLabel("🧪  Xử lý xét nghiệm");
+        JLabel lblTitle = new JLabel("  Xử lý xét nghiệm");
+        lblTitle.setIcon(com.hospital.gui.IconManager.getIcon("lab", 20, 20));
         lblTitle.setFont(UIConstants.FONT_TITLE);
         lblTitle.setForeground(UIConstants.TEXT_PRIMARY);
         header.add(lblTitle, BorderLayout.WEST);
@@ -73,13 +74,15 @@ public class LabProcessingPanel extends JPanel {
         JPanel buttons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         buttons.setOpaque(false);
 
-        RoundedButton btnShowAll = new RoundedButton("📋 Tất cả");
+        RoundedButton btnShowAll = new RoundedButton("Tất cả");
+        btnShowAll.setIcon(com.hospital.gui.IconManager.getIcon("clipboard", 14, 14));
         btnShowAll.setBackground(UIConstants.TEXT_SECONDARY);
         btnShowAll.setForeground(Color.WHITE);
         btnShowAll.addActionListener(e -> loadAllData());
         buttons.add(btnShowAll);
 
-        RoundedButton btnRefresh = new RoundedButton("🔄 Làm mới");
+        RoundedButton btnRefresh = new RoundedButton("Làm mới");
+        btnRefresh.setIcon(com.hospital.gui.IconManager.getIcon("refresh", 14, 14));
         btnRefresh.setBackground(UIConstants.ACCENT_BLUE);
         btnRefresh.setForeground(Color.WHITE);
         btnRefresh.addActionListener(e -> loadData());
@@ -214,7 +217,8 @@ public class LabProcessingPanel extends JPanel {
         btnStart.addActionListener(e -> onStartOrder());
         btns.add(btnStart);
 
-        btnComplete = new RoundedButton("✅ Hoàn tất XN");
+        btnComplete = new RoundedButton("Hoàn tất XN");
+        btnComplete.setIcon(com.hospital.gui.IconManager.getIcon("check", 14, 14));
         btnComplete.setBackground(UIConstants.SUCCESS_GREEN);
         btnComplete.setForeground(Color.WHITE);
         btnComplete.setPreferredSize(new Dimension(150, 36));

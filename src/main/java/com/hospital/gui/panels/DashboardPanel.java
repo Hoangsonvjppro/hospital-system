@@ -2,6 +2,7 @@ package com.hospital.gui.panels;
 
 import com.formdev.flatlaf.FlatClientProperties;
 import com.hospital.dao.DashboardDAO;
+import com.hospital.gui.IconManager;
 import com.hospital.gui.UIConstants;
 
 import java.util.logging.Level;
@@ -107,7 +108,8 @@ public class DashboardPanel extends JPanel {
         JPanel topPanel = new JPanel(new BorderLayout());
         topPanel.setOpaque(false);
 
-        JLabel lblWelcome = new JLabel("Xin chào, " + userName + " 👋");
+        JLabel lblWelcome = new JLabel("Xin chào, " + userName + " ");
+        lblWelcome.setIcon(IconManager.getIcon("wave", 24, 24));
         lblWelcome.putClientProperty(FlatClientProperties.STYLE, "font: bold +10");
         lblWelcome.setForeground(UIConstants.TEXT_PRIMARY);
 
@@ -137,20 +139,20 @@ public class DashboardPanel extends JPanel {
         // Card 1 — BN hôm nay (có sub-detail)
         lblTodayPatients = new JLabel("...");
         lblTodayPatientsDetail = new JLabel("Đang tải...");
-        kpiRow.add(createKPICardWithDetail("🏥", "BN hôm nay",
+        kpiRow.add(createKPICardWithDetail("hospital", "BN hôm nay",
                 lblTodayPatients, lblTodayPatientsDetail, UIConstants.ACCENT_BLUE));
 
         // Card 2 — Doanh thu
         lblRevenue = new JLabel("...");
-        kpiRow.add(createKPICard("💰", "Doanh thu hôm nay", lblRevenue, UIConstants.REVENUE_PURPLE));
+        kpiRow.add(createKPICard("money", "Doanh thu hôm nay", lblRevenue, UIConstants.REVENUE_PURPLE));
 
         // Card 3 — Đơn thuốc đã phát
         lblDispensedRx = new JLabel("...");
-        kpiRow.add(createKPICard("💊", "Đơn thuốc đã phát", lblDispensedRx, UIConstants.SUCCESS_GREEN));
+        kpiRow.add(createKPICard("pill", "Đơn thuốc đã phát", lblDispensedRx, UIConstants.SUCCESS_GREEN));
 
         // Card 4 — Thuốc sắp hết
         lblLowStock = new JLabel("...");
-        kpiRow.add(createKPICard("⚠️", "Thuốc sắp hết", lblLowStock, UIConstants.WARNING_ORANGE));
+        kpiRow.add(createKPICard("warning", "Thuốc sắp hết", lblLowStock, UIConstants.WARNING_ORANGE));
 
         return kpiRow;
     }
@@ -166,7 +168,7 @@ public class DashboardPanel extends JPanel {
         alertLowStockBody = new JPanel();
         alertLowStockBody.setLayout(new BoxLayout(alertLowStockBody, BoxLayout.Y_AXIS));
         alertLowStockBody.setOpaque(false);
-        alertLowStockCard = createAlertCard("🔴", "Cảnh báo: Thuốc sắp hết",
+        alertLowStockCard = createAlertCard("circle_red", "Cảnh báo: Thuốc sắp hết",
                 alertLowStockBody, UIConstants.ALERT_RED_BG, UIConstants.ALERT_RED_BORDER);
         alertRow.add(alertLowStockCard);
 
@@ -174,7 +176,7 @@ public class DashboardPanel extends JPanel {
         alertLongWaitBody = new JPanel();
         alertLongWaitBody.setLayout(new BoxLayout(alertLongWaitBody, BoxLayout.Y_AXIS));
         alertLongWaitBody.setOpaque(false);
-        alertLongWaitCard = createAlertCard("🟡", "Cảnh báo: BN chờ lâu (>" + LONG_WAIT_THRESHOLD + " phút)",
+        alertLongWaitCard = createAlertCard("circle_yellow", "Cảnh báo: BN chờ lâu (>" + LONG_WAIT_THRESHOLD + " phút)",
                 alertLongWaitBody, UIConstants.ALERT_AMBER_BG, UIConstants.ALERT_AMBER_BORDER);
         alertRow.add(alertLongWaitCard);
 
@@ -205,10 +207,10 @@ public class DashboardPanel extends JPanel {
         infoBody.add(lblActiveDoctors);
         infoBody.add(lblTotalVisits);
 
-        statsRow.add(createInfoCard("🏥", "Thông tin phòng khám", infoBody));
+        statsRow.add(createInfoCard("hospital", "Thông tin phòng khám", infoBody));
 
         // Info — Hướng dẫn
-        statsRow.add(createInfoCard("📋", "Hướng dẫn nhanh",
+        statsRow.add(createInfoCard("clipboard", "Hướng dẫn nhanh",
                 new String[]{
                     "Bấm menu bên trái để điều hướng",
                     "Kho thuốc: Quản lý nhập/xuất thuốc",
@@ -230,7 +232,8 @@ public class DashboardPanel extends JPanel {
         lblLastUpdate.setForeground(UIConstants.TEXT_MUTED);
         footer.add(lblLastUpdate);
 
-        JButton btnRefresh = new JButton("🔄 Cập nhật");
+        JButton btnRefresh = new JButton("Cập nhật");
+        btnRefresh.setIcon(IconManager.getIcon("refresh", 14, 14));
         btnRefresh.setFont(UIConstants.FONT_SMALL);
         btnRefresh.setForeground(UIConstants.ACCENT_BLUE);
         btnRefresh.setBorderPainted(false);
@@ -399,8 +402,7 @@ public class DashboardPanel extends JPanel {
         ));
         card.putClientProperty(FlatClientProperties.STYLE, "arc: 16");
 
-        JLabel lblIcon = new JLabel(icon, SwingConstants.CENTER);
-        lblIcon.setFont(UIConstants.FONT_ICON);
+        JLabel lblIcon = new JLabel(IconManager.getIcon(icon, 32, 32), SwingConstants.CENTER);
         lblIcon.setPreferredSize(new Dimension(50, 50));
         card.add(lblIcon, BorderLayout.WEST);
 
@@ -437,8 +439,7 @@ public class DashboardPanel extends JPanel {
         ));
         card.putClientProperty(FlatClientProperties.STYLE, "arc: 16");
 
-        JLabel lblIcon = new JLabel(icon, SwingConstants.CENTER);
-        lblIcon.setFont(UIConstants.FONT_ICON);
+        JLabel lblIcon = new JLabel(IconManager.getIcon(icon, 32, 32), SwingConstants.CENTER);
         lblIcon.setPreferredSize(new Dimension(50, 50));
         card.add(lblIcon, BorderLayout.WEST);
 
@@ -483,7 +484,7 @@ public class DashboardPanel extends JPanel {
         JPanel header = new JPanel(new FlowLayout(FlowLayout.LEFT, 6, 0));
         header.setOpaque(false);
 
-        JLabel lblIcon = new JLabel(icon);
+        JLabel lblIcon = new JLabel(IconManager.getIcon(icon, 16, 16));
         lblIcon.setFont(new Font(UIConstants.FONT_NAME, Font.PLAIN, 16));
         header.add(lblIcon);
 
@@ -518,8 +519,7 @@ public class DashboardPanel extends JPanel {
         JPanel header = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 0));
         header.setOpaque(false);
 
-        JLabel lblIcon = new JLabel(icon);
-        lblIcon.setFont(new Font(UIConstants.FONT_NAME, Font.PLAIN, 20));
+        JLabel lblIcon = new JLabel(IconManager.getIcon(icon, 20, 20));
         header.add(lblIcon);
 
         JLabel lblTitle = new JLabel(title);
