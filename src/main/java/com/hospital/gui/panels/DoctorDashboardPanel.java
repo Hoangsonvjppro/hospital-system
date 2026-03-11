@@ -95,11 +95,11 @@ public class DoctorDashboardPanel extends JPanel {
         long done = queueBUS.countByStatus("COMPLETED");
 
         p.add(new StatCard("Chờ khám",    String.valueOf(waiting),
-                "Bệnh nhân đang đợi", "⏳", UIConstants.WARNING_ORANGE));
+                "Bệnh nhân đang đợi", "hourglass", UIConstants.WARNING_ORANGE));
         p.add(new StatCard("Đang khám",   String.valueOf(inProgress),
-                "Đang trong phòng khám", "🩺", UIConstants.PRIMARY_RED));
+                "Đang trong phòng khám", "stethoscope", UIConstants.PRIMARY_RED));
         p.add(new StatCard("Đã khám xong", String.valueOf(done),
-                "Hôm nay", "✅", UIConstants.SUCCESS_GREEN));
+                "Hôm nay", "check", UIConstants.SUCCESS_GREEN));
         return p;
     }
 

@@ -14,20 +14,20 @@ import javax.swing.*;
 public class PharmacistFrame extends BaseFrame {
 
     public PharmacistFrame(Account account) {
-        super(account, "Dược sĩ", "💊");
+        super(account, "Dược sĩ", "pill");
     }
 
     @Override
     protected void registerMenuItems() {
-        addMenuItem("💊", "Quản lý kho",
+        addMenuItem("pill", "Quản lý kho",
                 () -> showPanel(new MedicinePanel()));
 
-        addMenuItem("💉", "Phát thuốc",
+        addMenuItem("syringe", "Phát thuốc",
                 () -> showPanel(new PharmacyPanel()));
 
         addSeparator();
 
-        addMenuItem("✅", "Kết thúc khám",
+        addMenuItem("check", "Kết thúc khám",
                 () -> showPanel(new CompletionPanel()));
     }
 

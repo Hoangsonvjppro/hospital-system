@@ -1,5 +1,6 @@
 package com.hospital.gui.components;
 
+import com.hospital.gui.IconManager;
 import com.hospital.gui.UIConstants;
 
 import javax.swing.*;
@@ -7,6 +8,7 @@ import java.awt.*;
 
 /**
  * Card thống kê cho Dashboard (BỆNH NHÂN, DOANH THU, THUỐC SẮP HẾT…).
+ * icon: tên file icon (ví dụ "hospital", "money", "pill").
  */
 public class StatCard extends RoundedPanel {
 
@@ -24,9 +26,8 @@ public class StatCard extends RoundedPanel {
         setLayout(new BorderLayout(0, 4));
         setBorder(BorderFactory.createEmptyBorder(18, 20, 18, 20));
 
-        // Icon (right side)
-        lblIcon = new JLabel(icon, SwingConstants.CENTER);
-        lblIcon.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 28));
+        // Icon (right side) — PNG via IconManager
+        lblIcon = new JLabel(IconManager.getIcon(icon, 28, 28), SwingConstants.CENTER);
         lblIcon.setForeground(accentColor);
         lblIcon.setPreferredSize(new Dimension(56, 56));
         lblIcon.setOpaque(true);

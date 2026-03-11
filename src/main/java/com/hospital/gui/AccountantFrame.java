@@ -14,18 +14,18 @@ import javax.swing.*;
 public class AccountantFrame extends BaseFrame {
 
     public AccountantFrame(Account account) {
-        super(account, "Kế toán", "💰");
+        super(account, "Kế toán", "money");
     }
 
     @Override
     protected void registerMenuItems() {
-        addMenuItem("💰", "Thanh toán",
+        addMenuItem("money", "Thanh toán",
                 () -> showPanel(new PaymentPanel()));
 
-        addMenuItem("📄", "Hóa đơn",
+        addMenuItem("document", "Hóa đơn",
                 () -> showPanel(new InvoiceListPanel()));
 
-        addMenuItem("📈", "Báo cáo",
+        addMenuItem("trending_up", "Báo cáo",
                 () -> showPanel(new AdminReportPanel()));
     }
 

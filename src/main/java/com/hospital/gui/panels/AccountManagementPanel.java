@@ -53,7 +53,8 @@ public class AccountManagementPanel extends JPanel {
         header.setOpaque(false);
 
         // Title
-        JLabel lblTitle = new JLabel("👤  Quản lý tài khoản");
+        JLabel lblTitle = new JLabel("  Quản lý tài khoản");
+        lblTitle.setIcon(com.hospital.gui.IconManager.getIcon("person", 20, 20));
         lblTitle.setFont(UIConstants.FONT_TITLE);
         lblTitle.setForeground(UIConstants.TEXT_PRIMARY);
         header.add(lblTitle, BorderLayout.WEST);
@@ -108,10 +109,14 @@ public class AccountManagementPanel extends JPanel {
 
         // Context menu
         JPopupMenu popup = new JPopupMenu();
-        JMenuItem itemEdit = new JMenuItem("✏ Sửa thông tin");
-        JMenuItem itemToggle = new JMenuItem("🔄 Bật/Tắt trạng thái");
-        JMenuItem itemReset = new JMenuItem("🔑 Reset mật khẩu");
-        JMenuItem itemDelete = new JMenuItem("🗑 Xóa tài khoản");
+        JMenuItem itemEdit = new JMenuItem("Sửa thông tin");
+        itemEdit.setIcon(com.hospital.gui.IconManager.getIcon("edit", 14, 14));
+        JMenuItem itemToggle = new JMenuItem("Đổi trạng thái");
+        itemToggle.setIcon(com.hospital.gui.IconManager.getIcon("refresh", 14, 14));
+        JMenuItem itemReset = new JMenuItem("Reset mật khẩu");
+        itemReset.setIcon(com.hospital.gui.IconManager.getIcon("key", 14, 14));
+        JMenuItem itemDelete = new JMenuItem("Xóa tài khoản");
+        itemDelete.setIcon(com.hospital.gui.IconManager.getIcon("delete", 14, 14));
 
         itemEdit.addActionListener(e -> editSelected());
         itemToggle.addActionListener(e -> toggleSelected());
@@ -140,11 +145,14 @@ public class AccountManagementPanel extends JPanel {
         JPanel bottom = new JPanel(new FlowLayout(FlowLayout.LEFT, 8, 8));
         bottom.setOpaque(false);
 
-        RoundedButton btnEdit = new RoundedButton("✏ Sửa");
+        RoundedButton btnEdit = new RoundedButton("Sửa");
+        btnEdit.setIcon(com.hospital.gui.IconManager.getIcon("edit", 14, 14));
         btnEdit.addActionListener(e -> editSelected());
-        RoundedButton btnToggle = new RoundedButton("🔄 Bật/Tắt");
+        RoundedButton btnToggle = new RoundedButton("Bật/Tắt");
+        btnToggle.setIcon(com.hospital.gui.IconManager.getIcon("refresh", 14, 14));
         btnToggle.addActionListener(e -> toggleSelected());
-        RoundedButton btnReset = new RoundedButton("🔑 Reset MK");
+        RoundedButton btnReset = new RoundedButton("Reset MK");
+        btnReset.setIcon(com.hospital.gui.IconManager.getIcon("key", 14, 14));
         btnReset.addActionListener(e -> resetPasswordSelected());
 
         bottom.add(btnEdit);

@@ -59,7 +59,8 @@ public class InvoiceListPanel extends JPanel {
         JPanel header = new JPanel(new BorderLayout(12, 0));
         header.setOpaque(false);
 
-        JLabel lblTitle = new JLabel("📄  Danh sách hóa đơn");
+        JLabel lblTitle = new JLabel("  Danh sách hóa đơn");
+        lblTitle.setIcon(com.hospital.gui.IconManager.getIcon("document", 20, 20));
         lblTitle.setFont(UIConstants.FONT_TITLE);
         lblTitle.setForeground(UIConstants.TEXT_PRIMARY);
         header.add(lblTitle, BorderLayout.WEST);
@@ -81,7 +82,8 @@ public class InvoiceListPanel extends JPanel {
         });
         filters.add(txtSearch);
 
-        RoundedButton btnRefresh = new RoundedButton("🔄 Làm mới");
+        RoundedButton btnRefresh = new RoundedButton("Làm mới");
+        btnRefresh.setIcon(com.hospital.gui.IconManager.getIcon("refresh", 14, 14));
         btnRefresh.setBackground(UIConstants.TEXT_SECONDARY);
         btnRefresh.setForeground(Color.WHITE);
         btnRefresh.addActionListener(e -> onStatusFilter());
@@ -131,7 +133,8 @@ public class InvoiceListPanel extends JPanel {
 
         // Right-click: view details
         JPopupMenu popup = new JPopupMenu();
-        JMenuItem miDetail = new JMenuItem("📋 Xem chi tiết");
+        JMenuItem miDetail = new JMenuItem("Xem chi tiết");
+        miDetail.setIcon(com.hospital.gui.IconManager.getIcon("clipboard", 14, 14));
         miDetail.addActionListener(e -> viewDetail());
         popup.add(miDetail);
         table.setComponentPopupMenu(popup);

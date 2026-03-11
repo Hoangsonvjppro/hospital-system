@@ -50,7 +50,7 @@ public abstract class BaseFrame extends JFrame {
     /**
      * @param account  tài khoản đang đăng nhập
      * @param roleName tên vai trò hiển thị ("Quản trị viên", "Bác sĩ"…)
-     * @param roleIcon emoji hoặc ký tự icon ("🛡️", "🩺"…)
+     * @param roleIcon tên file icon (không cần extension), ví dụ "shield", "stethoscope"
      */
     protected BaseFrame(Account account, String roleName, String roleIcon) {
         this.account  = account;
@@ -146,8 +146,7 @@ public abstract class BaseFrame extends JFrame {
         header.setBorder(new EmptyBorder(24, 20, 24, 20));
         header.setMaximumSize(new Dimension(Integer.MAX_VALUE, 130));
 
-        JLabel lblIcon = new JLabel(roleIcon);
-        lblIcon.setFont(UIConstants.FONT_ICON);
+        JLabel lblIcon = new JLabel(IconManager.getIcon(roleIcon, 38, 38));
         lblIcon.setHorizontalAlignment(SwingConstants.CENTER);
         header.add(lblIcon, BorderLayout.NORTH);
 
@@ -178,7 +177,7 @@ public abstract class BaseFrame extends JFrame {
     }
 
     private JPanel createLogoutButton() {
-        JButton btnLogout = createSidebarBtn("\u279C", "Đăng xuất");
+        JButton btnLogout = createSidebarBtn("logout", "Đăng xuất");
         btnLogout.setBackground(UIConstants.LOGOUT_COLOR);
         btnLogout.setForeground(Color.WHITE);
         btnLogout.addMouseListener(new MouseAdapter() {
@@ -211,7 +210,7 @@ public abstract class BaseFrame extends JFrame {
      * Thêm một mục menu vào sidebar.
      * Mục đầu tiên sẽ được đặt active mặc định.
      *
-     * @param icon   emoji icon ("📊", "💊"…)
+     * @param icon   tên file icon (ví dụ "dashboard", "pill")
      * @param label  nhãn menu
      * @param action hành động khi click (thường là showPanel)
      */
@@ -289,7 +288,8 @@ public abstract class BaseFrame extends JFrame {
     //  INTERNAL — tạo & quản lý sidebar button
     // ══════════════════════════════════════════════════════════
 
-    private JButton createSidebarBtn(String iconText, String labelText) {
+    private JButton createSidebarBtn(String iconName, String labelText) {
+        ImageIcon icon = IconManager.getIcon(iconName, 20, 20);
         JButton btn = new JButton("") {
             @Override
             protected void paintComponent(Graphics g) {
@@ -300,17 +300,15 @@ public abstract class BaseFrame extends JFrame {
                 g2.setColor(getBackground());
                 g2.fill(new RoundRectangle2D.Float(0, 0, getWidth(), getHeight(),
                         UIConstants.BTN_RADIUS, UIConstants.BTN_RADIUS));
-                // Icon (emoji font)
-                g2.setColor(getForeground());
-                g2.setFont(UIConstants.FONT_SIDEBAR_ICON);
-                FontMetrics fmIcon = g2.getFontMetrics();
-                int y = (getHeight() + fmIcon.getAscent() - fmIcon.getDescent()) / 2;
-                g2.drawString(iconText, 20, y);
-                int iconWidth = fmIcon.stringWidth(iconText);
+                // Icon (PNG image)
+                int iconY = (getHeight() - icon.getIconHeight()) / 2;
+                icon.paintIcon(this, g2, 20, iconY);
+                int iconWidth = icon.getIconWidth();
                 // Label text (regular font)
+                g2.setColor(getForeground());
                 g2.setFont(UIConstants.FONT_SIDEBAR_BTN);
                 FontMetrics fmText = g2.getFontMetrics();
-                y = (getHeight() + fmText.getAscent() - fmText.getDescent()) / 2;
+                int y = (getHeight() + fmText.getAscent() - fmText.getDescent()) / 2;
                 g2.drawString(labelText, 20 + iconWidth + 10, y);
                 g2.dispose();
             }

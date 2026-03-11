@@ -34,27 +34,27 @@ public class SystemPanel extends JPanel {
         grid.setOpaque(false);
         grid.setBorder(BorderFactory.createEmptyBorder(20, 0, 0, 0));
 
-        grid.add(createSettingCard("🏥", "Thông tin phòng khám",
+        grid.add(createSettingCard("hospital", "Thông tin phòng khám",
                 "Tên, địa chỉ, hotline, logo phòng khám.",
                 "Chỉnh sửa", this::showClinicInfo));
 
-        grid.add(createSettingCard("👨‍⚕️", "Quản lý bác sĩ",
+        grid.add(createSettingCard("doctor", "Quản lý bác sĩ",
                 "Thêm, sửa, xóa thông tin bác sĩ và chuyên khoa.",
                 "Quản lý", this::showDoctorManage));
 
-        grid.add(createSettingCard("🔐", "Tài khoản & Mật khẩu",
+        grid.add(createSettingCard("lock", "Tài khoản & Mật khẩu",
                 "Đổi mật khẩu, phân quyền người dùng.",
                 "Cập nhật", this::showAccount));
 
-        grid.add(createSettingCard("🗄️", "Cơ sở dữ liệu",
+        grid.add(createSettingCard("cabinet", "Cơ sở dữ liệu",
                 "Kết nối CSDL, sao lưu và khôi phục dữ liệu.",
                 "Cấu hình", this::showDatabase));
 
-        grid.add(createSettingCard("🖨️", "In ấn & Báo cáo",
+        grid.add(createSettingCard("print", "In ấn & Báo cáo",
                 "Mẫu in hóa đơn, đơn thuốc, báo cáo thống kê.",
                 "Cài đặt", this::showPrint));
 
-        grid.add(createSettingCard("ℹ️", "Về ứng dụng",
+        grid.add(createSettingCard("info", "Về ứng dụng",
                 "Phiên bản v1.0.0 – HOSPITAL-SYSTEM © 2026.",
                 "Xem", this::showAbout));
 
@@ -70,8 +70,7 @@ public class SystemPanel extends JPanel {
         // Icon + Title
         JPanel hdr = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         hdr.setOpaque(false);
-        JLabel iconLbl = new JLabel(icon);
-        iconLbl.setFont(new Font("Segoe UI Emoji", Font.PLAIN, 26));
+        JLabel iconLbl = new JLabel(com.hospital.gui.IconManager.getIcon(icon, 26, 26));
         JLabel titleLbl = new JLabel(title);
         titleLbl.setFont(UIConstants.FONT_SUBTITLE);
         titleLbl.setForeground(UIConstants.TEXT_PRIMARY);

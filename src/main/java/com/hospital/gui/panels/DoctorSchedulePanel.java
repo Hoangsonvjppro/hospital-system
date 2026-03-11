@@ -57,7 +57,8 @@ public class DoctorSchedulePanel extends JPanel {
         JPanel header = new JPanel(new BorderLayout(12, 0));
         header.setOpaque(false);
 
-        JLabel lblTitle = new JLabel("📅  Lịch khám trong tuần");
+        JLabel lblTitle = new JLabel("  Lịch khám trong tuần");
+        lblTitle.setIcon(com.hospital.gui.IconManager.getIcon("calendar", 20, 20));
         lblTitle.setFont(UIConstants.FONT_TITLE);
         lblTitle.setForeground(UIConstants.TEXT_PRIMARY);
         header.add(lblTitle, BorderLayout.WEST);

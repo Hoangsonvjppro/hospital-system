@@ -28,7 +28,7 @@ public class MainFrame extends JFrame {
         card.setLayout(new BoxLayout(card, BoxLayout.Y_AXIS));
         card.setBorder(new EmptyBorder(40, 60, 40, 60));
 
-        JLabel icon = new JLabel("🏥", SwingConstants.CENTER);
+        JLabel icon = new JLabel(com.hospital.gui.IconManager.getIcon("hospital", 48, 48), SwingConstants.CENTER);
         icon.setFont(UIConstants.FONT_ICON);
         icon.setAlignmentX(Component.CENTER_ALIGNMENT);
         card.add(icon);

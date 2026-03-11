@@ -57,7 +57,8 @@ public class DispensingPanel extends JPanel {
 
     private void initComponents() {
         // Title
-        JLabel lblTitle = new JLabel("💉  Phát thuốc theo đơn");
+        JLabel lblTitle = new JLabel("  Phát thuốc theo đơn");
+        lblTitle.setIcon(com.hospital.gui.IconManager.getIcon("syringe", 20, 20));
         lblTitle.setFont(UIConstants.FONT_TITLE);
         lblTitle.setForeground(UIConstants.TEXT_PRIMARY);
         lblTitle.setBorder(BorderFactory.createEmptyBorder(0, 0, 12, 0));
@@ -113,7 +114,8 @@ public class DispensingPanel extends JPanel {
         card.add(scroll, BorderLayout.CENTER);
 
         // Refresh button
-        RoundedButton btnRefresh = new RoundedButton("🔄 Làm mới");
+        RoundedButton btnRefresh = new RoundedButton("Làm mới");
+        btnRefresh.setIcon(com.hospital.gui.IconManager.getIcon("refresh", 14, 14));
         btnRefresh.addActionListener(e -> loadPendingPrescriptions());
         JPanel bottom = new JPanel(new FlowLayout(FlowLayout.LEFT));
         bottom.setOpaque(false);
@@ -170,7 +172,8 @@ public class DispensingPanel extends JPanel {
         chkPartialExport.setFont(UIConstants.FONT_LABEL);
         actionPanel.add(chkPartialExport);
 
-        RoundedButton btnDispense = new RoundedButton("✅ Phát thuốc");
+        RoundedButton btnDispense = new RoundedButton("Phát thuốc");
+        btnDispense.setIcon(com.hospital.gui.IconManager.getIcon("check", 14, 14));
         btnDispense.setBackground(UIConstants.SUCCESS_GREEN);
         btnDispense.setForeground(Color.WHITE);
         btnDispense.setFont(UIConstants.FONT_BUTTON);
