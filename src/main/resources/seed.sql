@@ -127,21 +127,11 @@ VALUES
     ('Lý Thị Kim Ngân', 'FEMALE', '1983-05-20', '0912345010', '079183010010', '89 Nam Kỳ Khởi Nghĩa, Q.1, TP.HCM', 'NULL', 'FIRST_VISIT');
 
 
--- Lịch hẹn mẫu — tuần 09/03 – 15/03/2026 (chứa ngày hiện tại 11/03)
--- doctor_id 1 = BS. Nguyễn Văn A, doctor_id 2 = BS. Trần Thị Mai
 INSERT INTO Appointment
     (patient_id, doctor_id, appointment_date, start_time, end_time, status, reason)
 VALUES
     (1, 1, '2026-03-09', '09:00:00', '10:00:00', 'COMPLETED', 'Khám tổng quát'),
     (2, 1, '2026-03-09', '10:30:00', '11:30:00', 'COMPLETED', 'Tái khám định kỳ'),
     (3, 2, '2026-03-10', '08:00:00', '09:00:00', 'CHECKED_IN', 'Khám nhi'),
-    (4, 1, '2026-03-10', '09:00:00', '10:00:00', 'SCHEDULED', 'Khám nội'),
-    (5, 2, '2026-03-10', '14:00:00', '15:00:00', 'CANCELLED', 'Xét nghiệm máu'),
-    (6, 1, '2026-03-11', '08:30:00', '09:30:00', 'SCHEDULED', 'Khám tổng quát'),
-    (7, 2, '2026-03-11', '09:00:00', '10:00:00', 'SCHEDULED', 'Khám nhi'),
-    (8, 1, '2026-03-11', '10:00:00', '11:00:00', 'CHECKED_IN', 'Siêu âm bụng'),
-    (9, 1, '2026-03-12', '08:00:00', '09:00:00', 'SCHEDULED', 'Khám tim mạch'),
-    (10, 2, '2026-03-12', '13:00:00', '14:00:00', 'SCHEDULED', 'Tái khám'),
-    (1, 2, '2026-03-13', '08:00:00', '09:00:00', 'SCHEDULED', 'Xét nghiệm máu'),
-    (3, 1, '2026-03-13', '10:00:00', '11:00:00', 'SCHEDULED', 'Khám sức khỏe định kỳ');
+    (4, 1, '2026-03-10', '09:00:00', '10:00:00', 'SCHEDULED', 'Khám nội');
 

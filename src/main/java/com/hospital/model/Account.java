@@ -1,13 +1,5 @@
 package com.hospital.model;
 
-/**
- * Entity tài khoản đăng nhập — ánh xạ bảng `User` trong CSDL.
- * Account entity — maps to the `User` table in the database.
- *
- * Bảng User:
- *   user_id, username, password_hash, full_name, email, phone,
- *   role_id, is_active, created_at, updated_at
- */
 public class Account extends BaseModel {
     private String username;
     private String passwordHash;
@@ -17,10 +9,8 @@ public class Account extends BaseModel {
     private int roleId;
     private boolean isActive;
 
-    // ── Constructors ──────────────────────────────────────────
 
-    public Account() {
-    }
+    public Account() {}
 
     public Account(int id, String username, String passwordHash,
                    String fullName, String email, String phone,

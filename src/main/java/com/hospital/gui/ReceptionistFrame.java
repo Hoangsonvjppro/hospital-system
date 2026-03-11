@@ -2,7 +2,6 @@ package com.hospital.gui;
 
 import com.hospital.gui.panels.AppointmentPanel;
 import com.hospital.gui.panels.PatientAllergyPanel;
-import com.hospital.gui.panels.PatientPanel;
 import com.hospital.gui.panels.PaymentPanel;
 import com.hospital.gui.panels.QueuePanel;
 import com.hospital.gui.panels.ReceptionPanel;

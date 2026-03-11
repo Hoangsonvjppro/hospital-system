@@ -37,7 +37,7 @@ public class MedicalRecord extends BaseModel {
     public static final String STATUS_PAID        = "PAID";
 
     // Queue/workflow fields — synced with DB columns: priority, queue_number, arrival_time, exam_type
-    // Used by QueueDAO, DoctorWorkstationPanel, ExaminationPanel, PatientPanel.
+    // Used by QueueDAO, DoctorWorkstationPanel.
     private String priority;       // NORMAL / ELDERLY / EMERGENCY — DB column: priority
     private Integer queueNumber;   // Số thứ tự hôm nay — DB column: queue_number
     private java.time.LocalTime arrivalTime; // Giờ đến — DB column: arrival_time

@@ -3,7 +3,6 @@ package com.hospital.gui;
 import com.hospital.gui.panels.DoctorDashboardPanel;
 import com.hospital.gui.panels.DoctorSchedulePanel;
 import com.hospital.gui.panels.DoctorWorkstationPanel;
-import com.hospital.gui.panels.ExaminationPanel;
 import com.hospital.gui.panels.LabOrderPanel;
 import com.hospital.gui.panels.LabProcessingPanel;
 import com.hospital.gui.panels.LabResultPanel;
