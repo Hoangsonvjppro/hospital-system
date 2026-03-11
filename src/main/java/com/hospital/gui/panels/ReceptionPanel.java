@@ -1,12 +1,10 @@
 package com.hospital.gui.panels;
+import com.hospital.bus.DoctorBUS;
 import com.hospital.bus.MedicalRecordBUS;
 import com.hospital.bus.PatientBUS;
 import com.hospital.bus.QueueBUS;
 import com.hospital.bus.event.EventBus;
 import com.hospital.bus.event.PatientRegisteredEvent;
-import com.hospital.dao.DoctorDAO;
-import com.hospital.dao.PatientDAO;
-import com.hospital.dao.QueueEntryDAO;
 import com.hospital.exception.BusinessException;
 import com.hospital.gui.UIConstants;
 import com.hospital.gui.components.RoundedButton;
@@ -39,8 +37,7 @@ public class ReceptionPanel extends JPanel {
 
     private final PatientBUS patientBUS = new PatientBUS();
     private final QueueBUS queueBUS = new QueueBUS();
-    private final PatientDAO patientDAO = new PatientDAO();
-    private final QueueEntryDAO queueEntryDAO = new QueueEntryDAO();
+    private final DoctorBUS doctorBUS = new DoctorBUS();
     private final MedicalRecordBUS medicalRecordBUS = new MedicalRecordBUS();
     private final DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private final DateTimeFormatter dateTimeFmt = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
@@ -373,7 +370,7 @@ public class ReceptionPanel extends JPanel {
         detailContent.setVisible(true);
 
         // Kiểm tra xem bệnh nhân đã có trong hàng đợi hôm nay chưa
-        boolean isInQueue = queueEntryDAO.isPatientInTodayQueue(p.getId());
+        boolean isInQueue = queueBUS.isPatientInTodayQueue(p.getId());
         if (isInQueue) {
             btnToQueue.setEnabled(false);
             btnToQueue.setText("Đã trong hàng đợi");
@@ -515,12 +512,12 @@ public class ReceptionPanel extends JPanel {
                 @Override public boolean isCellEditable(int r, int c) { return false; }
             };
 
-            DoctorDAO doctorDAO = new DoctorDAO();
+            DoctorBUS doctorBUSLocal = new DoctorBUS();
             for (MedicalRecord r : hist) {
                 String date = r.getVisitDate() != null ? r.getVisitDate().toString() : "";
                 String docName = "-";
                 try {
-                    Doctor d = doctorDAO.findById((int) r.getDoctorId());
+                    Doctor d = doctorBUSLocal.findById((int) r.getDoctorId());
                     if (d != null) docName = d.getFullName();
                 } catch (Exception ignored) {}
                 String diag = r.getDiagnosis() != null ? r.getDiagnosis() : "";
@@ -554,7 +551,7 @@ public class ReceptionPanel extends JPanel {
         }
 
         try {
-            List<Patient> results = patientDAO.searchPatients(keyword);
+            List<Patient> results = patientBUS.searchPatients(keyword);
             populateTable(results);
             clearDetailPanel();
         } catch (Exception ex) {
@@ -572,7 +569,7 @@ public class ReceptionPanel extends JPanel {
      */
     private void loadTodayPatients() {
         try {
-            List<Patient> patients = patientDAO.findTodayRegistered();
+            List<Patient> patients = patientBUS.findTodayRegistered();
             populateTable(patients);
         } catch (Exception e) {
             // Fallback: show all patients

@@ -182,4 +182,8 @@ public class PrescriptionBUS {
     public boolean updateStatus(long prescriptionId, String newStatus) {
         return prescriptionDAO.updateStatus(prescriptionId, newStatus);
     }
+
+    public Prescription findById(long prescriptionId) {
+        return prescriptionDAO.findById(prescriptionId);
+    }
 }

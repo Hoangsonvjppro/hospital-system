@@ -4,21 +4,19 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 
-/**
- * Model lịch hẹn khám.
- */
+
 public class Appointment extends BaseModel {
     private String appointmentCode;
     private int patientId;
     private int doctorId;
-    private String patientName;      // transient — populated by JOIN
+    private String patientName;      
     private String patientPhone;
-    private String doctorName;       // transient — populated by JOIN
+    private String doctorName;  
     private String specialty;
     private LocalDate date;
-    private LocalTime time;          // Giờ bắt đầu
-    private LocalTime endTime;       // Giờ kết thúc
-    private String status;           // Mới / Đã xác nhận / Đã khám / Hủy
+    private LocalTime time;          
+    private LocalTime endTime;      
+    private String status;    
     private String note;
 
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
@@ -49,12 +47,10 @@ public class Appointment extends BaseModel {
         this.note            = note;
     }
 
-    // ── Convenience display methods ──────────────────────────────────────────
     public String getFormattedDate() { return date != null ? date.format(DATE_FMT) : ""; }
     public String getFormattedTime() { return time != null ? time.format(TIME_FMT) : ""; }
     public String getFormattedEndTime() { return endTime != null ? endTime.format(TIME_FMT) : ""; }
 
-    // ── Getters & Setters ────────────────────────────────────────────────────
     public String getAppointmentCode()  { return appointmentCode; }
     public void setAppointmentCode(String v) { this.appointmentCode = v; }
 

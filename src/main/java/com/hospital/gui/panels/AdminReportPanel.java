@@ -1,7 +1,6 @@
 package com.hospital.gui.panels;
 
-import com.hospital.dao.DashboardDAO;
-import com.hospital.dao.ReportDAO;
+import com.hospital.bus.DashboardBUS;
 import com.hospital.gui.UIConstants;
 import com.hospital.gui.components.RoundedPanel;
 import com.hospital.gui.components.StatCard;
@@ -43,8 +42,7 @@ import java.util.Map;
  */
 public class AdminReportPanel extends JPanel {
 
-    private final DashboardDAO dashDAO  = new DashboardDAO();
-    private final ReportDAO reportDAO   = new ReportDAO();
+    private final DashboardBUS dashboardBUS = new DashboardBUS();
     private final NumberFormat moneyFmt = NumberFormat.getInstance(new Locale("vi", "VN"));
     private final DateTimeFormatter dayFmt = DateTimeFormatter.ofPattern("dd/MM");
 
@@ -231,11 +229,11 @@ public class AdminReportPanel extends JPanel {
     private void refreshKPI() {
         kpiPanel.removeAll();
 
-        double totalRevenue = reportDAO.getRevenueTotal(dateFrom, dateTo);
-        Map<String, Integer> statusCnt = reportDAO.getInvoiceCountByStatus(dateFrom, dateTo);
+        double totalRevenue = dashboardBUS.getRevenueTotal(dateFrom, dateTo);
+        Map<String, Integer> statusCnt = dashboardBUS.getInvoiceCountByStatus(dateFrom, dateTo);
         int paidCount    = statusCnt.getOrDefault("PAID", 0);
         int pendingCount = statusCnt.getOrDefault("PENDING", 0);
-        int totalVisits  = dashDAO.countTotalVisits();
+        int totalVisits  = dashboardBUS.countTotalVisits();
 
         kpiPanel.add(new StatCard("Doanh Thu",
                 moneyFmt.format(totalRevenue) + " đ",
@@ -259,7 +257,7 @@ public class AdminReportPanel extends JPanel {
     private void refreshChart() {
         chartContainer.removeAll();
 
-        Map<LocalDate, Double> revenueMap = reportDAO.getRevenueByDay(dateFrom, dateTo);
+        Map<LocalDate, Double> revenueMap = dashboardBUS.getRevenueByDay(dateFrom, dateTo);
 
         // Build dataset — đơn vị nghìn VNĐ
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
@@ -339,7 +337,7 @@ public class AdminReportPanel extends JPanel {
     private void refreshTopMedicines() {
         topMedicinesContainer.removeAll();
 
-        List<Object[]> data = reportDAO.getTopMedicines(10);
+        List<Object[]> data = dashboardBUS.getTopMedicines(10);
 
         RoundedPanel card = new RoundedPanel(UIConstants.CARD_RADIUS);
         card.setBackground(UIConstants.CARD_BG);
@@ -381,7 +379,7 @@ public class AdminReportPanel extends JPanel {
     private void refreshTopDiseases() {
         topDiseasesContainer.removeAll();
 
-        List<Object[]> data = reportDAO.getTopDiseases(10);
+        List<Object[]> data = dashboardBUS.getTopDiseases(10);
 
         RoundedPanel card = new RoundedPanel(UIConstants.CARD_RADIUS);
         card.setBackground(UIConstants.CARD_BG);

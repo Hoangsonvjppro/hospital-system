@@ -3,10 +3,6 @@ package com.hospital.model;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
-/**
- * Lớp cơ sở cho tất cả các entity/model.
- * Base class for all entity/model classes.
- */
 public abstract class BaseModel implements Serializable {
     protected int id;
     protected LocalDateTime createdAt;
@@ -19,7 +15,6 @@ public abstract class BaseModel implements Serializable {
         this.id = id;
     }
 
-    // Getters & Setters
     public int getId() {
         return id;
     }

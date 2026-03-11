@@ -314,4 +314,8 @@ public class QueueBUS {
         }
         return count;
     }
+
+    public boolean isPatientInTodayQueue(int patientId) {
+        return queueEntryDAO.isPatientInTodayQueue(patientId);
+    }
 }

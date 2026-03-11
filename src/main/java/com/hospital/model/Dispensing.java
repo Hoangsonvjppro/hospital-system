@@ -3,14 +3,7 @@ package com.hospital.model;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
-/**
- * Entity phiếu phát thuốc — ánh xạ bảng Dispensing trong CSDL.
- *
- * Bảng Dispensing:
- *   dispensing_id, prescription_id, patient_id, dispensed_by,
- *   status (PENDING/DISPENSED/PARTIAL), total_amount, notes,
- *   dispensed_at, created_at, updated_at
- */
+
 public class Dispensing extends BaseModel {
 
     public static final String STATUS_PENDING   = "PENDING";
@@ -19,17 +12,17 @@ public class Dispensing extends BaseModel {
 
     private long prescriptionId;
     private long patientId;
-    private Long dispensedBy;      // FK → User.user_id (dược sĩ)
+    private Long dispensedBy;      
     private LocalDateTime dispensedAt;
     private String status;
     private String notes;
     private BigDecimal totalAmount;
 
-    // Transient — for display
+  
     private String patientName;
     private String pharmacistName;
 
-    // ── Constructors ─────────────────────────────────────────
+ 
 
     public Dispensing() {
         this.status = STATUS_PENDING;
@@ -42,7 +35,6 @@ public class Dispensing extends BaseModel {
         this.patientId = patientId;
     }
 
-    // ── Display helpers ──────────────────────────────────────
 
     public String getStatusDisplay() {
         if (status == null) return "";
@@ -54,7 +46,6 @@ public class Dispensing extends BaseModel {
         };
     }
 
-    // ── Getters & Setters ────────────────────────────────────
 
     public long getPrescriptionId()                  { return prescriptionId; }
     public void setPrescriptionId(long v)            { this.prescriptionId = v; }

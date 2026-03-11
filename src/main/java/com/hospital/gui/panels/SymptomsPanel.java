@@ -1,6 +1,6 @@
 package com.hospital.gui.panels;
 
-import com.hospital.dao.Icd10CodeDAO;
+import com.hospital.bus.Icd10CodeBUS;
 import com.hospital.gui.UIConstants;
 import com.hospital.gui.components.RoundedPanel;
 import com.hospital.model.Icd10Code;
@@ -29,7 +29,7 @@ public class SymptomsPanel extends JPanel {
     private JTextField txtFollowUpDate;
 
     // ICD-10 autocomplete
-    private final Icd10CodeDAO icd10Dao = new Icd10CodeDAO();
+    private final Icd10CodeBUS icd10BUS = new Icd10CodeBUS();
     private JPopupMenu icd10Popup;
     private javax.swing.Timer icd10Timer;
 
@@ -262,7 +262,7 @@ public class SymptomsPanel extends JPanel {
         }
 
         try {
-            List<Icd10Code> results = icd10Dao.search(keyword);
+            List<Icd10Code> results = icd10BUS.search(keyword);
             icd10Popup.removeAll();
 
             if (results.isEmpty()) {

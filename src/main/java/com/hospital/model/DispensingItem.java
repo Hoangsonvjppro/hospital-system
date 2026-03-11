@@ -2,14 +2,6 @@ package com.hospital.model;
 
 import java.math.BigDecimal;
 
-/**
- * Entity chi tiết phát thuốc — ánh xạ bảng DispensingItem trong CSDL.
- *
- * Bảng DispensingItem:
- *   item_id, dispensing_id, prescription_detail_id, medicine_id,
- *   medicine_name, requested_quantity, dispensed_quantity,
- *   unit_price, subtotal (GENERATED), batch_number, created_at
- */
 public class DispensingItem extends BaseModel {
 
     private long dispensingId;
@@ -19,15 +11,13 @@ public class DispensingItem extends BaseModel {
     private int requestedQuantity;
     private int dispensedQuantity;
     private BigDecimal unitPrice;
-    private BigDecimal subtotal;     // GENERATED column — read-only từ DB
+    private BigDecimal subtotal;     
     private String batchNumber;
     private String notes;
 
-    // Transient — for display
-    private int stockQty;            // Tồn kho hiện tại
-    private String unit;             // Đơn vị tính
+    private int stockQty;           
+    private String unit;            
 
-    // ── Constructors ─────────────────────────────────────────
 
     public DispensingItem() {
         this.unitPrice = BigDecimal.ZERO;
@@ -46,12 +36,7 @@ public class DispensingItem extends BaseModel {
         this.unitPrice = unitPrice;
     }
 
-    // ── Computed ─────────────────────────────────────────────
 
-    /**
-     * Thành tiền = dispensedQuantity × unitPrice.
-     * Nếu chưa load từ DB, tự tính.
-     */
     public BigDecimal getCalculatedSubtotal() {
         if (subtotal != null && subtotal.compareTo(BigDecimal.ZERO) > 0) {
             return subtotal;
@@ -59,7 +44,6 @@ public class DispensingItem extends BaseModel {
         return unitPrice.multiply(BigDecimal.valueOf(dispensedQuantity));
     }
 
-    // ── Getters & Setters ────────────────────────────────────
 
     public long getDispensingId()                       { return dispensingId; }
     public void setDispensingId(long v)                 { this.dispensingId = v; }

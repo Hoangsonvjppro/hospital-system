@@ -1,16 +1,13 @@
 package com.hospital.model;
 
-/**
- * Model bác sĩ.
- */
 public class Doctor extends BaseModel {
     private String doctorCode;
     private String fullName;
-    private String specialty;     // Khoa / Chuyên khoa
+    private String specialty;    
     private String phone;
     private String email;
-    private boolean online;       // Đang trực tuyến
-    private String avatar;        // Chữ viết tắt tên để hiển thị avatar
+    private boolean online;      
+    private String avatar;        
 
     public Doctor() {}
 
@@ -23,14 +20,12 @@ public class Doctor extends BaseModel {
         this.phone      = phone;
         this.email      = email;
         this.online     = online;
-        // Tạo avatar từ chữ đầu họ và tên
         String[] parts = fullName.split(" ");
         this.avatar = parts.length >= 2
             ? String.valueOf(parts[parts.length - 2].charAt(0)) + parts[parts.length - 1].charAt(0)
             : fullName.substring(0, Math.min(2, fullName.length())).toUpperCase();
     }
 
-    // ── Getters & Setters ────────────────────────────────────────────────────
     public String getDoctorCode()   { return doctorCode; }
     public void setDoctorCode(String v) { this.doctorCode = v; }
 

@@ -1,9 +1,9 @@
 package com.hospital.gui.panels;
 
 import com.hospital.bus.InvoiceBUS;
+import com.hospital.bus.MedicalRecordBUS;
 import com.hospital.bus.event.EventBus;
 import com.hospital.bus.event.PaymentCompletedEvent;
-import com.hospital.dao.MedicalRecordDAO;
 import com.hospital.exception.BusinessException;
 import com.hospital.exception.DataAccessException;
 
@@ -685,7 +685,7 @@ public class PaymentPanel extends JPanel {
                 // Cập nhật trạng thái bệnh án → PAID
                 if (selectedInvoice.getRecordId() != null && selectedInvoice.getRecordId() > 0) {
                     try {
-                        new MedicalRecordDAO().updateStatus(selectedInvoice.getRecordId(), "PAID");
+                        new MedicalRecordBUS().updateStatus(selectedInvoice.getRecordId(), "PAID");
                     } catch (Exception ex) {
                         LOGGER.warning("Không thể cập nhật trạng thái bệnh án: " + ex.getMessage());
                     }

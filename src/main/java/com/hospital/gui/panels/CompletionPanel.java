@@ -3,8 +3,6 @@ package com.hospital.gui.panels;
 import com.hospital.bus.*;
 import com.hospital.bus.event.EventBus;
 import com.hospital.bus.event.ExaminationCompletedEvent;
-import com.hospital.dao.DoctorDAO;
-import com.hospital.dao.MedicalRecordDAO;
 import com.hospital.exception.BusinessException;
 import com.hospital.exception.DataAccessException;
 import com.hospital.gui.UIConstants;
@@ -44,10 +42,9 @@ public class CompletionPanel extends JPanel {
     private static final DecimalFormat MONEY_FMT = new DecimalFormat("#,###");
     private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
-    private final MedicalRecordDAO recordDAO = new MedicalRecordDAO();
     private final MedicalRecordBUS recordBUS = new MedicalRecordBUS();
     private final PatientBUS patientBUS = new PatientBUS();
-    private final DoctorDAO doctorDAO = new DoctorDAO();
+    private final DoctorBUS doctorBUS = new DoctorBUS();
     private final PrescriptionBUS prescriptionBUS = new PrescriptionBUS();
     private final DispensingBUS dispensingBUS = new DispensingBUS();
     private final InvoiceBUS invoiceBUS = new InvoiceBUS();
@@ -185,8 +182,8 @@ public class CompletionPanel extends JPanel {
         try {
             // Lấy bệnh án DISPENSED (đã phát thuốc, chờ thanh toán/kết thúc)
             // và PAID (đã thanh toán, chờ kết thúc)
-            List<MedicalRecord> dispensed = recordDAO.getTodayByStatus("DISPENSED");
-            List<MedicalRecord> paid = recordDAO.getTodayByStatus("PAID");
+            List<MedicalRecord> dispensed = recordBUS.getTodayByStatus("DISPENSED");
+            List<MedicalRecord> paid = recordBUS.getTodayByStatus("PAID");
             recordList.clear();
             recordList.addAll(dispensed);
             recordList.addAll(paid);
@@ -328,7 +325,7 @@ public class CompletionPanel extends JPanel {
         }
 
         try {
-            Doctor doctor = doctorDAO.findById((int) record.getDoctorId());
+            Doctor doctor = doctorBUS.findById((int) record.getDoctorId());
             addInfoRow(p, "Bác sĩ:", doctor != null ? doctor.getFullName() : "—");
         } catch (Exception e) {
             addInfoRow(p, "Bác sĩ:", "—");

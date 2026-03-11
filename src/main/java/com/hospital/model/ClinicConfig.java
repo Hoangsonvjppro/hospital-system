@@ -1,17 +1,8 @@
 package com.hospital.model;
 
-/**
- * Model bao bọc bảng ClinicConfig (key-value).
- * <p>
- * Gom các config_key thông dụng thành các field Java có kiểu rõ ràng,
- * giúp BUS / GUI không phải nhớ tên key.
- * <p>
- * Các key hợp lệ: clinic_name, clinic_address, clinic_phone, clinic_email,
- * default_exam_fee, working_hours, invoice_prefix.
- */
+
 public class ClinicConfig {
 
-    // ── Enum chứa tên key ─────────────────────────────────────
     public static final String KEY_CLINIC_NAME     = "clinic_name";
     public static final String KEY_CLINIC_ADDRESS  = "clinic_address";
     public static final String KEY_CLINIC_PHONE    = "clinic_phone";
@@ -20,7 +11,6 @@ public class ClinicConfig {
     public static final String KEY_WORKING_HOURS   = "working_hours";
     public static final String KEY_INVOICE_PREFIX  = "invoice_prefix";
 
-    // ── Fields ────────────────────────────────────────────────
     private String clinicName;
     private String clinicAddress;
     private String clinicPhone;
@@ -29,10 +19,8 @@ public class ClinicConfig {
     private String workingHours;
     private String invoicePrefix;
 
-    // ── Constructors ──────────────────────────────────────────
 
     public ClinicConfig() {
-        // Giá trị mặc định
         this.clinicName    = "Phòng Khám";
         this.clinicAddress = "";
         this.clinicPhone   = "";
@@ -42,7 +30,6 @@ public class ClinicConfig {
         this.invoicePrefix = "HD";
     }
 
-    // ── Getters / Setters ─────────────────────────────────────
 
     public String getClinicName() { return clinicName; }
     public void setClinicName(String clinicName) { this.clinicName = clinicName; }

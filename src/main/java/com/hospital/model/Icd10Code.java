@@ -1,8 +1,6 @@
 package com.hospital.model;
 
-/**
- * Model mã ICD-10 — danh mục chuẩn bệnh quốc tế.
- */
+
 public class Icd10Code extends BaseModel {
 
     private String code;
@@ -19,7 +17,6 @@ public class Icd10Code extends BaseModel {
         this.category = category;
     }
 
-    // ── Getters & Setters ────────────────────────────────────
 
     public String getCode()                    { return code; }
     public void setCode(String v)              { this.code = v; }
@@ -33,7 +30,6 @@ public class Icd10Code extends BaseModel {
     public String getCategory()                { return category; }
     public void setCategory(String v)          { this.category = v; }
 
-    /** Hiển thị gợi ý: "J06.9 — Nhiễm trùng hô hấp trên cấp tính" */
     public String getDisplayText() {
         return code + " — " + (nameVi != null ? nameVi : nameEn);
     }

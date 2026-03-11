@@ -1,17 +1,6 @@
 package com.hospital.model;
 
-/**
- * Entity chi tiết hóa đơn — phần DỊCH VỤ.
- * Ánh xạ bảng InvoiceServiceDetail trong CSDL.
- *
- * Bảng InvoiceServiceDetail:
- *   detail_id, invoice_id, service_order_id, service_name,
- *   quantity, unit_price, line_total (GENERATED = quantity * unit_price)
- *
- * Lưu ý:
- * - line_total là cột GENERATED trong DB → chỉ đọc, không INSERT/UPDATE.
- * - Khi tạo mới trong bộ nhớ (chưa persist), dùng getLineTotal() để tính.
- */
+
 public class InvoiceServiceDetail extends BaseModel {
 
     private long invoiceId;
@@ -19,9 +8,9 @@ public class InvoiceServiceDetail extends BaseModel {
     private String serviceName;
     private int quantity;
     private double unitPrice;
-    private double lineTotal;      // GENERATED column — read-only từ DB
+    private double lineTotal;     
 
-    // ── Constructors ─────────────────────────────────────────
+   
 
     public InvoiceServiceDetail() {
         this.quantity = 1;
@@ -37,7 +26,6 @@ public class InvoiceServiceDetail extends BaseModel {
         this.lineTotal = quantity * unitPrice;
     }
 
-    // ── Getters & Setters ────────────────────────────────────
 
     public long getInvoiceId()                   { return invoiceId; }
     public void setInvoiceId(long v)             { this.invoiceId = v; }
@@ -54,17 +42,12 @@ public class InvoiceServiceDetail extends BaseModel {
     public double getUnitPrice()                 { return unitPrice; }
     public void setUnitPrice(double v)           { this.unitPrice = v; }
 
-    /**
-     * Thành tiền = quantity × unitPrice.
-     * Nếu chưa load từ DB (lineTotal == 0), tự tính.
-     */
     public double getLineTotal() {
         return (lineTotal > 0) ? lineTotal : (double) quantity * unitPrice;
     }
 
     public void setLineTotal(double v) { this.lineTotal = v; }
 
-    // ── toString ─────────────────────────────────────────────
 
     @Override
     public String toString() {

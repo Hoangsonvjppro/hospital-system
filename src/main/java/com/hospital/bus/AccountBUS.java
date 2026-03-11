@@ -91,14 +91,7 @@ public class AccountBUS extends BaseBUS<Account> {
 
     // ── Đăng ký tài khoản ─────────────────────────────────────
 
-    /**
-     * Tạo tài khoản mới với kiểm tra đầy đủ:
-     * validate entity → check trùng username → check mật khẩu mạnh → hash → insert.
-     *
-     * @param account  entity Account (chưa có passwordHash)
-     * @param password mật khẩu plaintext người dùng nhập
-     * @return true nếu tạo thành công
-     */
+
     public boolean insert(Account account, String password) {
         // 1. Validate entity
         validate(account);

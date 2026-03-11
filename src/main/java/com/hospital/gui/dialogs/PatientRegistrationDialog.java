@@ -5,7 +5,6 @@ import com.hospital.bus.PatientBUS;
 import com.hospital.bus.QueueBUS;
 import com.hospital.bus.event.EventBus;
 import com.hospital.bus.event.PatientRegisteredEvent;
-import com.hospital.dao.PatientDAO;
 import com.hospital.exception.BusinessException;
 import com.hospital.gui.UIConstants;
 import com.hospital.gui.components.RoundedButton;
@@ -240,8 +239,7 @@ public class PatientRegistrationDialog extends JDialog {
         }
 
         try {
-            PatientDAO dao = new PatientDAO();
-            Patient found = dao.findByPhone(phone);
+            Patient found = new PatientBUS().findByPhone(phone);
             if (found != null) {
                 existingPatient = found;
                 fillFormFromPatient(found);

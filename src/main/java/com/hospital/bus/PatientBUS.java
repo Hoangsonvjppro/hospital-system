@@ -26,6 +26,18 @@ public class PatientBUS extends BaseBUS<Patient> {
         }
     }
 
+    public Patient findByPhone(String phone) {
+        return ((PatientDAO) dao).findByPhone(phone);
+    }
+
+    public java.util.List<Patient> searchPatients(String keyword) {
+        return ((PatientDAO) dao).searchPatients(keyword);
+    }
+
+    public java.util.List<Patient> findTodayRegistered() {
+        return ((PatientDAO) dao).findTodayRegistered();
+    }
+
     @Override
     protected void validate(Patient entity) {
 

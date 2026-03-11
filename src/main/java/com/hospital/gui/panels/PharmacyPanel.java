@@ -2,9 +2,9 @@ package com.hospital.gui.panels;
 
 import com.hospital.bus.DispensingBUS;
 import com.hospital.bus.InvoiceBUS;
+import com.hospital.bus.PrescriptionBUS;
 import com.hospital.bus.event.DispensingCompletedEvent;
 import com.hospital.bus.event.EventBus;
-import com.hospital.dao.PrescriptionDAO;
 import com.hospital.exception.BusinessException;
 import com.hospital.exception.DataAccessException;
 import com.hospital.gui.UIConstants;
@@ -45,7 +45,7 @@ public class PharmacyPanel extends JPanel {
 
     private final DispensingBUS dispensingBUS = new DispensingBUS();
     private final InvoiceBUS invoiceBUS = new InvoiceBUS();
-    private final PrescriptionDAO prescriptionDAO = new PrescriptionDAO();
+    private final PrescriptionBUS prescriptionBUS = new PrescriptionBUS();
 
     // Left: pending prescriptions
     private DefaultTableModel prescTableModel;
@@ -525,7 +525,7 @@ public class PharmacyPanel extends JPanel {
             // Tạo hóa đơn tự động
             boolean invoiceCreated = false;
             try {
-                var presc = prescriptionDAO.findById(selectedDispensing.getPrescriptionId());
+                var presc = prescriptionBUS.findById(selectedDispensing.getPrescriptionId());
                 if (presc != null) {
                     invoiceBUS.createInvoiceFromMedicalRecord(presc.getMedicalRecordId());
                     invoiceCreated = true;

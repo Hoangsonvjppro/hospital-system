@@ -5,7 +5,6 @@
 //để chuột vào tên thuốc sẽ hiện lên mô tả.
 package com.hospital.gui.panels;
 import com.hospital.bus.*;
-import com.hospital.dao.MedicalRecordDAO;
 import com.hospital.exception.BusinessException;
 import com.hospital.exception.DataAccessException;
 import com.hospital.gui.UIConstants;
@@ -57,7 +56,6 @@ public class MedicinePanel extends JPanel {
     private final MedicineBUS medicineBUS = new MedicineBUS();
     private final MedicalRecordBUS medicalRecordBUS = new MedicalRecordBUS();
     private final PrescriptionBUS prescriptionBUS = new PrescriptionBUS();
-    private final MedicalRecordDAO recordDAO = new MedicalRecordDAO();
     private final MedicineExportBUS medicineExportBUS = new MedicineExportBUS();
     private final InvoiceBUS invoiceBUS = new InvoiceBUS();
     //
@@ -563,7 +561,7 @@ public class MedicinePanel extends JPanel {
                 }
 
                 // 4. Chuyển trạng thái bệnh án → COMPLETED
-                recordDAO.updateStatus(recordId, "COMPLETED");
+                medicalRecordBUS.updateStatus(recordId, "COMPLETED");
 
                 // 5. Tạo hóa đơn
                 Invoice invoice = invoiceBUS.createInvoiceFromMedicalRecord(recordId);

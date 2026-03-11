@@ -246,4 +246,8 @@ public class MedicalRecordBUS {
         }
         return dao.updateStatus(recordId, status);
     }
+
+    public java.util.List<com.hospital.model.MedicalRecord> getTodayByStatus(String status) {
+        return dao.getTodayByStatus(status);
+    }
 }

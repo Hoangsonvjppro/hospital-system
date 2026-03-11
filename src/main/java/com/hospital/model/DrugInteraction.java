@@ -1,9 +1,6 @@
 package com.hospital.model;
 
-/**
- * Model tương tác thuốc — lưu cặp thuốc có tương tác.
- * Mức độ: MINOR (nhẹ), MODERATE (trung bình), SEVERE (nghiêm trọng), CONTRAINDICATED (chống chỉ định).
- */
+
 public class DrugInteraction extends BaseModel {
 
     public static final String LEVEL_MINOR          = "MINOR";
@@ -17,7 +14,6 @@ public class DrugInteraction extends BaseModel {
     private String description;
     private String recommendation;
 
-    // Transient — filled by DAO join
     private String medicineName1;
     private String medicineName2;
 
@@ -30,7 +26,6 @@ public class DrugInteraction extends BaseModel {
         this.description = description;
     }
 
-    // ── Getters & Setters ────────────────────────────────────
 
     public int getMedicineId1()                     { return medicineId1; }
     public void setMedicineId1(int v)               { this.medicineId1 = v; }

@@ -1,7 +1,7 @@
 package com.hospital.gui.panels;
 
 import com.formdev.flatlaf.FlatClientProperties;
-import com.hospital.dao.DashboardDAO;
+import com.hospital.bus.DashboardBUS;
 import com.hospital.bus.event.EventBus;
 import com.hospital.bus.event.ExaminationCompletedEvent;
 import com.hospital.bus.event.PaymentCompletedEvent;
@@ -40,7 +40,7 @@ public class DashboardPanel extends JPanel {
     private static final int LONG_WAIT_THRESHOLD = 30;     // 30 phút
 
     private final String userName;
-    private final DashboardDAO dashboardDAO = new DashboardDAO();
+    private final DashboardBUS dashboardBUS = new DashboardBUS();
     private final NumberFormat currencyFmt;
 
     // ── KPI labels (update text mà không rebuild UI) ─────────
@@ -284,19 +284,19 @@ public class DashboardPanel extends JPanel {
             @Override
             protected DashboardData doInBackground() {
                 DashboardData d = new DashboardData();
-                d.todayTotal    = dashboardDAO.countTodayVisits();
-                d.waiting       = dashboardDAO.countTodayByQueueStatus("WAITING");
-                d.examining     = dashboardDAO.countTodayByQueueStatus("EXAMINING");
-                d.prescribed    = dashboardDAO.countTodayByQueueStatus("PRESCRIBED");
-                d.dispensed     = dashboardDAO.countTodayByQueueStatus("DISPENSED");
-                d.completed     = dashboardDAO.countTodayByQueueStatus("COMPLETED");
-                d.todayRevenue  = dashboardDAO.getTodayRevenue();
-                d.dispensedRx   = dashboardDAO.countTodayDispensedPrescriptions();
-                d.lowStockCount = dashboardDAO.countLowStockMedicines();
-                d.activeDoctors = dashboardDAO.countActiveDoctors();
-                d.totalVisits   = dashboardDAO.countTotalVisits();
-                d.lowStockList  = dashboardDAO.findLowStockMedicines();
-                d.longWaitList  = dashboardDAO.findLongWaitingPatients(LONG_WAIT_THRESHOLD);
+                d.todayTotal    = dashboardBUS.countTodayVisits();
+                d.waiting       = dashboardBUS.countTodayByQueueStatus("WAITING");
+                d.examining     = dashboardBUS.countTodayByQueueStatus("EXAMINING");
+                d.prescribed    = dashboardBUS.countTodayByQueueStatus("PRESCRIBED");
+                d.dispensed     = dashboardBUS.countTodayByQueueStatus("DISPENSED");
+                d.completed     = dashboardBUS.countTodayByQueueStatus("COMPLETED");
+                d.todayRevenue  = dashboardBUS.getTodayRevenue();
+                d.dispensedRx   = dashboardBUS.countTodayDispensedPrescriptions();
+                d.lowStockCount = dashboardBUS.countLowStockMedicines();
+                d.activeDoctors = dashboardBUS.countActiveDoctors();
+                d.totalVisits   = dashboardBUS.countTotalVisits();
+                d.lowStockList  = dashboardBUS.findLowStockMedicines();
+                d.longWaitList  = dashboardBUS.findLongWaitingPatients(LONG_WAIT_THRESHOLD);
                 return d;
             }
 

@@ -3,14 +3,7 @@ package com.hospital.model;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
-/**
- * Entity hẹn tái khám — ánh xạ bảng FollowUp trong CSDL.
- *
- * Bảng FollowUp:
- *   follow_up_id, patient_id, record_id, follow_up_date,
- *   reason, status (SCHEDULED/COMPLETED/MISSED/CANCELLED),
- *   reminder_sent, created_at, updated_at
- */
+
 public class FollowUp extends BaseModel {
 
     public static final String STATUS_SCHEDULED  = "SCHEDULED";
@@ -19,19 +12,17 @@ public class FollowUp extends BaseModel {
     public static final String STATUS_CANCELLED  = "CANCELLED";
 
     private long patientId;
-    private long recordId;           // FK → MedicalRecord.record_id
+    private long recordId;     
     private LocalDate followUpDate;
     private String reason;
     private String status;
     private boolean reminderSent;
 
-    // Transient — for display
     private String patientName;
     private String patientPhone;
     private String doctorName;
     private String diagnosis;
 
-    // ── Constructors ─────────────────────────────────────────
 
     public FollowUp() {
         this.status = STATUS_SCHEDULED;
@@ -46,7 +37,6 @@ public class FollowUp extends BaseModel {
         this.reason = reason;
     }
 
-    // ── Display helpers ──────────────────────────────────────
 
     public String getStatusDisplay() {
         if (status == null) return "";
@@ -59,7 +49,6 @@ public class FollowUp extends BaseModel {
         };
     }
 
-    // ── Getters & Setters ────────────────────────────────────
 
     public long getPatientId()                       { return patientId; }
     public void setPatientId(long v)                 { this.patientId = v; }
