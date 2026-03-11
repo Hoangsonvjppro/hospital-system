@@ -88,7 +88,7 @@ public class PharmacyPanel extends JPanel {
         // Split: left 35% prescriptions, right 65% details
         JSplitPane split = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
                 createLeftPanel(), createRightPanel());
-        split.setDividerLocation(380);
+        split.setDividerLocation(460);
         split.setResizeWeight(0.35);
         split.setBorder(null);
         split.setOpaque(false);
@@ -126,7 +126,8 @@ public class PharmacyPanel extends JPanel {
         prescTable.setGridColor(UIConstants.BORDER_COLOR);
 
         // Column widths
-        int[] widths = {30, 60, 120, 90, 80};
+        prescTable.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+        int[] widths = {30, 70, 140, 100, 100};
         for (int i = 0; i < widths.length; i++) {
             prescTable.getColumnModel().getColumn(i).setPreferredWidth(widths[i]);
         }

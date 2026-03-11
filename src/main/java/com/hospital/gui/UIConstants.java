@@ -140,7 +140,7 @@ public class UIConstants {
     // ═══════════════════════════════════════════════════════════════════════════
     //  KÍCH THƯỚC (Dimensions)
     // ═══════════════════════════════════════════════════════════════════════════
-    public static final int    SIDEBAR_WIDTH    = 240;
+    public static final int    SIDEBAR_WIDTH    = 276;
     public static final int    TOPBAR_HEIGHT    = 60;
     public static final int    CARD_RADIUS      = 12;
     public static final int    BTN_RADIUS       = 10;

@@ -74,8 +74,9 @@ public class DoctorDashboardPanel extends JPanel {
 
         JPanel right = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         right.setOpaque(false);
-        RoundedButton callNext = new RoundedButton("▶  Gọi bệnh nhân tiếp theo");
-        callNext.setPreferredSize(new Dimension(210, 36));
+        RoundedButton callNext = new RoundedButton("Gọi bệnh nhân tiếp theo");
+        callNext.setIcon(com.hospital.gui.IconManager.getIcon("queue", 16, 16));
+        callNext.setPreferredSize(new Dimension(240, 36));
         callNext.addActionListener(e -> callNextPatient());
         right.add(callNext);
 
@@ -124,9 +125,9 @@ public class DoctorDashboardPanel extends JPanel {
         titleStack.add(title);
         titleStack.add(hint);
 
-        RoundedButton refreshBtn = new RoundedButton("↻  Làm mới");
-        refreshBtn.setColors(UIConstants.TEXT_SECONDARY, UIConstants.BORDER_COLOR);
-        refreshBtn.setPreferredSize(new Dimension(110, 32));
+        RoundedButton refreshBtn = new RoundedButton("Làm mới");
+        refreshBtn.setIcon(com.hospital.gui.IconManager.getIcon("refresh", 14, 14));
+        refreshBtn.setPreferredSize(new Dimension(120, 32));
         refreshBtn.addActionListener(e -> loadWaiting());
 
         titleRow.add(titleStack, BorderLayout.WEST);

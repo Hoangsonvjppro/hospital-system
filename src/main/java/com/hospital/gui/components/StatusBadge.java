@@ -29,7 +29,7 @@ public class StatusBadge extends JLabel {
     private void applyStyle(String s) {
         bgColor = switch (s) {
             case "CHỜ KHÁM"    -> UIConstants.STATUS_WAITING;
-            case "ĐANG KHÁM"   -> UIConstants.STATUS_EXAMINING;
+            case "ĐANG KHÁM", "EXAMINING" -> UIConstants.ACCENT_BLUE;
             case "XONG"        -> UIConstants.STATUS_DONE;
             case "Đã xác nhận" -> UIConstants.STATUS_DONE;
             case "Đã khám"     -> UIConstants.STATUS_DONE;
