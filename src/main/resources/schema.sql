@@ -7,18 +7,12 @@ CREATE DATABASE IF NOT EXISTS clinic_management
 
 USE clinic_management;
 
--- ============================================================
--- A. PHÂN QUYỀN & BẢO MẬT
--- ============================================================
-
--- 1. Bảng Role — Vai trò trong hệ thống
 CREATE TABLE IF NOT EXISTS Role (
     role_id     BIGINT AUTO_INCREMENT PRIMARY KEY,
     role_name   VARCHAR(50)  NOT NULL UNIQUE,
     description VARCHAR(255)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 2. Bảng User — Tài khoản đăng nhập
 CREATE TABLE IF NOT EXISTS `User` (
     user_id       BIGINT AUTO_INCREMENT PRIMARY KEY,
     username      VARCHAR(100) NOT NULL UNIQUE,
@@ -33,11 +27,6 @@ CREATE TABLE IF NOT EXISTS `User` (
     FOREIGN KEY (role_id) REFERENCES Role(role_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ============================================================
--- B. HỒ SƠ BỆNH ÁN ĐIỆN TỬ (EMR)
--- ============================================================
-
--- 3. Bảng Patient — Hồ sơ bệnh nhân
 CREATE TABLE IF NOT EXISTS Patient (
     patient_id    BIGINT AUTO_INCREMENT PRIMARY KEY,
     full_name     VARCHAR(150) NOT NULL,
@@ -55,7 +44,6 @@ CREATE TABLE IF NOT EXISTS Patient (
     FOREIGN KEY (user_id) REFERENCES `User`(user_id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 4. Bảng PatientAllergy — Tiền sử dị ứng
 CREATE TABLE IF NOT EXISTS PatientAllergy (
     allergy_id    BIGINT AUTO_INCREMENT PRIMARY KEY,
     patient_id    BIGINT       NOT NULL,
@@ -67,7 +55,6 @@ CREATE TABLE IF NOT EXISTS PatientAllergy (
     FOREIGN KEY (patient_id) REFERENCES Patient(patient_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 4B. Bảng QueueEntry — Hàng đợi khám bệnh (standalone, không phụ thuộc MedicalRecord)
 CREATE TABLE IF NOT EXISTS QueueEntry (
     id            BIGINT AUTO_INCREMENT PRIMARY KEY,
     patient_id    BIGINT       NOT NULL,
@@ -80,7 +67,7 @@ CREATE TABLE IF NOT EXISTS QueueEntry (
     FOREIGN KEY (patient_id) REFERENCES Patient(patient_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 5. Bảng Doctor — Thông tin bác sĩ
+
 CREATE TABLE IF NOT EXISTS Doctor (
     doctor_id   BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id     BIGINT       NOT NULL UNIQUE,
@@ -92,11 +79,6 @@ CREATE TABLE IF NOT EXISTS Doctor (
     FOREIGN KEY (user_id) REFERENCES `User`(user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ============================================================
--- C. TÀI CHÍNH & KHO DƯỢC
--- ============================================================
-
--- 6. Bảng Service — Danh mục dịch vụ khám
 CREATE TABLE IF NOT EXISTS Service (
     service_id   BIGINT AUTO_INCREMENT PRIMARY KEY,
     service_name VARCHAR(200)   NOT NULL,
@@ -107,7 +89,6 @@ CREATE TABLE IF NOT EXISTS Service (
     updated_at   DATETIME       DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 7. Bảng Medicine — Kho thuốc
 CREATE TABLE IF NOT EXISTS Medicine (
     medicine_id   BIGINT AUTO_INCREMENT PRIMARY KEY,
     medicine_code VARCHAR(20)    UNIQUE,
@@ -127,7 +108,6 @@ CREATE TABLE IF NOT EXISTS Medicine (
     updated_at    DATETIME       DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 8. Bảng MedicineIngredient — Thành phần thuốc (phục vụ cảnh báo dị ứng)
 CREATE TABLE IF NOT EXISTS MedicineIngredient (
     ingredient_id   BIGINT AUTO_INCREMENT PRIMARY KEY,
     medicine_id     BIGINT       NOT NULL,
@@ -136,7 +116,6 @@ CREATE TABLE IF NOT EXISTS MedicineIngredient (
     UNIQUE KEY uq_medicine_ingredient (medicine_id, ingredient_name)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 9. Bảng StockTransaction — Lịch sử nhập/xuất kho (audit trail)
 CREATE TABLE IF NOT EXISTS StockTransaction (
     transaction_id   BIGINT AUTO_INCREMENT PRIMARY KEY,
     medicine_id      BIGINT       NOT NULL,
@@ -162,11 +141,6 @@ CREATE TABLE IF NOT EXISTS StockTransaction (
     FOREIGN KEY (created_by)  REFERENCES `User`(user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ============================================================
--- D. LỊCH LÀM VIỆC & ĐẶT LỊCH
--- ============================================================
-
--- 10. Bảng Schedule — Ca trực / lịch làm việc bác sĩ
 CREATE TABLE IF NOT EXISTS Schedule (
     schedule_id  BIGINT AUTO_INCREMENT PRIMARY KEY,
     doctor_id    BIGINT       NOT NULL,
@@ -179,7 +153,6 @@ CREATE TABLE IF NOT EXISTS Schedule (
     UNIQUE KEY uq_doctor_schedule (doctor_id, work_date, start_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 11. Bảng Appointment — Lịch hẹn khám
 CREATE TABLE IF NOT EXISTS Appointment (
     appointment_id  BIGINT AUTO_INCREMENT PRIMARY KEY,
     patient_id      BIGINT       NOT NULL,
@@ -199,11 +172,7 @@ CREATE TABLE IF NOT EXISTS Appointment (
     UNIQUE KEY uq_doctor_appointment (doctor_id, appointment_date, start_time)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ============================================================
--- B (tiếp). HỒ SƠ BỆNH ÁN — Các bảng phụ thuộc
--- ============================================================
 
--- 12. Bảng MedicalRecord — Hồ sơ bệnh án
 CREATE TABLE IF NOT EXISTS MedicalRecord (
     record_id      BIGINT AUTO_INCREMENT PRIMARY KEY,
     patient_id     BIGINT       NOT NULL,
@@ -234,7 +203,6 @@ CREATE TABLE IF NOT EXISTS MedicalRecord (
     FOREIGN KEY (appointment_id) REFERENCES Appointment(appointment_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 13. Bảng ServiceOrder — Phiếu chỉ định dịch vụ / cận lâm sàng
 CREATE TABLE IF NOT EXISTS ServiceOrder (
     order_id     BIGINT AUTO_INCREMENT PRIMARY KEY,
     record_id    BIGINT       NOT NULL,
@@ -247,7 +215,6 @@ CREATE TABLE IF NOT EXISTS ServiceOrder (
     FOREIGN KEY (service_id) REFERENCES Service(service_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 14. Bảng LabResult — Kết quả xét nghiệm
 CREATE TABLE IF NOT EXISTS LabResult (
     lab_result_id    BIGINT AUTO_INCREMENT PRIMARY KEY,
     record_id        BIGINT       NOT NULL,
@@ -263,11 +230,10 @@ CREATE TABLE IF NOT EXISTS LabResult (
     FOREIGN KEY (service_order_id) REFERENCES ServiceOrder(order_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 14B. Bảng LabOrder — Phiếu yêu cầu xét nghiệm
 CREATE TABLE IF NOT EXISTS LabOrder (
     lab_order_id    BIGINT AUTO_INCREMENT PRIMARY KEY,
-    examination_id  BIGINT       NOT NULL              COMMENT 'FK → MedicalRecord.record_id (lần khám)',
-    patient_id      BIGINT       NOT NULL              COMMENT 'FK → Patient.patient_id',
+    examination_id  BIGINT       NOT NULL              ,
+    patient_id      BIGINT       NOT NULL              ,
     test_type       ENUM('BLOOD','URINE','XRAY','ULTRASOUND','OTHER') DEFAULT 'OTHER'
                                                        COMMENT 'Loại xét nghiệm',
     test_name       VARCHAR(255) NOT NULL               COMMENT 'Tên xét nghiệm cụ thể',
@@ -287,7 +253,6 @@ CREATE TABLE IF NOT EXISTS LabOrder (
     FOREIGN KEY (ordered_by)     REFERENCES `User`(user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 15. Bảng Prescription — Đơn thuốc
 CREATE TABLE IF NOT EXISTS Prescription (
     prescription_id BIGINT AUTO_INCREMENT PRIMARY KEY,
     record_id       BIGINT       NOT NULL,
@@ -298,7 +263,6 @@ CREATE TABLE IF NOT EXISTS Prescription (
     FOREIGN KEY (record_id) REFERENCES MedicalRecord(record_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 16. Bảng PrescriptionDetail — Chi tiết đơn thuốc
 CREATE TABLE IF NOT EXISTS PrescriptionDetail (
     detail_id       BIGINT AUTO_INCREMENT PRIMARY KEY,
     prescription_id BIGINT        NOT NULL,
@@ -314,11 +278,7 @@ CREATE TABLE IF NOT EXISTS PrescriptionDetail (
     FOREIGN KEY (medicine_id)     REFERENCES Medicine(medicine_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ============================================================
--- C (tiếp). HÓA ĐƠN
--- ============================================================
 
--- 17. Bảng Invoice — Hóa đơn thanh toán
 CREATE TABLE IF NOT EXISTS Invoice (
     invoice_id     BIGINT AUTO_INCREMENT PRIMARY KEY,
     patient_id     BIGINT        NOT NULL,
@@ -343,7 +303,6 @@ CREATE TABLE IF NOT EXISTS Invoice (
     FOREIGN KEY (created_by) REFERENCES `User`(user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 18. Bảng InvoiceServiceDetail — Chi tiết hóa đơn: DỊCH VỤ
 CREATE TABLE IF NOT EXISTS InvoiceServiceDetail (
     detail_id        BIGINT AUTO_INCREMENT PRIMARY KEY,
     invoice_id       BIGINT        NOT NULL,
@@ -356,7 +315,6 @@ CREATE TABLE IF NOT EXISTS InvoiceServiceDetail (
     FOREIGN KEY (service_order_id) REFERENCES ServiceOrder(order_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 19. Bảng InvoiceMedicineDetail — Chi tiết hóa đơn: THUỐC
 CREATE TABLE IF NOT EXISTS InvoiceMedicineDetail (
     detail_id              BIGINT AUTO_INCREMENT PRIMARY KEY,
     invoice_id             BIGINT        NOT NULL,
@@ -373,11 +331,6 @@ CREATE TABLE IF NOT EXISTS InvoiceMedicineDetail (
     FOREIGN KEY (prescription_detail_id) REFERENCES PrescriptionDetail(detail_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ============================================================
--- E. PHÁT THUỐC
--- ============================================================
-
--- 20. Bảng Dispensing — Phiếu phát thuốc
 CREATE TABLE IF NOT EXISTS Dispensing (
     dispensing_id    BIGINT AUTO_INCREMENT PRIMARY KEY,
     prescription_id BIGINT        NOT NULL,
@@ -394,7 +347,6 @@ CREATE TABLE IF NOT EXISTS Dispensing (
     FOREIGN KEY (dispensed_by)    REFERENCES `User`(user_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 21. Bảng DispensingItem — Chi tiết phát thuốc
 CREATE TABLE IF NOT EXISTS DispensingItem (
     item_id                BIGINT AUTO_INCREMENT PRIMARY KEY,
     dispensing_id          BIGINT        NOT NULL,
@@ -412,11 +364,7 @@ CREATE TABLE IF NOT EXISTS DispensingItem (
     FOREIGN KEY (medicine_id)            REFERENCES Medicine(medicine_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ============================================================
--- F. HẸN TÁI KHÁM
--- ============================================================
 
--- 22. Bảng FollowUp — Hẹn tái khám
 CREATE TABLE IF NOT EXISTS FollowUp (
     follow_up_id   BIGINT AUTO_INCREMENT PRIMARY KEY,
     patient_id     BIGINT       NOT NULL,
@@ -431,11 +379,7 @@ CREATE TABLE IF NOT EXISTS FollowUp (
     FOREIGN KEY (record_id)  REFERENCES MedicalRecord(record_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ============================================================
--- G. CẤU HÌNH PHÒNG KHÁM
--- ============================================================
 
--- 23. Bảng ClinicConfig — Lưu cấu hình chung (key-value)
 CREATE TABLE IF NOT EXISTS ClinicConfig (
     config_id    BIGINT AUTO_INCREMENT PRIMARY KEY,
     config_key   VARCHAR(50)  NOT NULL UNIQUE,
@@ -444,11 +388,7 @@ CREATE TABLE IF NOT EXISTS ClinicConfig (
     updated_at   DATETIME     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ============================================================
--- H. TƯƠNG TÁC THUỐC
--- ============================================================
 
--- 24. Bảng DrugInteraction — Cặp thuốc có tương tác
 CREATE TABLE IF NOT EXISTS DrugInteraction (
     interaction_id  BIGINT AUTO_INCREMENT PRIMARY KEY,
     medicine_id_1   BIGINT       NOT NULL,
@@ -463,11 +403,6 @@ CREATE TABLE IF NOT EXISTS DrugInteraction (
     CHECK (medicine_id_1 < medicine_id_2)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ============================================================
--- I. DANH MỤC ICD-10
--- ============================================================
-
--- 25. Bảng Icd10Code — Mã bệnh quốc tế
 CREATE TABLE IF NOT EXISTS Icd10Code (
     icd_id    BIGINT AUTO_INCREMENT PRIMARY KEY,
     code      VARCHAR(10)  NOT NULL UNIQUE,
@@ -476,9 +411,6 @@ CREATE TABLE IF NOT EXISTS Icd10Code (
     category  VARCHAR(200) COMMENT 'Nhóm bệnh'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ============================================================
--- VIEW — Tổng hợp hóa đơn
--- ============================================================
 
 CREATE OR REPLACE VIEW InvoiceSummary AS
 SELECT
@@ -522,9 +454,6 @@ LEFT JOIN (
     GROUP BY invoice_id
 ) med ON i.invoice_id = med.invoice_id;
 
--- ============================================================
--- INDEXES
--- ============================================================
 
 CREATE INDEX idx_patient_name    ON Patient(full_name);
 CREATE INDEX idx_patient_phone   ON Patient(phone);

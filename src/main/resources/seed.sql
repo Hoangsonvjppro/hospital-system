@@ -1,16 +1,8 @@
--- ============================================================
--- SEED DATA — Phòng Mạch Tư
--- Chạy sau schema.sql
--- ============================================================
-
 SET NAMES utf8mb4;
 SET CHARACTER SET utf8mb4;
 
 USE clinic_management;
 
--- ============================================================
--- 1. VAI TRÒ (Roles)
--- ============================================================
 
 INSERT INTO Role (role_name, description) VALUES
     ('ADMIN',        'Quản trị hệ thống'),
@@ -21,10 +13,6 @@ INSERT INTO Role (role_name, description) VALUES
     ('PATIENT',      'Bệnh nhân (xem lịch sử khám)'),
     ('PHARMACIST',   'Dược sĩ / Kho dược');
 
--- ============================================================
--- 2. TÀI KHOẢN (Users)
--- Password cho tất cả: "password"
--- ============================================================
 
 INSERT INTO `User` (username, password_hash, full_name, email, phone, role_id) VALUES
     ('admin',    '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'Quản trị viên',      'admin@clinic.local',    NULL,         1),
@@ -35,17 +23,10 @@ INSERT INTO `User` (username, password_hash, full_name, email, phone, role_id) V
     ('doctor2',  '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'BS. Trần Thị Mai',    'doctor2@clinic.local',  '0901234568', 2),
     ('nurse1',   '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'YT. Phạm Thị Hồng',  'nurse1@clinic.local',   '0901234569', 3);
 
--- ============================================================
--- 3. BÁC SĨ (Doctors)
--- ============================================================
 
 INSERT INTO Doctor (user_id, specialty, license_no) VALUES
     (2, 'Nội tổng quát', 'BS-2024-001'),
     (6, 'Nhi khoa',      'BS-2024-002');
-
--- ============================================================
--- 4. DỊCH VỤ KHÁM (Services)
--- ============================================================
 
 INSERT INTO Service (service_name, price, description) VALUES
     ('Khám tổng quát',          150000, 'Khám bệnh tổng quát'),
@@ -53,10 +34,6 @@ INSERT INTO Service (service_name, price, description) VALUES
     ('Xét nghiệm nước tiểu',   100000, 'Xét nghiệm nước tiểu thường quy'),
     ('Siêu âm bụng',           300000, 'Siêu âm bụng tổng quát'),
     ('Đo điện tim (ECG)',       250000, 'Đo điện tim');
-
--- ============================================================
--- 5. KHO THUỐC (20 loại)
--- ============================================================
 
 INSERT INTO Medicine (medicine_code, medicine_name, generic_name, unit, dosage_form, cost_price, sell_price, stock_qty, min_threshold, manufacturer, expiry_date, description) VALUES
     ('MED001', 'Paracetamol 500mg',     'Paracetamol',     'Viên', 'Viên nén',          1200, 2000,  500, 50,  'Công ty Dược Hậu Giang',   '2027-12-31', 'Giảm đau, hạ sốt'),
@@ -80,9 +57,6 @@ INSERT INTO Medicine (medicine_code, medicine_name, generic_name, unit, dosage_f
     ('MED019', 'Loperamide 2mg',        'Loperamide',      'Viên', 'Viên nang',         1200, 2000,  400, 40,  'Công ty Dược OPV',         '2027-11-30', 'Chống tiêu chảy'),
     ('MED020', 'Doxycycline 100mg',     'Doxycycline',     'Viên', 'Viên nang',         2000, 3500,  250, 25,  'Công ty Dược Pymepharco',  '2027-08-10', 'Kháng sinh nhóm tetracycline');
 
--- ============================================================
--- 6. THÀNH PHẦN THUỐC (phục vụ cảnh báo dị ứng)
--- ============================================================
 
 INSERT INTO MedicineIngredient (medicine_id, ingredient_name) VALUES
     (1, 'Paracetamol'),
@@ -108,9 +82,6 @@ INSERT INTO MedicineIngredient (medicine_id, ingredient_name) VALUES
     (20, 'Doxycycline'),
     (20, 'Tetracycline');
 
--- ============================================================
--- 7. CẤU HÌNH PHÒNG KHÁM (ClinicConfig)
--- ============================================================
 
 INSERT INTO ClinicConfig (config_key, config_value, description) VALUES
     ('clinic_name',              'Phòng Khám Đa Khoa ABC',                 'Tên phòng khám'),
@@ -125,9 +96,6 @@ INSERT INTO ClinicConfig (config_key, config_value, description) VALUES
     ('prescription_validity_days','7',                                      'Số ngày hiệu lực đơn thuốc'),
     ('allow_partial_dispensing', 'true',                                     'Cho phép phát thuốc một phần');
 
--- ============================================================
--- 8. BỆNH NHÂN (10 bệnh nhân mẫu)
--- ============================================================
 
 INSERT INTO Patient (full_name, gender, date_of_birth, phone, id_card, address, allergy_note, patient_type) VALUES
     ('Nguyễn Văn Hùng',     'MALE',   '1985-03-15', '0912345001', '079185001001', '123 Lê Lợi, Q.1, TP.HCM',                   'NULL',    'REVISIT'),
