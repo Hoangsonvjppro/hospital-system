@@ -130,14 +130,14 @@ INSERT INTO ClinicConfig (config_key, config_value, description) VALUES
 -- ============================================================
 
 INSERT INTO Patient (full_name, gender, date_of_birth, phone, id_card, address, allergy_note, patient_type) VALUES
-    ('Nguyễn Văn Hùng',     'MALE',   '1985-03-15', '0912345001', '079185001001', '123 Lê Lợi, Q.1, TP.HCM',                   'Dị ứng Penicillin',    'REVISIT'),
-    ('Trần Thị Lan',        'FEMALE', '1990-07-22', '0912345002', '079190002002', '45 Nguyễn Huệ, Q.1, TP.HCM',                 NULL,                   'REVISIT'),
-    ('Lê Minh Tuấn',        'MALE',   '1978-11-08', '0912345003', '079178003003', '78 Trần Hưng Đạo, Q.5, TP.HCM',             'Dị ứng Aspirin',       'REVISIT'),
-    ('Phạm Thị Hoa',        'FEMALE', '1995-01-30', '0912345004', '079195004004', '12 Hai Bà Trưng, Q.3, TP.HCM',               NULL,                   'FIRST_VISIT'),
-    ('Hoàng Văn Đức',       'MALE',   '1960-06-12', '0912345005', '079160005005', '90 Điện Biên Phủ, Q.Bình Thạnh, TP.HCM',     'Dị ứng Paracetamol',   'REVISIT'),
-    ('Vũ Thị Mai Anh',      'FEMALE', '2000-09-05', '0912345006', '079200006006', '34 Lý Tự Trọng, Q.1, TP.HCM',               NULL,                   'REVISIT'),
-    ('Đặng Quốc Bảo',       'MALE',   '1988-04-17', '0912345007', '079188007007', '56 Pasteur, Q.3, TP.HCM',                    'Dị ứng Sulfonamide',   'FIRST_VISIT'),
-    ('Bùi Thị Ngọc Trinh',  'FEMALE', '1972-12-25', '0912345008', '079172008008', '67 Cách Mạng Tháng 8, Q.10, TP.HCM',         'Dị ứng Ibuprofen',     'FIRST_VISIT'),
-    ('Ngô Thanh Tùng',      'MALE',   '1992-08-03', '0912345009', '079192009009', '23 Võ Văn Tần, Q.3, TP.HCM',                NULL,                   'FIRST_VISIT'),
-    ('Lý Thị Kim Ngân',     'FEMALE', '1983-05-20', '0912345010', '079183010010', '89 Nam Kỳ Khởi Nghĩa, Q.1, TP.HCM',         NULL,                   'FIRST_VISIT');
+    ('Nguyễn Văn Hùng',     'MALE',   '1985-03-15', '0912345001', '079185001001', '123 Lê Lợi, Q.1, TP.HCM',                   'NULL',    'REVISIT'),
+    ('Trần Thị Lan',        'FEMALE', '1990-07-22', '0912345002', '079190002002', '45 Nguyễn Huệ, Q.1, TP.HCM',                 'NULL',                   'REVISIT'),
+    ('Lê Minh Tuấn',        'MALE',   '1978-11-08', '0912345003', '079178003003', '78 Trần Hưng Đạo, Q.5, TP.HCM',             'NULL',       'REVISIT'),
+    ('Phạm Thị Hoa',        'FEMALE', '1995-01-30', '0912345004', '079195004004', '12 Hai Bà Trưng, Q.3, TP.HCM',               'NULL',                   'FIRST_VISIT'),
+    ('Hoàng Văn Đức',       'MALE',   '1960-06-12', '0912345005', '079160005005', '90 Điện Biên Phủ, Q.Bình Thạnh, TP.HCM',     'NULL',   'REVISIT'),
+    ('Vũ Thị Mai Anh',      'FEMALE', '2000-09-05', '0912345006', '079200006006', '34 Lý Tự Trọng, Q.1, TP.HCM',               'NULL',                   'REVISIT'),
+    ('Đặng Quốc Bảo',       'MALE',   '1988-04-17', '0912345007', '079188007007', '56 Pasteur, Q.3, TP.HCM',                    'NULL',   'FIRST_VISIT'),
+    ('Bùi Thị Ngọc Trinh',  'FEMALE', '1972-12-25', '0912345008', '0791720₀8₀₀₈', '67 Cách Mạng Tháng 8, Q.1₀, TP.HCM',         'NULL',     'FIRST_VISIT'),
+    ('Ngô Thanh Tùng',      'MALE',   '1992-08-03', '0912345009', '079192009009', '23 Võ Văn Tần, Q.3, TP.HCM',                'NULL',                   'FIRST_VISIT'),
+    ('Lý Thị Kim Ngân',     'FEMALE', '1983-05-20', '0912345010', '079183010010', '89 Nam Kỳ Khởi Nghĩa, Q.1, TP.HCM',         'NULL',                   'FIRST_VISIT');
 
