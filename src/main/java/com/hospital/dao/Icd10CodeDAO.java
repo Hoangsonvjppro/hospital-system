@@ -9,16 +9,10 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-/**
- * DAO danh mục ICD-10 — Tìm kiếm mã bệnh.
- */
 public class Icd10CodeDAO extends AbstractDAO {
 
     private static final Logger LOGGER = Logger.getLogger(Icd10CodeDAO.class.getName());
 
-    /**
-     * Tìm kiếm mã ICD-10 theo keyword (code hoặc tên bệnh), giới hạn 20 kết quả.
-     */
     public List<Icd10Code> search(String keyword) {
         List<Icd10Code> result = new ArrayList<>();
         String sql = """

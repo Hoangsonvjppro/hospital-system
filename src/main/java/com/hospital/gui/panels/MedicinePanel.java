@@ -13,6 +13,7 @@ import com.hospital.model.MedicalRecord;
 import com.hospital.model.Medicine;
 import com.hospital.model.Prescription;
 import com.hospital.model.PrescriptionDetail;
+import com.hospital.model.DispensingItem;
 import com.hospital.model.StockTransaction;
 import com.hospital.model.MedicineIngredient;
 import com.hospital.dao.StockTransactionDAO;
@@ -60,7 +61,7 @@ public class MedicinePanel extends JPanel {
     private final MedicineBUS medicineBUS = new MedicineBUS();
     private final MedicalRecordBUS medicalRecordBUS = new MedicalRecordBUS();
     private final PrescriptionBUS prescriptionBUS = new PrescriptionBUS();
-    private final MedicineExportBUS medicineExportBUS = new MedicineExportBUS();
+    private final DispensingBUS dispensingBUS = new DispensingBUS();
     private final InvoiceBUS invoiceBUS = new InvoiceBUS();
     //
     private final DecimalFormat formatter = new DecimalFormat("###,###,###");
@@ -551,34 +552,29 @@ public class MedicinePanel extends JPanel {
             if(row==-1) return;
             long recordId=Long.parseLong(tablePendingRecords.getValueAt(row,0).toString());
             try {
-                // 1. Lấy đơn thuốc + chi tiết từ DB
+                // 1. Lấy đơn thuốc CONFIRMED từ DB
                 List<Prescription> prescriptions = prescriptionBUS.getByMedicalRecordId(recordId);
-                List<PrescriptionDetail> allDetails = new ArrayList<>();
+                MedicalRecord rec = medicalRecordBUS.findById(recordId);
+                long patientId = rec != null ? rec.getPatientId() : 0;
+
+                boolean hasConfirmed = false;
                 for (Prescription p : prescriptions) {
                     if ("CONFIRMED".equals(p.getStatus())) {
-                        allDetails.addAll(prescriptionBUS.getDetails(p.getId()));
+                        List<DispensingItem> items = dispensingBUS.getItemsForPrescription(p.getId());
+                        if (items.isEmpty()) continue;
+                        dispensingBUS.processDispensing(p.getId(), patientId, items, 1L, null);
+                        hasConfirmed = true;
                     }
                 }
-                if (allDetails.isEmpty()) {
-                    JOptionPane.showMessageDialog(this, "Không có chi tiết đơn thuốc nào để phát.", "Thông báo", JOptionPane.WARNING_MESSAGE);
+                if (!hasConfirmed) {
+                    JOptionPane.showMessageDialog(this, "Không có đơn thuốc nào để phát.", "Thông báo", JOptionPane.WARNING_MESSAGE);
                     return;
                 }
 
-                // 2. Xuất kho thuốc
-                String msg = medicineExportBUS.processPrescriptionExport(allDetails, 1, true);
-                LOGGER.info(msg);
-
-                // 3. Cập nhật trạng thái đơn thuốc → DISPENSED
-                for (Prescription p : prescriptions) {
-                    if ("CONFIRMED".equals(p.getStatus())) {
-                        prescriptionBUS.updateStatus(p.getId(), Prescription.STATUS_DISPENSED);
-                    }
-                }
-
-                // 4. Chuyển trạng thái bệnh án → COMPLETED
+                // 2. Chuyển trạng thái bệnh án → COMPLETED
                 medicalRecordBUS.updateStatus(recordId, "COMPLETED");
 
-                // 5. Tạo hóa đơn
+                // 3. Tạo hóa đơn
                 Invoice invoice = invoiceBUS.createInvoiceFromMedicalRecord(recordId);
                 String invoiceMsg = invoice != null ? "\nMã hóa đơn: " + invoice.getId() : "";
                 JOptionPane.showMessageDialog(null, "Đã phát thuốc thành công!" + invoiceMsg + "\nHóa đơn đã được chuyển sang bộ phận Kế toán.", "Thành công", JOptionPane.INFORMATION_MESSAGE);

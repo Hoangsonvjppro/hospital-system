@@ -8,20 +8,12 @@ import java.sql.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-/**
- * DAO truy xuất bảng ClinicConfig (key-value).
- * <p>
- * Bảng ClinicConfig lưu dạng (config_key, config_value).
- * DAO đọc tất cả key → map vào {@link ClinicConfig} object,
- * và ghi ngược từ object → UPDATE từng key.
- */
+
 public class ClinicConfigDAO {
 
     private static final Logger LOGGER = Logger.getLogger(ClinicConfigDAO.class.getName());
 
-    /**
-     * Đọc tất cả config từ DB, map vào ClinicConfig object.
-     */
+
     public ClinicConfig loadAll() {
         ClinicConfig cfg = new ClinicConfig();
         String sql = "SELECT config_key, config_value FROM ClinicConfig";
@@ -42,9 +34,7 @@ public class ClinicConfigDAO {
         return cfg;
     }
 
-    /**
-     * Lấy giá trị 1 key cụ thể.
-     */
+   
     public String getValue(String configKey) {
         String sql = "SELECT config_value FROM ClinicConfig WHERE config_key = ?";
         try (Connection conn = DatabaseConfig.getInstance().getConnection();
@@ -59,9 +49,6 @@ public class ClinicConfigDAO {
         return null;
     }
 
-    /**
-     * Cập nhật (INSERT ON DUPLICATE KEY UPDATE) 1 key.
-     */
     public boolean upsert(String configKey, String configValue) {
         String sql = "INSERT INTO ClinicConfig (config_key, config_value, updated_at) "
                    + "VALUES (?, ?, NOW()) "
@@ -77,9 +64,6 @@ public class ClinicConfigDAO {
         }
     }
 
-    /**
-     * Lưu toàn bộ ClinicConfig object → DB (batch UPDATE).
-     */
     public void saveAll(ClinicConfig cfg) {
         upsert(ClinicConfig.KEY_CLINIC_NAME,    cfg.getClinicName());
         upsert(ClinicConfig.KEY_CLINIC_ADDRESS,  cfg.getClinicAddress());
@@ -89,8 +73,6 @@ public class ClinicConfigDAO {
         upsert(ClinicConfig.KEY_WORKING_HOURS,   cfg.getWorkingHours());
         upsert(ClinicConfig.KEY_INVOICE_PREFIX,  cfg.getInvoicePrefix());
     }
-
-    // ── Private helper ────────────────────────────────────────
 
     private void mapToField(ClinicConfig cfg, String key, String value) {
         if (key == null || value == null) return;

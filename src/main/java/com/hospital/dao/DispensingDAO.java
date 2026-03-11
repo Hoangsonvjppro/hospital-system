@@ -12,13 +12,7 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-/**
- * DAO phát thuốc — truy vấn JDBC trên bảng Dispensing, DispensingItem.
- *
- * Hỗ trợ 2 mode:
- * - Mode 1 (default): tự lấy Connection → dùng cho thao tác đơn lẻ.
- * - Mode 2 (external connection): nhận Connection từ bên ngoài → dùng cho transaction.
- */
+
 public class DispensingDAO {
 
     private static final Logger LOGGER = Logger.getLogger(DispensingDAO.class.getName());
@@ -42,19 +36,6 @@ public class DispensingDAO {
         }
     }
 
-    // ═══════════════════════════════════════════════════════════
-    //  TẠO PHIẾU PHÁT THUỐC (TRANSACTION)
-    // ═══════════════════════════════════════════════════════════
-
-    /**
-     * Tạo phiếu phát thuốc trong transaction:
-     * 1. INSERT Dispensing record
-     * 2. INSERT từng DispensingItem
-     * 3. UPDATE Medicine.stock_qty (trừ tồn kho)
-     * 4. INSERT StockTransaction (audit trail)
-     *
-     * @return dispensing_id vừa tạo
-     */
     public long createDispensing(Dispensing d, List<DispensingItem> items) {
         String insertDispensing = """
             INSERT INTO Dispensing (prescription_id, patient_id, dispensed_by, status, total_amount, notes, dispensed_at)
