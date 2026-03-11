@@ -18,6 +18,7 @@ dependency-reduced-pom.xml
 nbproject/
 *.swp
 *.swo
+agent-prompts/
 
 # OS
 .DS_Store

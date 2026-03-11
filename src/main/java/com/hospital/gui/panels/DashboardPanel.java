@@ -2,6 +2,9 @@ package com.hospital.gui.panels;
 
 import com.formdev.flatlaf.FlatClientProperties;
 import com.hospital.dao.DashboardDAO;
+import com.hospital.bus.event.EventBus;
+import com.hospital.bus.event.ExaminationCompletedEvent;
+import com.hospital.bus.event.PaymentCompletedEvent;
 import com.hospital.gui.IconManager;
 import com.hospital.gui.UIConstants;
 
@@ -70,6 +73,14 @@ public class DashboardPanel extends JPanel {
         initComponents();
         loadDataAsync();
         startAutoRefresh();
+
+        // Subscribe to events để tự refresh khi có thay đổi
+        EventBus.getInstance().subscribe(PaymentCompletedEvent.class, evt -> {
+            SwingUtilities.invokeLater(this::loadDataAsync);
+        });
+        EventBus.getInstance().subscribe(ExaminationCompletedEvent.class, evt -> {
+            SwingUtilities.invokeLater(this::loadDataAsync);
+        });
     }
 
     // ══════════════════════════════════════════════════════════

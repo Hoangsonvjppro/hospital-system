@@ -2,38 +2,13 @@ package com.hospital.util;
 
 import com.hospital.exception.ValidationException;
 
-/**
- * Utility class xác thực dữ liệu đầu vào.
- * <p>
- * Ném {@link ValidationException} nếu dữ liệu không hợp lệ.
- * <p>
- * Sử dụng:
- * <pre>
- *   Validator.validatePhone("0912345678");         // OK
- *   Validator.validatePhone("abc");                // throws ValidationException
- *   Validator.validateRequired("Nguyễn Văn A", "Họ tên"); // OK
- *   Validator.validateRequired("", "Họ tên");      // throws ValidationException
- * </pre>
- */
 public final class Validator {
 
     private static final String PHONE_REGEX = "^0\\d{9}$";
     private static final String ID_CARD_REGEX = "^\\d{12}$";
 
-    private Validator() {
-        // utility class — prevent instantiation
-    }
+    private Validator() {}
 
-    // ══════════════════════════════════════════════════════════
-    //  VALIDATE METHODS
-    // ══════════════════════════════════════════════════════════
-
-    /**
-     * Kiểm tra số điện thoại hợp lệ (10 số, bắt đầu bằng 0).
-     *
-     * @param phone số điện thoại cần kiểm tra
-     * @throws ValidationException nếu không hợp lệ
-     */
     public static void validatePhone(String phone) {
         if (phone == null || !phone.matches(PHONE_REGEX)) {
             throw new ValidationException("phone",
@@ -41,12 +16,6 @@ public final class Validator {
         }
     }
 
-    /**
-     * Kiểm tra CCCD hợp lệ (12 chữ số).
-     *
-     * @param cccd CCCD cần kiểm tra
-     * @throws ValidationException nếu không hợp lệ
-     */
     public static void validateIdCard(String cccd) {
         if (cccd == null || !cccd.matches(ID_CARD_REGEX)) {
             throw new ValidationException("id_card",

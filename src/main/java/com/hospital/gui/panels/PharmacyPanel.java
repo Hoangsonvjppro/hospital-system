@@ -2,6 +2,8 @@ package com.hospital.gui.panels;
 
 import com.hospital.bus.DispensingBUS;
 import com.hospital.bus.InvoiceBUS;
+import com.hospital.bus.event.DispensingCompletedEvent;
+import com.hospital.bus.event.EventBus;
 import com.hospital.dao.PrescriptionDAO;
 import com.hospital.exception.BusinessException;
 import com.hospital.exception.DataAccessException;
@@ -9,8 +11,10 @@ import com.hospital.gui.UIConstants;
 import com.hospital.gui.components.RoundedButton;
 import com.hospital.gui.components.RoundedPanel;
 import com.hospital.gui.components.StatusBadge;
+import com.hospital.model.Account;
 import com.hospital.model.Dispensing;
 import com.hospital.model.DispensingItem;
+import com.hospital.util.SessionManager;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -503,13 +507,19 @@ public class PharmacyPanel extends JPanel {
         if (confirm != JOptionPane.YES_OPTION) return;
 
         try {
+            Account currentUser = SessionManager.getInstance().getCurrentUser();
+            Long pharmacistId = currentUser != null ? (long) currentUser.getId() : null;
+
             long dispensingId = dispensingBUS.processDispensing(
                     selectedDispensing.getPrescriptionId(),
                     selectedDispensing.getPatientId(),
                     currentItems,
-                    null, // TODO: pass current pharmacist user_id
+                    pharmacistId,
                     txtNotes.getText().trim()
             );
+
+            // Publish event để các panel khác tự refresh
+            EventBus.getInstance().publish(new DispensingCompletedEvent(dispensingId));
 
             // Tạo hóa đơn tự động
             boolean invoiceCreated = false;

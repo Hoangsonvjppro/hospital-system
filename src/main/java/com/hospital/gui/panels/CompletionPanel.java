@@ -1,6 +1,8 @@
 package com.hospital.gui.panels;
 
 import com.hospital.bus.*;
+import com.hospital.bus.event.EventBus;
+import com.hospital.bus.event.ExaminationCompletedEvent;
 import com.hospital.dao.DoctorDAO;
 import com.hospital.dao.MedicalRecordDAO;
 import com.hospital.exception.BusinessException;
@@ -606,6 +608,9 @@ public class CompletionPanel extends JPanel {
 
         try {
             recordBUS.updateStatus(record.getId(), MedicalRecord.STATUS_COMPLETED);
+
+            // Publish event để Dashboard và các panel khác tự refresh
+            EventBus.getInstance().publish(new ExaminationCompletedEvent(record.getId()));
 
             JOptionPane.showMessageDialog(this,
                     "Hoàn tất lượt khám thành công!\nBệnh án #" + record.getId(),

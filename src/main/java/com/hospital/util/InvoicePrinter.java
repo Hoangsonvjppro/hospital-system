@@ -15,33 +15,14 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 
-/**
- * Tiện ích xuất hóa đơn ra file PDF.
- * <p>
- * Sử dụng thư viện iText 5 với font hệ thống hỗ trợ tiếng Việt (Unicode).
- * <p>
- * Cách dùng:
- * <pre>
- *   InvoicePrinter.exportPdf(invoice, "C:/output/HD00001.pdf");
- * </pre>
- */
+
 public class InvoicePrinter {
 
     private static final NumberFormat MONEY_FMT = NumberFormat.getInstance(new Locale("vi", "VN"));
     private static final BaseColor HEADER_BG = new BaseColor(192, 57, 43);   // PRIMARY_RED
     private static final BaseColor LIGHT_GRAY = new BaseColor(245, 245, 245);
 
-    // ══════════════════════════════════════════════════════════
-    //  PUBLIC API
-    // ══════════════════════════════════════════════════════════
 
-    /**
-     * Xuất hóa đơn ra file PDF.
-     *
-     * @param invoice  hóa đơn đầy đủ (đã load serviceDetails + medicineDetails)
-     * @param destPath đường dẫn file PDF đích (VD: "C:/invoices/HD00001.pdf")
-     * @throws Exception nếu có lỗi ghi file hoặc font
-     */
     public static void exportPdf(Invoice invoice, String destPath) throws Exception {
         BaseFont bf = createVietnameseBaseFont();
 
@@ -58,7 +39,6 @@ public class InvoicePrinter {
         PdfWriter.getInstance(doc, new FileOutputStream(destPath));
         doc.open();
 
-        // ── 1. HEADER — Tên phòng khám (từ ClinicConfig) ────
         ClinicConfig cfg = new ClinicConfigBUS().getConfig();
         addCentered(doc, cfg.getClinicName().toUpperCase(), fHeader);
         String subHeader = safe(cfg.getClinicAddress());
@@ -68,11 +48,9 @@ public class InvoicePrinter {
         addCentered(doc, subHeader, fSmall);
         doc.add(Chunk.NEWLINE);
 
-        // ── 2. TITLE ─────────────────────────────────────────
         addCentered(doc, "HÓA ĐƠN THANH TOÁN", fTitle);
-        doc.add(new Paragraph(" "));  // spacer
+        doc.add(new Paragraph(" "));
 
-        // ── 3. THÔNG TIN HÓA ĐƠN ────────────────────────────
         PdfPTable infoTbl = new PdfPTable(2);
         infoTbl.setWidthPercentage(100);
         infoTbl.setWidths(new float[]{35, 65});
@@ -90,12 +68,10 @@ public class InvoicePrinter {
         }
         doc.add(infoTbl);
 
-        // ── 4. BẢNG CHI TIẾT ─────────────────────────────────
         PdfPTable table = new PdfPTable(new float[]{6, 34, 10, 8, 21, 21});
         table.setWidthPercentage(100);
         table.setSpacingBefore(4);
 
-        // Header row
         String[] headers = {"#", "Tên mục", "Loại", "SL", "Đơn giá", "Thành tiền"};
         for (String h : headers) {
             PdfPCell cell = new PdfPCell(new Phrase(h, fTableHead));
@@ -108,14 +84,12 @@ public class InvoicePrinter {
         int stt = 1;
         boolean alt = false;
 
-        // Phí khám
         if (invoice.getExamFee() > 0) {
             addDetailRow(table, stt++, "Phí khám", "Khám",
                     1, invoice.getExamFee(), invoice.getExamFee(), fNormal, alt);
             alt = !alt;
         }
 
-        // Dịch vụ
         if (invoice.getServiceDetails() != null) {
             for (InvoiceServiceDetail d : invoice.getServiceDetails()) {
                 addDetailRow(table, stt++, d.getServiceName(), "Dịch vụ",
@@ -124,7 +98,6 @@ public class InvoicePrinter {
             }
         }
 
-        // Thuốc
         if (invoice.getMedicineDetails() != null) {
             for (InvoiceMedicineDetail d : invoice.getMedicineDetails()) {
                 String name = d.getMedicineName();
@@ -139,7 +112,6 @@ public class InvoicePrinter {
 
         doc.add(table);
 
-        // ── 5. TỔNG HỢP CHI PHÍ ─────────────────────────────
         doc.add(new Paragraph(" "));
         PdfPTable summary = new PdfPTable(2);
         summary.setWidthPercentage(50);
@@ -153,7 +125,6 @@ public class InvoicePrinter {
             addSummaryRow(summary, "Giảm giá:", -invoice.getDiscount(), fNormal);
         }
 
-        // Dòng TỔNG CỘNG
         PdfPCell totalLbl = new PdfPCell(new Phrase("TỔNG CỘNG:", fTotal));
         totalLbl.setBorder(Rectangle.TOP);
         totalLbl.setBorderColorTop(BaseColor.DARK_GRAY);
@@ -168,7 +139,6 @@ public class InvoicePrinter {
         totalVal.setHorizontalAlignment(Element.ALIGN_RIGHT);
         summary.addCell(totalVal);
 
-        // Tiền khách đưa & thừa (nếu đã thanh toán)
         if ("PAID".equals(invoice.getStatus())) {
             addSummaryRow(summary, "Tiền khách đưa:", invoice.getPaidAmount(), fNormal);
             addSummaryRow(summary, "Tiền thừa:", invoice.getChangeAmount(), fNormal);
@@ -176,7 +146,6 @@ public class InvoicePrinter {
 
         doc.add(summary);
 
-        // ── 6. FOOTER ────────────────────────────────────────
         doc.add(Chunk.NEWLINE);
         doc.add(Chunk.NEWLINE);
         addCentered(doc, "Cảm ơn quý khách đã sử dụng dịch vụ!", fSmallIt);
@@ -186,23 +155,14 @@ public class InvoicePrinter {
         doc.close();
     }
 
-    // ══════════════════════════════════════════════════════════
-    //  FONT HELPER
-    // ══════════════════════════════════════════════════════════
-
-    /**
-     * Tìm font TTF hỗ trợ tiếng Việt trên hệ thống.
-     * Ưu tiên Times New Roman → Arial → Tahoma (Windows).
-     * Fallback cho Linux (DejaVu / Liberation).
-     */
     private static BaseFont createVietnameseBaseFont() throws Exception {
         String[] candidates = {
                 "c:/windows/fonts/times.ttf",
                 "c:/windows/fonts/arial.ttf",
                 "c:/windows/fonts/tahoma.ttf",
                 "c:/windows/fonts/segoeui.ttf",
-                "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-                "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"
+                "/usr/share/fonts/truetype/Jetbrain/Mono/JetBrainsMono-Regular.ttf",
+                "/usr/share/fonts/truetype/Jetbrain/Jetbrain-Regular.ttf"
         };
         for (String path : candidates) {
             if (new File(path).exists()) {

@@ -1,6 +1,8 @@
 package com.hospital.gui.panels;
 
 import com.hospital.bus.InvoiceBUS;
+import com.hospital.bus.event.EventBus;
+import com.hospital.bus.event.PaymentCompletedEvent;
 import com.hospital.exception.DataAccessException;
 import com.hospital.gui.UIConstants;
 import com.hospital.util.AsyncTask;
@@ -10,10 +12,13 @@ import com.hospital.gui.components.StatusBadge;
 import com.hospital.model.Invoice;
 import com.hospital.model.InvoiceMedicineDetail;
 import com.hospital.model.InvoiceServiceDetail;
+import com.hospital.util.InvoicePrinter;
 
 import javax.swing.*;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.table.*;
 import java.awt.*;
+import java.io.File;
 import java.text.NumberFormat;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -44,6 +49,11 @@ public class InvoiceListPanel extends JPanel {
         setBorder(BorderFactory.createEmptyBorder(20, 24, 20, 24));
         initComponents();
         loadData("ALL");
+
+        // Subscribe to payment completed events - auto refresh
+        EventBus.getInstance().subscribe(PaymentCompletedEvent.class, evt -> {
+            SwingUtilities.invokeLater(() -> onStatusFilter());
+        });
     }
 
     // ════════════════════════════════════════════════════════════
@@ -301,8 +311,15 @@ public class InvoiceListPanel extends JPanel {
         content.add(tabs, BorderLayout.CENTER);
 
         // Close button
-        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
         btnPanel.setOpaque(false);
+
+        RoundedButton btnPrint = new RoundedButton("🖨️ In hóa đơn");
+        btnPrint.setBackground(UIConstants.PRIMARY);
+        btnPrint.setForeground(Color.WHITE);
+        btnPrint.addActionListener(e -> printInvoice(inv, dlg));
+        btnPanel.add(btnPrint);
+
         RoundedButton btnClose = new RoundedButton("Đóng");
         btnClose.setBackground(UIConstants.TEXT_SECONDARY);
         btnClose.setForeground(Color.WHITE);
@@ -312,6 +329,40 @@ public class InvoiceListPanel extends JPanel {
 
         dlg.setContentPane(content);
         dlg.setVisible(true);
+    }
+
+    // ════════════════════════════════════════════════════════════
+    //  PRINT INVOICE
+    // ════════════════════════════════════════════════════════════
+
+    private void printInvoice(Invoice inv, JDialog parentDlg) {
+        JFileChooser chooser = new JFileChooser();
+        chooser.setDialogTitle("Lưu hóa đơn PDF");
+        chooser.setSelectedFile(new File(inv.getInvoiceCode() + ".pdf"));
+        chooser.setFileFilter(new FileNameExtensionFilter("PDF Files (*.pdf)", "pdf"));
+
+        if (chooser.showSaveDialog(parentDlg) != JFileChooser.APPROVE_OPTION) return;
+
+        File file = chooser.getSelectedFile();
+        if (!file.getName().toLowerCase().endsWith(".pdf")) {
+            file = new File(file.getAbsolutePath() + ".pdf");
+        }
+
+        try {
+            InvoicePrinter.exportPdf(inv, file.getAbsolutePath());
+
+            int open = JOptionPane.showConfirmDialog(parentDlg,
+                    "Đã xuất hóa đơn thành công!\nFile: " + file.getName()
+                            + "\n\nBạn có muốn mở file ngay?",
+                    "Thành công", JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE);
+            if (open == JOptionPane.YES_OPTION) {
+                Desktop.getDesktop().open(file);
+            }
+        } catch (Exception ex) {
+            LOGGER.log(Level.SEVERE, "Lỗi xuất PDF hóa đơn", ex);
+            JOptionPane.showMessageDialog(parentDlg,
+                    "Lỗi xuất PDF: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+        }
     }
 
     // ════════════════════════════════════════════════════════════

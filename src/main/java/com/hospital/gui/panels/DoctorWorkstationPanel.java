@@ -5,6 +5,7 @@ import com.hospital.bus.MedicineBUS;
 import com.hospital.bus.PrescriptionBUS;
 import com.hospital.bus.QueueBUS;
 import com.hospital.bus.event.EventBus;
+import com.hospital.bus.event.DispensingCompletedEvent;
 import com.hospital.bus.event.LabResultReadyEvent;
 import com.hospital.bus.event.QueueUpdatedEvent;
 import com.hospital.exception.BusinessException;
@@ -114,6 +115,11 @@ public class DoctorWorkstationPanel extends JPanel {
 
         // Subscribe to queue updated events - refresh list when receptionist adds patient
         EventBus.getInstance().subscribe(QueueUpdatedEvent.class, evt -> {
+            SwingUtilities.invokeLater(() -> loadPatientList());
+        });
+
+        // Subscribe to dispensing completed events - refresh list when pharmacist dispenses
+        EventBus.getInstance().subscribe(DispensingCompletedEvent.class, evt -> {
             SwingUtilities.invokeLater(() -> loadPatientList());
         });
         
